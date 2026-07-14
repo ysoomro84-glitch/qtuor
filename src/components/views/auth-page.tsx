@@ -201,10 +201,10 @@ export function AuthPage() {
   const step2Valid = reg.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(reg.email) && reg.password.length >= 6 && reg.phone.trim().length >= 5
 
   return (
-    <div className="flex" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex" style={{ width: '100vw', minHeight: '100vh' }}>
 
       {/* ===== LEFT PANEL (40%) — Form ===== */}
-      <div className="flex w-[40%] flex-col" style={{ background: '#F8FAFC' }}>
+      <div className="flex w-[40%] flex-col" style={{ background: '#F8FAFC', minHeight: '100vh' }}>
 
         {/* Top bar: logo + back button */}
         <div className="flex items-center justify-between px-8 pt-6">
@@ -215,7 +215,7 @@ export function AuthPage() {
         </div>
 
         {/* Form area — centered */}
-        <div className="flex flex-1 items-center justify-center px-8">
+        <div className="flex flex-1 items-start justify-center px-8 py-8 overflow-y-auto">
           <div className="w-full max-w-sm">
 
             {/* ===== LOGIN ===== */}
@@ -599,7 +599,7 @@ export function AuthPage() {
       </div>
 
       {/* ===== RIGHT PANEL (60%) — Brand Showcase ===== */}
-      <div className="relative flex w-[60%] flex-col items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A192F 0%, #0B2545 50%, #133356 100%)' }}>
+      <div className="sticky top-0 flex h-screen w-[60%] flex-col items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A192F 0%, #0B2545 50%, #133356 100%)' }}>
         <IslamicPatternBand opacity={0.06} />
 
         <div className="relative z-10 flex flex-col items-center px-12 text-center text-white">
