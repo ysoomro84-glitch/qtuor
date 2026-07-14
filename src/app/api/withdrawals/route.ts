@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'TUTOR') {
     return NextResponse.json({ error: 'Tutor login required' }, { status: 401 })
   }
@@ -30,12 +31,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
   }
 
-  const wallet = await db.wallet.findUnique({ where: { tutorId: session.userId } })
+  const wallet = await (await _getDb()).wallet.findUnique({ where: { tutorId: session.userId } })
   if (!wallet || wallet.balance < amount) {
     return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 })
   }
 
-  const withdrawal = await db.withdrawal.create({
+  const withdrawal = await (await _getDb()).withdrawal.create({
     data: {
       tutorId: session.userId,
       amount,
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       mobileNumber: mobileNumber ?? null,
     },
   })
-  await db.wallet.update({
+  await (await _getDb()).wallet.update({
     where: { tutorId: session.userId },
     data: { balance: { decrement: amount }, pendingPayout: { increment: amount } },
   })

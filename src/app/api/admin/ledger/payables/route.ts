@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /** GET /api/admin/ledger/payables — per-tutor wallet auditor + summary. */
 export async function GET() {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
 
-  const tutors = await db.user.findMany({
+  const tutors = await (await _getDb()).user.findMany({
     where: { role: 'TUTOR' },
     include: {
       tutorProfile: true,
@@ -19,7 +20,7 @@ export async function GET() {
   })
 
   // Count RELEASED splits per tutor (one batch query).
-  const releasedCounts = await db.walletSplit.groupBy({
+  const releasedCounts = await (await _getDb()).walletSplit.groupBy({
     by: ['tutorId'],
     where: { status: 'RELEASED' },
     _count: { _all: true },

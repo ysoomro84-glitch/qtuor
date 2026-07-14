@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers'
-import { db } from './db'
 import type { Role } from './store'
 
 const SESSION_COOKIE = 'qtuor-session'

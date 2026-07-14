@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession, setSession, hashPassword, verifyPassword } from '@/lib/auth'
+import { setSession, hashPassword, verifyPassword } from "@/lib/auth";
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /** GET /api/admin/security — returns the current admin user's id/email/name. */
 export async function GET() {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
-  const user = await db.user.findUnique({
+  const user = await (await _getDb()).user.findUnique({
     where: { id: session.userId },
     select: { id: true, email: true, name: true, role: true },
   })
@@ -18,7 +20,7 @@ export async function GET() {
 
 /** PATCH /api/admin/security — change master password and/or master email. */
 export async function PATCH(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -34,7 +36,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Current password is required' }, { status: 400 })
   }
 
-  const user = await db.user.findUnique({ where: { id: session.userId } })
+  const user = await (await _getDb()).user.findUnique({ where: { id: session.userId } })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   if (!verifyPassword(currentPassword, user.password)) {
@@ -61,7 +63,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 })
     }
     if (trimmed !== user.email.toLowerCase()) {
-      const taken = await db.user.findFirst({
+      const taken = await (await _getDb()).user.findFirst({
         where: { email: trimmed, NOT: { id: user.id } },
         select: { id: true },
       })
@@ -77,7 +79,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, email: finalEmail, unchanged: true })
   }
 
-  await db.user.update({ where: { id: user.id }, data: updates })
+  await (await _getDb()).user.update({ where: { id: user.id }, data: updates })
 
   // Keep the session cookie in sync so the navbar/header reflect the new email.
   await setSession({

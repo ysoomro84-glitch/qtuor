@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /**
  * PATCH /api/admin/ledger/receivables/[id]
@@ -14,7 +15,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -31,12 +32,12 @@ export async function PATCH(
     )
   }
 
-  const payment = await db.studentPayment.findUnique({ where: { id } })
+  const payment = await (await _getDb()).studentPayment.findUnique({ where: { id } })
   if (!payment) {
     return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
   }
 
-  const updated = await db.studentPayment.update({
+  const updated = await (await _getDb()).studentPayment.update({
     where: { id },
     data: { status },
   })
@@ -46,12 +47,12 @@ export async function PATCH(
   if (status === 'SUCCESS') {
     const planName = payment.planName
     // Find the plan by name (case-insensitive)
-    const plan = await db.plan.findFirst({
+    const plan = await (await _getDb()).plan.findFirst({
       where: { name: planName },
     })
 
     if (plan) {
-      const pendingSub = await db.subscription.findFirst({
+      const pendingSub = await (await _getDb()).subscription.findFirst({
         where: {
           userId: payment.studentId,
           planId: plan.id,
@@ -61,19 +62,19 @@ export async function PATCH(
       })
 
       if (pendingSub) {
-        await db.subscription.update({
+        await (await _getDb()).subscription.update({
           where: { id: pendingSub.id },
           data: { status: 'ACTIVE' },
         })
       }
     } else {
       // Fallback: activate the most recent PENDING subscription for this student.
-      const fallback = await db.subscription.findFirst({
+      const fallback = await (await _getDb()).subscription.findFirst({
         where: { userId: payment.studentId, status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
       })
       if (fallback) {
-        await db.subscription.update({
+        await (await _getDb()).subscription.update({
           where: { id: fallback.id },
           data: { status: 'ACTIVE' },
         })
@@ -85,7 +86,7 @@ export async function PATCH(
     // (also fires for Stripe webhook success — see /api/subscriptions).
     try {
       const { sendWhatsApp, getTemplate } = await import('@/lib/whatsapp')
-      const student = await db.user.findUnique({ where: { id: payment.studentId } })
+      const student = await (await _getDb()).user.findUnique({ where: { id: payment.studentId } })
       if (student?.phone) {
         const message = await getTemplate(
           'PAYMENT_SUCCESS',

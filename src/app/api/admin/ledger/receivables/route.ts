@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /** GET /api/admin/ledger/receivables — student payment audit log + summary. */
 export async function GET() {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
 
-  const payments = await db.studentPayment.findMany({
+  const payments = await (await _getDb()).studentPayment.findMany({
     orderBy: { paidAt: 'desc' },
     take: 200,
   })

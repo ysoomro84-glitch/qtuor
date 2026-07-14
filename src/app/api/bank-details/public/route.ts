@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /**
  * GET /api/bank-details/public
@@ -8,7 +10,7 @@ import { db } from '@/lib/db'
  * details because students need them to actually wire the money.
  */
 export async function GET() {
-  const bank = await db.bankAccount.findFirst({
+  const bank = await (await _getDb()).bankAccount.findFirst({
     where: { isDefault: true },
     orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
   })

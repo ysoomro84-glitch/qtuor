@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
 import { getTutorWalletLedger } from '@/lib/billing'
 
 export async function GET() {

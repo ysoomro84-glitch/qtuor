@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 async function adminGuard() {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') return null
   return session
 }
@@ -13,7 +14,7 @@ export async function GET() {
   const session = await adminGuard()
   if (!session) return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
 
-  const bankAccounts = await db.bankAccount.findMany({
+  const bankAccounts = await (await _getDb()).bankAccount.findMany({
     orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
   })
   return NextResponse.json({ bankAccounts })
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account holder is required' }, { status: 400 })
   }
 
-  const created = await db.$transaction(async (tx) => {
+  const created = await (await _getDb()).$transaction(async (tx) => {
     if (isDefault === true) {
       await tx.bankAccount.updateMany({ data: { isDefault: false } })
     }

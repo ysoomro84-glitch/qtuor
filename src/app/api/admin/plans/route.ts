@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
   const { name, category, classesPerMonth, monthlyPrice, description, features, popular } = await req.json()
-  const plan = await db.plan.create({
+  const plan = await (await _getDb()).plan.create({
     data: {
       name,
       category: category || 'General',

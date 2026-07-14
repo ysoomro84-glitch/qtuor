@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Demo accounts for Vercel deployment (when DB is unavailable)
+const DEMO_ACCOUNTS: Record<string, { password: string; id: string; name: string; role: string; country: string }> = {
+  'student@qtuor.com': { password: 'student123', id: 'demo-student-1', name: 'Demo Student', role: 'STUDENT', country: 'Pakistan' },
+  'abdullah@qtuor.com': { password: 'tutor123', id: 'demo-tutor-1', name: 'Sheikh Abdullah', role: 'TUTOR', country: 'Egypt' },
+  'admin@qtuor.com': { password: 'admin123', id: 'demo-admin-1', name: 'Admin', role: 'ADMIN', country: 'Global' },
+}
+
 export async function POST(req: NextRequest) {
+  let body: any = {}
   try {
-    const { email, password } = await req.json()
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
-    }
+    body = await req.json()
+  } catch {
+    // empty body
+  }
+
+  const { email, password } = body
+
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
+  }
+
+  try {
     const { db } = await import('@/lib/db')
     const { verifyPassword, setSession } = await import('@/lib/auth')
+
     const user = await db.user.findUnique({
       where: { email },
       select: { id: true, email: true, name: true, password: true, role: true, country: true, avatar: true },
@@ -26,9 +43,29 @@ export async function POST(req: NextRequest) {
     })
   } catch (e: any) {
     const msg = e?.message || 'Login failed.'
+
+    // On Vercel (no SQLite), fall back to demo accounts
     if (msg === 'DATABASE_UNAVAILABLE') {
-      return NextResponse.json({ error: 'Login is temporarily unavailable. Please try again later.' }, { status: 503 })
+      const demo = DEMO_ACCOUNTS[email]
+      if (demo && demo.password === password) {
+        try {
+          const { setSession } = await import('@/lib/auth')
+          await setSession({ userId: demo.id, role: demo.role as any, email, name: demo.name })
+        } catch {
+          // setSession may fail on Vercel edge — still return success
+        }
+        return NextResponse.json({
+          id: demo.id,
+          email,
+          name: demo.name,
+          role: demo.role,
+          country: demo.country,
+          avatar: null,
+        })
+      }
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
     }
+
     return NextResponse.json({ error: msg }, { status: 400 })
   }
 }

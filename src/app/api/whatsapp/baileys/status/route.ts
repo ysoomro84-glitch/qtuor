@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
 
 const GATEWAY = 'http://localhost:3004'
 

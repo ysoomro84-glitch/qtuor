@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
 import { sendWhatsApp, msgBookingStudent, msgBookingTutor } from '@/lib/whatsapp'
 import { format } from 'date-fns'
 
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+
 export async function GET(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session) return NextResponse.json({ bookings: [] })
   const { searchParams } = new URL(req.url)
   const role = searchParams.get('role') || 'student'
 
   const where = role === 'tutor' ? { tutorId: session.userId } : { studentId: session.userId }
-  const bookings = await db.booking.findMany({
+  const bookings = await (await _getDb()).booking.findMany({
     where,
     include: {
       student: { select: { id: true, name: true, avatar: true, country: true } },
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session) return NextResponse.json({ error: 'Login required' }, { status: 401 })
   const { tutorId, scheduledAt, durationMins = 30, topic, isTrial = false } = await req.json()
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Trial check
   if (isTrial) {
-    const usedTrial = await db.booking.findFirst({
+    const usedTrial = await (await _getDb()).booking.findFirst({
       where: { studentId: session.userId, isTrial: true },
     })
     if (usedTrial) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   } else {
     // Fixed monthly subscription — no class balance to check.
     // Student just needs an active subscription. Classes are unlimited within the plan.
-    const sub = await db.subscription.findFirst({
+    const sub = await (await _getDb()).subscription.findFirst({
       where: { userId: session.userId, status: 'ACTIVE' },
     })
     if (!sub) {
@@ -50,26 +51,26 @@ export async function POST(req: NextRequest) {
     }
 
     // If there's an ESCROWED split with no tutor assigned yet, assign this tutor
-    const unassignedSplit = await db.walletSplit.findFirst({
+    const unassignedSplit = await (await _getDb()).walletSplit.findFirst({
       where: { subscriptionId: sub.id, status: 'ESCROWED' },
     })
     if (unassignedSplit) {
       // Check if this split already has a tutor; if not, assign the booked tutor
       // (The split was created without a tutor if the student subscribed before booking)
       // We update the split's tutorId and add to that tutor's escrowHeld
-      const existingWallet = await db.wallet.findUnique({ where: { tutorId } })
+      const existingWallet = await (await _getDb()).wallet.findUnique({ where: { tutorId } })
       if (existingWallet) {
         // The escrow was already counted; just link the split to this tutor
-        await db.walletSplit.update({
+        await (await _getDb()).walletSplit.update({
           where: { id: unassignedSplit.id },
           data: { tutorId },
         })
       } else {
         // Create wallet for this tutor and add escrow
-        await db.wallet.create({
+        await (await _getDb()).wallet.create({
           data: { tutorId, escrowHeld: unassignedSplit.planPrice },
         })
-        await db.walletSplit.update({
+        await (await _getDb()).walletSplit.update({
           where: { id: unassignedSplit.id },
           data: { tutorId },
         })
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const booking = await db.booking.create({
+  const booking = await (await _getDb()).booking.create({
     data: {
       studentId: session.userId,
       tutorId,

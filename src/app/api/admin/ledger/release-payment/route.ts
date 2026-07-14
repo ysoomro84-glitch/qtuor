@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /** POST /api/admin/ledger/release-payment — admin releases a tutor wallet payout. */
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   const validMethods = ['BANK_TRANSFER', 'PAYPAL', 'STRIPE']
   const finalMethod = validMethods.includes(method || '') ? method! : 'BANK_TRANSFER'
 
-  const tutor = await db.user.findUnique({
+  const tutor = await (await _getDb()).user.findUnique({
     where: { id: tutorId },
     include: { wallet: true, tutorProfile: true },
   })
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       : `••••${destRaw.slice(-4)}`
     : null
 
-  const result = await db.$transaction(async (tx) => {
+  const result = await (await _getDb()).$transaction(async (tx) => {
     const release = await tx.payoutRelease.create({
       data: {
         tutorId,

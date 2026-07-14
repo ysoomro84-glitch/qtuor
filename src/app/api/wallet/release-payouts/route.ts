@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
 import { processTutorMonthlyPayouts } from '@/lib/billing'
 import { sendWhatsApp, msgTutorPayout } from '@/lib/whatsapp'
-import { db } from '@/lib/db'
+
+const _getDb = () => import("@/lib/db").then(m => m.db);
+const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /**
  * Admin endpoint to manually trigger the monthly payout cycle.
@@ -10,7 +11,7 @@ import { db } from '@/lib/db'
  * and sends WhatsApp notifications to tutors.
  */
 export async function POST() {
-  const session = await getSession()
+  const session = (await _getAuth())
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -18,7 +19,7 @@ export async function POST() {
   const result = await processTutorMonthlyPayouts()
 
   // Send WhatsApp payout notifications to all tutors who received money
-  const releasedSplits = await db.walletSplit.findMany({
+  const releasedSplits = await (await _getDb()).walletSplit.findMany({
     where: { status: 'RELEASED', releasedAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
     include: { tutor: { select: { id: true, name: true, phone: true } } },
   })
