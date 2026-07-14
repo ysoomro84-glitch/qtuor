@@ -39,11 +39,13 @@ function Shell() {
     )
   }
 
-  // Admin dashboard is full-screen with its own sidebar + top bar
-  if (view === 'admin') {
+  // Dashboard views are full-screen with their own navigation — no navbar, no footer
+  if (view === 'admin' || view === 'student-dashboard' || view === 'tutor-dashboard') {
     return (
       <Providers>
-        <AdminDashboard />
+        {view === 'student-dashboard' && <StudentDashboard />}
+        {view === 'tutor-dashboard' && <TutorDashboard />}
+        {view === 'admin' && <AdminDashboard />}
         <CheckoutModal plan={selectedPlan} />
       </Providers>
     )

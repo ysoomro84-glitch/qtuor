@@ -1605,6 +1605,36 @@ function DashboardContent({ data, name }: { data: DashboardData; name: string })
 // ---------------------------------------------------------------------------
 // Default export — top-level Tutor Dashboard view
 // ---------------------------------------------------------------------------
+
+// ============================================================
+// Dashboard top bar (compact — replaces main site navbar)
+// ============================================================
+function DashboardTopBar({ userName, onLogout, onHome }: { userName: string; onLogout: () => void; onHome: () => void }) {
+  return (
+    <header
+      className="sticky top-0 z-50 w-full backdrop-blur-xl"
+      style={{
+        background: "rgba(255, 255, 255, 0.92)",
+        borderBottom: "1px solid rgba(142, 174, 198, 0.15)",
+      }}
+    >
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <button onClick={onHome} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground" aria-label="Back to home">
+            <ChevronLeft className="h-4 w-4" /> <QtuorLogoLockup />
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-sm font-medium sm:inline">{userName}</span>
+          <Button variant="ghost" size="sm" onClick={onLogout} className="gap-1.5 text-muted-foreground hover:text-destructive">
+            <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Sign out</span>
+          </Button>
+        </div>
+      </div>
+    </header>
+  )
+}
+
 export function TutorDashboard() {
   const user = useAppStore((s) => s.user)
   const openAuth = useAppStore((s) => s.openAuth)
@@ -1650,7 +1680,19 @@ export function TutorDashboard() {
     )
   }
 
-  return <DashboardContent data={data} name={user.name} />
+  const handleLogout = async () => {
+    await fetch("/api/auth/me", { method: "DELETE" })
+    useAppStore.getState().logout()
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <DashboardTopBar userName={user.name} onLogout={handleLogout} onHome={() => useAppStore.getState().setView("landing")} />
+      <main className="flex-1">
+        <DashboardContent data={data} name={user.name} />
+      </main>
+    </div>
+  )
 }
 
 export default TutorDashboard
