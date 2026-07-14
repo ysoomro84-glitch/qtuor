@@ -26,6 +26,9 @@ import {
   CalendarDays,
   Loader2,
   ShieldAlert,
+  Home,
+  LogOut,
+  ChevronLeft,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -38,6 +41,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar } from '@/components/shared/avatar'
 import { BismillahHeader, StarMedallion } from '@/components/brand/patterns'
+import { QtuorLogoLockup } from '@/components/brand/logo'
 
 // ---------------- Types ----------------
 type Tutor = { id: string; name: string; avatar?: string | null; country?: string | null }

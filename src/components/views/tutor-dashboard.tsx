@@ -29,6 +29,9 @@ import {
   PieChart,
   Hourglass,
   Receipt,
+  Home,
+  LogOut,
+  ChevronLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/lib/store'
