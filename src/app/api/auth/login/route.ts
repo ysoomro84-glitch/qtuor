@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { verifyPassword, setSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +6,8 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
     }
+    const { db } = await import('@/lib/db')
+    const { verifyPassword, setSession } = await import('@/lib/auth')
     const user = await db.user.findUnique({
       where: { email },
       select: { id: true, email: true, name: true, password: true, role: true, country: true, avatar: true },
@@ -25,6 +25,10 @@ export async function POST(req: NextRequest) {
       avatar: user.avatar,
     })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Login failed.' }, { status: 400 })
+    const msg = e?.message || 'Login failed.'
+    if (msg === 'DATABASE_UNAVAILABLE') {
+      return NextResponse.json({ error: 'Login is temporarily unavailable. Please try again later.' }, { status: 503 })
+    }
+    return NextResponse.json({ error: msg }, { status: 400 })
   }
 }
