@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Qtuor",
+    "slug": "qtuor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B2545"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.qtuor.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Qtuor needs camera access for live video classes.",
+        "NSMicrophoneUsageDescription": "Qtuor needs microphone access for live audio classes.",
+        "NSPhotoLibraryUsageDescription": "Qtuor needs photo access for profile pictures and document uploads."
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B2545"
+      },
+      "package": "com.qtuor.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#D4AF37",
+          "icon": "./assets/notification-icon.png",
+          "sounds": []
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    },
+    "owner": "qtuor"
+  }
+}

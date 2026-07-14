@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+google-services.json
+GoogleService-Info.plist
+.env
+eas.json

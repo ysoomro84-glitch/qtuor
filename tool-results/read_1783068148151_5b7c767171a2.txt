@@ -1,0 +1,806 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import { format, isToday, isTomorrow, parseISO } from 'date-fns'
+     6→import { toast } from 'sonner'
+     7→import {
+     8→  Clock,
+     9→  BookOpen,
+    10→  Moon,
+    11→  Star,
+    12→  TrendingUp,
+    13→  Video,
+    14→  X,
+    15→  Check,
+    16→  CheckCircle2,
+    17→  ArrowRight,
+    18→  LogIn,
+    19→  Search,
+    20→  Sparkles,
+    21→  Brain,
+    22→  Languages,
+    23→  ScrollText,
+    24→  Crown,
+    25→  AlertCircle,
+    26→  CalendarDays,
+    27→  Loader2,
+    28→  ShieldAlert,
+    29→} from 'lucide-react'
+    30→
+    31→import { cn } from '@/lib/utils'
+    32→import { useAppStore } from '@/lib/store'
+    33→import { useStudentDashboard, useUpdateBooking } from '@/lib/queries'
+    34→import { SUBJECTS } from '@/lib/constants'
+    35→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+    36→import { Button } from '@/components/ui/button'
+    37→import { Badge } from '@/components/ui/badge'
+    38→import { Progress } from '@/components/ui/progress'
+    39→import { Avatar } from '@/components/shared/avatar'
+    40→import { BismillahHeader, StarMedallion } from '@/components/brand/patterns'
+    41→
+    42→// ---------------- Types ----------------
+    43→type Tutor = { id: string; name: string; avatar?: string | null; country?: string | null }
+    44→type Booking = {
+    45→  id: string
+    46→  scheduledAt: string
+    47→  durationMins: number
+    48→  status: string
+    49→  isTrial?: boolean
+    50→  topic?: string | null
+    51→  meetingId?: string | null
+    52→  tutor: Tutor
+    53→}
+    54→type ProgressItem = {
+    55→  id: string
+    56→  subject: string
+    57→  lessonTitle: string
+    58→  surahName?: string | null
+    59→  completed: boolean
+    60→  progressPct: number
+    61→}
+    62→type Subscription = {
+    63→  id: string
+    64→  status: string
+    65→  hoursBalance: number
+    66→  startedAt: string
+    67→  expiresAt: string
+    68→  plan: {
+    69→    id: string
+    70→    name: string
+    71→    hoursPerWeek: number
+    72→    monthlyPrice: number
+    73→    features: string[]
+    74→  }
+    75→}
+    76→type DashboardData = {
+    77→  subscription: Subscription | null
+    78→  bookings: Booking[]
+    79→  progress: ProgressItem[]
+    80→  stats: {
+    81→    completedLessons: number
+    82→    memorizedSurahs: number
+    83→    totalBookings: number
+    84→    completedBookings: number
+    85→    hoursBalance: number
+    86→    completionRate: number
+    87→  }
+    88→}
+    89→
+    90→// ---------------- Subject icons ----------------
+    91→const SUBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    92→  BookOpen,
+    93→  Sparkles,
+    94→  Brain,
+    95→  Languages,
+    96→  ScrollText,
+    97→  Moon,
+    98→}
+    99→function subjectIcon(key: string) {
+   100→  const def = SUBJECTS.find((s) => s.key === key || s.label === key)
+   101→  const iconName = def?.icon || 'BookOpen'
+   102→  return SUBJECT_ICONS[iconName] || BookOpen
+   103→}
+   104→
+   105→// ---------------- Helpers ----------------
+   106→function formatClassDate(iso: string) {
+   107→  const d = parseISO(iso)
+   108→  const day = isToday(d)
+   109→    ? 'Today'
+   110→    : isTomorrow(d)
+   111→      ? 'Tomorrow'
+   112→      : format(d, 'EEE, MMM d')
+   113→  return { day, time: format(d, 'h:mm a') }
+   114→}
+   115→
+   116→function firstName(full: string) {
+   117→  return full?.trim().split(/\s+/)[0] || 'friend'
+   118→}
+   119→
+   120→// ---------------- Motion variants ----------------
+   121→const fadeUp = {
+   122→  hidden: { opacity: 0, y: 12 },
+   123→  visible: (i: number) => ({
+   124→    opacity: 1,
+   125→    y: 0,
+   126→    transition: { delay: Math.min(i * 0.05, 0.4), duration: 0.45, ease: 'easeOut' as const },
+   127→  }),
+   128→}
+   129→
+   130→// ============================================================
+   131→// Auth Gate
+   132→// ============================================================
+   133→function AuthGate() {
+   134→  const openAuth = useAppStore((s) => s.openAuth)
+   135→  return (
+   136→    <div className="mx-auto flex min-h-[70vh] max-w-md items-center justify-center px-4 py-12">
+   137→      <Card className="w-full overflow-hidden border-primary/10 p-0 shadow-lg">
+   138→        <div className="pattern-islamic relative h-24 bg-primary">
+   139→          <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)]" />
+   140→          <div className="pattern-stars absolute inset-0 opacity-40" />
+   141→          <div className="absolute -bottom-7 left-1/2 -translate-x-1/2">
+   142→            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
+   143→              <StarMedallion className="h-8 w-8 text-primary" />
+   144→            </div>
+   145→          </div>
+   146→        </div>
+   147→        <CardContent className="px-6 pb-6 pt-10 text-center">
+   148→          <h2 className="text-xl font-bold text-primary">Sign in to view your dashboard</h2>
+   149→          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+   150→            Track your classes, lesson progress, and subscription — all in one blessed place.
+   151→          </p>
+   152→          <Button
+   153→            onClick={() => openAuth('login')}
+   154→            className="mt-5 w-full bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   155→            size="lg"
+   156→          >
+   157→            <LogIn className="h-4 w-4" />
+   158→            Log in / Sign up
+   159→          </Button>
+   160→        </CardContent>
+   161→      </Card>
+   162→    </div>
+   163→  )
+   164→}
+   165→
+   166→function WrongRole({ role }: { role: string }) {
+   167→  const setView = useAppStore((s) => s.setView)
+   168→  const target = role === 'TUTOR' ? 'tutor-dashboard' : role === 'ADMIN' ? 'admin' : 'landing'
+   169→  return (
+   170→    <div className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4 py-12">
+   171→      <Card className="w-full border-amber-200 bg-amber-50/60 p-6 text-center">
+   172→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+   173→          <ShieldAlert className="h-6 w-6" />
+   174→        </div>
+   175→        <h2 className="text-lg font-bold text-foreground">This dashboard is for students</h2>
+   176→        <p className="mt-1 text-sm text-muted-foreground">
+   177→          Your account is registered as <span className="font-semibold">{role}</span>. Head to your own
+   178→          dashboard to continue.
+   179→        </p>
+   180→        <Button onClick={() => setView(target as any)} className="mt-4 w-full" variant="outline">
+   181→          Go to my dashboard
+   182→          <ArrowRight className="h-4 w-4" />
+   183→        </Button>
+   184→      </Card>
+   185→    </div>
+   186→  )
+   187→}
+   188→
+   189→// ============================================================
+   190→// Stat cards
+   191→// ============================================================
+   192→function StatCard({
+   193→  index,
+   194→  icon: Icon,
+   195→  label,
+   196→  value,
+   197→  sub,
+   198→  accent = 'primary',
+   199→}: {
+   200→  index: number
+   201→  icon: React.ComponentType<{ className?: string }>
+   202→  label: string
+   203→  value: React.ReactNode
+   204→  sub?: string
+   205→  accent?: 'primary' | 'accent' | 'gold'
+   206→}) {
+   207→  const accentBg =
+   208→    accent === 'accent'
+   209→      ? 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]'
+   210→      : accent === 'gold'
+   211→        ? 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]'
+   212→        : 'bg-[oklch(0.34_0.13_256/0.10)] text-primary'
+   213→  return (
+   214→    <motion.div
+   215→      custom={index}
+   216→      variants={fadeUp}
+   217→      initial="hidden"
+   218→      animate="visible"
+   219→    >
+   220→      <Card className="group h-full gap-0 p-5 transition-shadow hover:shadow-md">
+   221→        <div className="flex items-start justify-between">
+   222→          <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', accentBg)}>
+   223→            <Icon className="h-5 w-5" />
+   224→          </div>
+   225→        </div>
+   226→        <div className="mt-3">
+   227→          <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
+   228→          <div className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+   229→            {label}
+   230→          </div>
+   231→          {sub && <div className="mt-1 text-xs text-muted-foreground/80">{sub}</div>}
+   232→        </div>
+   233→      </Card>
+   234→    </motion.div>
+   235→  )
+   236→}
+   237→
+   238→function CompletionRing({ pct }: { pct: number }) {
+   239→  const r = 18
+   240→  const c = 2 * Math.PI * r
+   241→  const offset = c - (pct / 100) * c
+   242→  return (
+   243→    <div className="relative h-10 w-10">
+   244→      <svg viewBox="0 0 44 44" className="h-10 w-10 -rotate-90">
+   245→        <circle cx="22" cy="22" r={r} fill="none" stroke="oklch(0.34 0.13 256 / 0.12)" strokeWidth="4" />
+   246→        <circle
+   247→          cx="22"
+   248→          cy="22"
+   249→          r={r}
+   250→          fill="none"
+   251→          stroke="oklch(0.62 0.14 230)"
+   252→          strokeWidth="4"
+   253→          strokeLinecap="round"
+   254→          strokeDasharray={c}
+   255→          strokeDashoffset={offset}
+   256→          className="transition-[stroke-dashoffset] duration-700"
+   257→        />
+   258→      </svg>
+   259→      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary">
+   260→        {pct}%
+   261→      </span>
+   262→    </div>
+   263→  )
+   264→}
+   265→
+   266→function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
+   267→  return (
+   268→    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+   269→      <StatCard
+   270→        index={0}
+   271→        icon={Clock}
+   272→        label="Hours Balance"
+   273→        value={stats.hoursBalance}
+   274→        sub="remaining this cycle"
+   275→        accent="accent"
+   276→      />
+   277→      <StatCard
+   278→        index={1}
+   279→        icon={BookOpen}
+   280→        label="Completed Lessons"
+   281→        value={stats.completedLessons}
+   282→        sub={`${stats.completedBookings} of ${stats.totalBookings} classes`}
+   283→        accent="primary"
+   284→      />
+   285→      <StatCard
+   286→        index={2}
+   287→        icon={Moon}
+   288→        label="Surahs Memorized"
+   289→        value={stats.memorizedSurahs}
+   290→        sub="with revision"
+   291→        accent="gold"
+   292→      />
+   293→      <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible">
+   294→        <Card className="h-full p-5 transition-shadow hover:shadow-md">
+   295→          <div className="flex items-start justify-between">
+   296→            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.34_0.13_256/0.10)] text-primary">
+   297→              <TrendingUp className="h-5 w-5" />
+   298→            </div>
+   299→            <CompletionRing pct={stats.completionRate} />
+   300→          </div>
+   301→          <div className="mt-3">
+   302→            <div className="text-2xl font-bold tracking-tight text-foreground">
+   303→              {stats.completionRate}%
+   304→            </div>
+   305→            <div className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+   306→              Completion Rate
+   307→            </div>
+   308→          </div>
+   309→        </Card>
+   310→      </motion.div>
+   311→    </div>
+   312→  )
+   313→}
+   314→
+   315→// ============================================================
+   316→// Upcoming Classes
+   317→// ============================================================
+   318→function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
+   319→  const setActiveBookingId = useAppStore((s) => s.setActiveBookingId)
+   320→  const setView = useAppStore((s) => s.setView)
+   321→  const updateBooking = useUpdateBooking()
+   322→
+   323→  const now = new Date()
+   324→  const upcoming = bookings
+   325→    .filter((b) => b.status === 'SCHEDULED' && new Date(b.scheduledAt) > now)
+   326→    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+   327→
+   328→  const onCancel = (b: Booking) => {
+   329→    updateBooking.mutate(
+   330→      { id: b.id, status: 'CANCELLED' },
+   331→      {
+   332→        onSuccess: () => toast.success('Class cancelled', { description: `With ${b.tutor.name}` }),
+   333→        onError: (e: unknown) =>
+   334→          toast.error('Could not cancel', { description: e instanceof Error ? e.message : 'Try again' }),
+   335→      }
+   336→    )
+   337→  }
+   338→
+   339→  return (
+   340→    <Card className="p-5 sm:p-6">
+   341→      <SectionHeader eyebrow="Your schedule" title="Upcoming Classes" icon={CalendarDays} />
+   342→      {upcoming.length === 0 ? (
+   343→        <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-primary/15 bg-[oklch(0.62_0.14_230/0.04)] p-8 text-center">
+   344→          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
+   345→            <Search className="h-6 w-6" />
+   346→          </div>
+   347→          <h3 className="mt-3 text-base font-semibold text-foreground">No upcoming classes</h3>
+   348→          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+   349→            Find a verified tutor and book your next session in just a few clicks.
+   350→          </p>
+   351→          <Button
+   352→            onClick={() => setView('marketplace')}
+   353→            className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   354→          >
+   355→            <Search className="h-4 w-4" />
+   356→            Find a Tutor
+   357→          </Button>
+   358→        </div>
+   359→      ) : (
+   360→        <div className="mt-4 max-h-96 space-y-3 overflow-y-auto scrollbar-quran pr-1">
+   361→          {upcoming.map((b) => {
+   362→            const { day, time } = formatClassDate(b.scheduledAt)
+   363→            return (
+   364→              <div
+   365→                key={b.id}
+   366→                className="group flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-[oklch(0.62_0.14_230/0.4)] hover:bg-[oklch(0.62_0.14_230/0.03)] sm:flex-row sm:items-center sm:justify-between"
+   367→              >
+   368→                <div className="flex min-w-0 items-center gap-3">
+   369→                  <Avatar name={b.tutor.name} src={b.tutor.avatar} country={b.tutor.country} size={44} />
+   370→                  <div className="min-w-0">
+   371→                    <div className="flex flex-wrap items-center gap-2">
+   372→                      <span className="truncate font-semibold text-foreground">{b.tutor.name}</span>
+   373→                      {b.isTrial && (
+   374→                        <Badge className="bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)] border-[oklch(0.78_0.15_85/0.4)]">
+   375→                          Trial
+   376→                        </Badge>
+   377→                      )}
+   378→                    </div>
+   379→                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+   380→                      <span className="font-medium text-[oklch(0.50_0.14_230)]">{day}</span>
+   381→                      <span>·</span>
+   382→                      <span>{time}</span>
+   383→                      <span>·</span>
+   384→                      <span>{b.durationMins} min</span>
+   385→                    </div>
+   386→                    {b.topic && (
+   387→                      <div className="mt-1 truncate text-xs text-foreground/70">
+   388→                        <span className="text-muted-foreground">Topic:</span> {b.topic}
+   389→                      </div>
+   390→                    )}
+   391→                  </div>
+   392→                </div>
+   393→                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+   394→                  <Button
+   395→                    variant="ghost"
+   396→                    size="sm"
+   397→                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+   398→                    onClick={() => onCancel(b)}
+   399→                    disabled={updateBooking.isPending}
+   400→                  >
+   401→                    <X className="h-4 w-4" />
+   402→                    Cancel
+   403→                  </Button>
+   404→                  <Button
+   405→                    size="sm"
+   406→                    className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   407→                    onClick={() => {
+   408→                      setActiveBookingId(b.id)
+   409→                      setView('classroom')
+   410→                    }}
+   411→                  >
+   412→                    <Video className="h-4 w-4" />
+   413→                    Join Classroom
+   414→                  </Button>
+   415→                </div>
+   416→              </div>
+   417→            )
+   418→          })}
+   419→        </div>
+   420→      )}
+   421→    </Card>
+   422→  )
+   423→}
+   424→
+   425→// ============================================================
+   426→// Lesson Progress Tracker
+   427→// ============================================================
+   428→function LessonProgressTracker({ progress }: { progress: ProgressItem[] }) {
+   429→  // Group by subject
+   430→  const grouped = React.useMemo(() => {
+   431→    const map = new Map<string, ProgressItem[]>()
+   432→    for (const p of progress) {
+   433→      const key = p.subject || 'General'
+   434→      if (!map.has(key)) map.set(key, [])
+   435→      map.get(key)!.push(p)
+   436→    }
+   437→    return Array.from(map.entries()).map(([subject, items]) => {
+   438→      const avg = Math.round(items.reduce((s, i) => s + (i.progressPct || 0), 0) / items.length)
+   439→      return { subject, items, avg }
+   440→    })
+   441→  }, [progress])
+   442→
+   443→  return (
+   444→    <Card className="p-5 sm:p-6">
+   445→      <SectionHeader eyebrow="Keep growing" title="Lesson Progress" icon={Sparkles} />
+   446→      {grouped.length === 0 ? (
+   447→        <div className="mt-5 rounded-xl border border-dashed border-border/70 bg-muted/30 p-8 text-center">
+   448→          <p className="text-sm text-muted-foreground">
+   449→            No lessons tracked yet. Once you complete your first class, your progress will appear here.
+   450→          </p>
+   451→        </div>
+   452→      ) : (
+   453→        <div className="mt-4 space-y-5">
+   454→          {grouped.map((g) => {
+   455→            const Icon = subjectIcon(g.subject)
+   456→            return (
+   457→              <div key={g.subject} className="rounded-xl border border-border/60 bg-card p-4">
+   458→                <div className="flex items-center justify-between gap-3">
+   459→                  <div className="flex items-center gap-2.5">
+   460→                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
+   461→                      <Icon className="h-4.5 w-4.5" />
+   462→                    </div>
+   463→                    <div>
+   464→                      <div className="text-sm font-semibold text-foreground">{g.subject}</div>
+   465→                      <div className="text-xs text-muted-foreground">
+   466→                        {g.items.length} lesson{g.items.length !== 1 ? 's' : ''} · {g.avg}% avg
+   467→                      </div>
+   468→                    </div>
+   469→                  </div>
+   470→                  <span className="text-sm font-bold text-primary">{g.avg}%</span>
+   471→                </div>
+   472→                <Progress
+   473→                  value={g.avg}
+   474→                  className="mt-3 h-1.5 bg-[oklch(0.34_0.13_256/0.10)] [&>[data-slot=progress-indicator]]:bg-[oklch(0.62_0.14_230)]"
+   475→                />
+   476→                <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto scrollbar-quran pr-1">
+   477→                  {g.items.map((item) => (
+   478→                    <li
+   479→                      key={item.id}
+   480→                      className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/40"
+   481→                    >
+   482→                      <div className="flex min-w-0 items-center gap-2">
+   483→                        {item.completed ? (
+   484→                          <CheckCircle2 className="h-4 w-4 shrink-0 text-[oklch(0.55_0.13_75)]" />
+   485→                        ) : (
+   486→                          <div className="h-4 w-4 shrink-0 rounded-full border-2 border-[oklch(0.62_0.14_230/0.5)]" />
+   487→                        )}
+   488→                        <div className="min-w-0">
+   489→                          <div className="truncate text-foreground">{item.lessonTitle}</div>
+   490→                          {item.surahName && (
+   491→                            <div className="truncate text-xs text-muted-foreground">
+   492→                              {item.surahName}
+   493→                            </div>
+   494→                          )}
+   495→                        </div>
+   496→                      </div>
+   497→                      <span
+   498→                        className={cn(
+   499→                          'shrink-0 text-xs font-semibold',
+   500→                          item.completed
+   501→                            ? 'text-[oklch(0.55_0.13_75)]'
+   502→                            : 'text-[oklch(0.50_0.14_230)]'
+   503→                        )}
+   504→                      >
+   505→                        {item.completed ? (
+   506→                          <span className="inline-flex items-center gap-1">
+   507→                            <Check className="h-3 w-3" /> Done
+   508→                          </span>
+   509→                        ) : (
+   510→                          `${item.progressPct}%`
+   511→                        )}
+   512→                      </span>
+   513→                    </li>
+   514→                  ))}
+   515→                </ul>
+   516→              </div>
+   517→            )
+   518→          })}
+   519→        </div>
+   520→      )}
+   521→    </Card>
+   522→  )
+   523→}
+   524→
+   525→// ============================================================
+   526→// Current Plan card
+   527→// ============================================================
+   528→function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
+   529→  const setView = useAppStore((s) => s.setView)
+   530→
+   531→  if (!subscription) {
+   532→    return (
+   533→      <Card className="overflow-hidden border-0 p-0">
+   534→        <div className="relative bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] p-6 text-white">
+   535→          <div className="pattern-stars absolute inset-0 opacity-30" />
+   536→          <div className="relative">
+   537→            <div className="flex items-center gap-2">
+   538→              <Crown className="h-5 w-5 text-[oklch(0.78_0.15_85)]" />
+   539→              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
+   540→                No active plan
+   541→              </span>
+   542→            </div>
+   543→            <h3 className="mt-2 text-lg font-bold">Start your Quran journey today</h3>
+   544→            <p className="mt-1 text-sm text-white/80">
+   545→              Choose a subscription plan and unlock weekly hours with verified tutors.
+   546→            </p>
+   547→            <Button
+   548→              onClick={() => setView('plans')}
+   549→              className="mt-4 w-full bg-white text-primary hover:bg-white/90"
+   550→            >
+   551→              <Crown className="h-4 w-4" />
+   552→              Choose a Plan
+   553→            </Button>
+   554→          </div>
+   555→        </div>
+   556→      </Card>
+   557→    )
+   558→  }
+   559→
+   560→  const total = subscription.plan.hoursPerWeek * 4
+   561→  const used = Math.max(0, total - subscription.hoursBalance)
+   562→  const usedPct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0
+   563→  const expires = format(parseISO(subscription.expiresAt), 'MMM d, yyyy')
+   564→
+   565→  return (
+   566→    <Card className="overflow-hidden p-0">
+   567→      <div className="relative bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] p-5 text-white">
+   568→        <div className="pattern-stars absolute inset-0 opacity-25" />
+   569→        <div className="relative flex items-start justify-between">
+   570→          <div>
+   571→            <div className="text-xs font-semibold uppercase tracking-wider text-white/70">
+   572→              Current Plan
+   573→            </div>
+   574→            <div className="mt-1 text-xl font-bold">{subscription.plan.name}</div>
+   575→            <div className="mt-0.5 text-sm text-white/80">
+   576→              {subscription.plan.hoursPerWeek} hrs/week · ${subscription.plan.monthlyPrice}/mo
+   577→            </div>
+   578→          </div>
+   579→          <Badge className="bg-[oklch(0.78_0.15_85)] text-[oklch(0.30_0.05_85)] border-transparent">
+   580→            Active
+   581→          </Badge>
+   582→        </div>
+   583→      </div>
+   584→      <div className="space-y-4 p-5">
+   585→        <div>
+   586→          <div className="flex items-center justify-between text-sm">
+   587→            <span className="text-muted-foreground">Hours used this cycle</span>
+   588→            <span className="font-semibold text-foreground">
+   589→              {used} / {total} hrs
+   590→            </span>
+   591→          </div>
+   592→          <Progress
+   593→            value={usedPct}
+   594→            className="mt-2 h-2 bg-[oklch(0.34_0.13_256/0.10)] [&>[data-slot=progress-indicator]]:bg-[oklch(0.62_0.14_230)]"
+   595→          />
+   596→          <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+   597→            <span>{subscription.hoursBalance} hrs remaining</span>
+   598→            <span>Renews {expires}</span>
+   599→          </div>
+   600→        </div>
+   601→
+   602→        {subscription.plan.features?.length > 0 && (
+   603→          <ul className="space-y-1.5">
+   604→            {subscription.plan.features.slice(0, 5).map((f, i) => (
+   605→              <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+   606→                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.50_0.14_230)]" />
+   607→                <span>{f}</span>
+   608→              </li>
+   609→            ))}
+   610→          </ul>
+   611→        )}
+   612→
+   613→        <div className="grid grid-cols-2 gap-2 pt-1">
+   614→          <Button
+   615→            variant="outline"
+   616→            size="sm"
+   617→            className="border-primary/20 text-primary hover:bg-[oklch(0.62_0.14_230/0.08)]"
+   618→            onClick={() => setView('plans')}
+   619→          >
+   620→            <Crown className="h-4 w-4" />
+   621→            Upgrade
+   622→          </Button>
+   623→          <Button
+   624→            size="sm"
+   625→            className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   626→            onClick={() => setView('marketplace')}
+   627→          >
+   628→            <Search className="h-4 w-4" />
+   629→            Find Tutors
+   630→          </Button>
+   631→        </div>
+   632→      </div>
+   633→    </Card>
+   634→  )
+   635→}
+   636→
+   637→// ============================================================
+   638→// Booking History
+   639→// ============================================================
+   640→function BookingHistory({ bookings }: { bookings: Booking[] }) {
+   641→  const past = bookings
+   642→    .filter((b) => b.status === 'COMPLETED')
+   643→    .slice(0, 8)
+   644→
+   645→  return (
+   646→    <Card className="p-5 sm:p-6">
+   647→      <SectionHeader eyebrow="Recently" title="Class History" icon={Clock} />
+   648→      {past.length === 0 ? (
+   649→        <div className="mt-4 rounded-lg border border-dashed border-border/70 bg-muted/30 p-6 text-center">
+   650→          <p className="text-sm text-muted-foreground">No completed classes yet.</p>
+   651→        </div>
+   652→      ) : (
+   653→        <ul className="mt-4 max-h-96 space-y-2 overflow-y-auto scrollbar-quran pr-1">
+   654→          {past.map((b) => {
+   655→            const d = parseISO(b.scheduledAt)
+   656→            return (
+   657→              <li
+   658→                key={b.id}
+   659→                className="flex items-center gap-3 rounded-lg border border-border/50 p-2.5 transition-colors hover:bg-muted/40"
+   660→              >
+   661→                <Avatar name={b.tutor.name} src={b.tutor.avatar} country={b.tutor.country} size={36} />
+   662→                <div className="min-w-0 flex-1">
+   663→                  <div className="truncate text-sm font-medium text-foreground">{b.tutor.name}</div>
+   664→                  <div className="text-xs text-muted-foreground">
+   665→                    {format(d, 'MMM d, yyyy')} · {b.durationMins}m
+   666→                  </div>
+   667→                </div>
+   668→                <CheckCircle2 className="h-4 w-4 shrink-0 text-[oklch(0.55_0.13_75)]" />
+   669→              </li>
+   670→            )
+   671→          })}
+   672→        </ul>
+   673→      )}
+   674→    </Card>
+   675→  )
+   676→}
+   677→
+   678→// ============================================================
+   679→// Section header (eyebrow + title)
+   680→// ============================================================
+   681→function SectionHeader({
+   682→  eyebrow,
+   683→  title,
+   684→  icon: Icon,
+   685→}: {
+   686→  eyebrow: string
+   687→  title: string
+   688→  icon: React.ComponentType<{ className?: string }>
+   689→}) {
+   690→  return (
+   691→    <div className="flex items-center gap-3">
+   692→      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
+   693→        <Icon className="h-4 w-4" />
+   694→      </div>
+   695→      <div>
+   696→        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[oklch(0.50_0.14_230)]">
+   697→          {eyebrow}
+   698→        </div>
+   699→        <h3 className="text-base font-bold leading-tight text-foreground">{title}</h3>
+   700→      </div>
+   701→    </div>
+   702→  )
+   703→}
+   704→
+   705→// ============================================================
+   706→// Loading skeleton
+   707→// ============================================================
+   708→function LoadingState() {
+   709→  return (
+   710→    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+   711→      <div className="flex items-center gap-3 text-muted-foreground">
+   712→        <Loader2 className="h-5 w-5 animate-spin" />
+   713→        <span>Loading your dashboard…</span>
+   714→      </div>
+   715→      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+   716→        {Array.from({ length: 4 }).map((_, i) => (
+   717→          <div key={i} className="h-28 animate-pulse rounded-xl bg-muted/60" />
+   718→        ))}
+   719→      </div>
+   720→      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+   721→        <div className="h-80 animate-pulse rounded-xl bg-muted/60 lg:col-span-2" />
+   722→        <div className="h-80 animate-pulse rounded-xl bg-muted/60" />
+   723→      </div>
+   724→    </div>
+   725→  )
+   726→}
+   727→
+   728→// ============================================================
+   729→// Welcome header
+   730→// ============================================================
+   731→function WelcomeHeader({ name }: { name: string }) {
+   732→  return (
+   733→    <div className="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] px-6 py-8 text-white sm:px-8">
+   734→      <div className="pattern-stars absolute inset-0 opacity-30" />
+   735→      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[oklch(0.78_0.15_85/0.18)] blur-2xl" />
+   736→      <div className="relative">
+   737→        <BismillahHeader className="mb-3 justify-start text-white/80" />
+   738→        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+   739→          Assalamu alaikum, <span className="text-[oklch(0.78_0.15_85)]">{firstName(name)}</span> 🌙
+   740→        </h1>
+   741→        <p className="mt-1.5 max-w-xl text-sm text-white/80 sm:text-base">
+   742→          May your journey of learning the Quran be filled with light. Here's a snapshot of your progress.
+   743→        </p>
+   744→      </div>
+   745→    </div>
+   746→  )
+   747→}
+   748→
+   749→// ============================================================
+   750→// Main dashboard
+   751→// ============================================================
+   752→export function StudentDashboard() {
+   753→  const user = useAppStore((s) => s.user)
+   754→  const { data, isLoading, isError, error } = useStudentDashboard()
+   755→
+   756→  // Auth guard
+   757→  if (!user) return <AuthGate />
+   758→  if (user.role !== 'STUDENT') return <WrongRole role={user.role} />
+   759→
+   760→  if (isLoading) return <LoadingState />
+   761→
+   762→  if (isError || !data) {
+   763→    return (
+   764→      <div className="mx-auto max-w-md px-4 py-16 text-center">
+   765→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+   766→          <AlertCircle className="h-6 w-6" />
+   767→        </div>
+   768→        <h2 className="text-lg font-bold">Could not load your dashboard</h2>
+   769→        <p className="mt-1 text-sm text-muted-foreground">
+   770→          {error instanceof Error ? error.message : 'Please try again later.'}
+   771→        </p>
+   772→      </div>
+   773→    )
+   774→  }
+   775→
+   776→  const dash = data as DashboardData
+   777→
+   778→  return (
+   779→    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+   780→      <WelcomeHeader name={user.name} />
+   781→
+   782→      {/* Stats */}
+   783→      <div className="mt-6">
+   784→        <StatsRow stats={dash.stats} />
+   785→      </div>
+   786→
+   787→      {/* Two-column layout */}
+   788→      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+   789→        {/* Left wider column */}
+   790→        <div className="space-y-6 lg:col-span-2">
+   791→          <UpcomingClasses bookings={dash.bookings} />
+   792→          <LessonProgressTracker progress={dash.progress} />
+   793→        </div>
+   794→
+   795→        {/* Right narrow column */}
+   796→        <div className="space-y-6">
+   797→          <CurrentPlan subscription={dash.subscription} />
+   798→          <BookingHistory bookings={dash.bookings} />
+   799→        </div>
+   800→      </div>
+   801→    </div>
+   802→  )
+   803→}
+   804→
+   805→export default StudentDashboard
+   806→

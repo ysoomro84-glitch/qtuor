@@ -1,0 +1,549 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import * as React from 'react'
+     4→     4→import { useAppStore, type Role } from '@/lib/store'
+     5→     5→import { usePlans } from '@/lib/queries'
+     6→     6→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+     7→     7→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+     8→     8→import { Input } from '@/components/ui/input'
+     9→     9→import { Label } from '@/components/ui/label'
+    10→    10→import { Button } from '@/components/ui/button'
+    11→    11→import { Textarea } from '@/components/ui/textarea'
+    12→    12→import { Checkbox } from '@/components/ui/checkbox'
+    13→    13→import { Badge } from '@/components/ui/badge'
+    14→    14→import { QtuorLogo } from '@/components/brand/logo'
+    15→    15→import { StarMedallion } from '@/components/brand/patterns'
+    16→    16→import {
+    17→    17→  GraduationCap, Loader2, User, Check, ChevronLeft, ChevronRight, BookOpen,
+    18→    18→  Sparkles, Brain, Languages, ShieldCheck, Award, BookOpenCheck, Phone, Globe,
+    19→    19→  CreditCard, Star,
+    20→    20→} from 'lucide-react'
+    21→    21→import { toast } from 'sonner'
+    22→    22→import { cn } from '@/lib/utils'
+    23→    23→
+    24→    24→type Step = 1 | 2 | 3
+    25→    25→
+    26→    26→const SUBJECT_OPTIONS = ['Noorani Qaida', 'Quran Recitation With Tajweed', 'Hifz', 'Arabic Language', 'Tafsir', 'Islamic Studies']
+    27→    27→const LANGUAGE_OPTIONS = ['Arabic', 'English', 'Urdu', 'Turkish', 'French', 'Malay', 'Hindi', 'Bengali']
+    28→    28→
+    29→    29→export function AuthModal() {
+    30→    30→  const { authOpen, authMode, closeAuth, setUser, setView, setSelectedPlanId, setCheckoutOpen } = useAppStore()
+    31→    31→  const [mode, setMode] = React.useState<'login' | 'register'>(authMode)
+    32→    32→  const [role, setRole] = React.useState<Role>('STUDENT')
+    33→    33→  const [step, setStep] = React.useState<Step>(1)
+    34→    34→  const [loading, setLoading] = React.useState(false)
+    35→    35→
+    36→    36→  // login form
+    37→    37→  const [loginEmail, setLoginEmail] = React.useState('')
+    38→    38→  const [loginPw, setLoginPw] = React.useState('')
+    39→    39→
+    40→    40→  // register form (shared account fields + tutor profile fields)
+    41→    41→  const [reg, setReg] = React.useState({
+    42→    42→    name: '',
+    43→    43→    email: '',
+    44→    44→    password: '',
+    45→    45→    country: '',
+    46→    46→    phone: '',
+    47→    47→    // tutor-only
+    48→    48→    bio: '',
+    49→    49→    specialties: [] as string[],
+    50→    50→    languages: [] as string[],
+    51→    51→    perClassRate: 6,
+    52→    52→    experienceYears: 1,
+    53→    53→    nativeArabic: false,
+    54→    54→    hafiz: false,
+    55→    55→    ijazaCertified: false,
+    56→    56→  })
+    57→    57→
+    58→    58→  // Student step 3: selected plan (null = "skip for now")
+    59→    59→  const [chosenPlanId, setChosenPlanId] = React.useState<string | null>(null)
+    60→    60→  const { data: plansData } = usePlans()
+    61→    61→  const plans = plansData?.plans || []
+    62→    62→
+    63→    63→  React.useEffect(() => {
+    64→    64→    if (authOpen) {
+    65→    65→      setMode(authMode)
+    66→    66→      setStep(1)
+    67→    67→      setRole('STUDENT')
+    68→    68→      setChosenPlanId(null)
+    69→    69→    }
+    70→    70→  }, [authOpen, authMode])
+    71→    71→
+    72→    72→  // ---- LOGIN ----
+    73→    73→  const handleLogin = async (e: React.FormEvent) => {
+    74→    74→    e.preventDefault()
+    75→    75→    setLoading(true)
+    76→    76→    try {
+    77→    77→      const res = await fetch('/api/auth/login', {
+    78→    78→        method: 'POST',
+    79→    79→        headers: { 'Content-Type': 'application/json' },
+    80→    80→        body: JSON.stringify({ email: loginEmail, password: loginPw }),
+    81→    81→      })
+    82→    82→      const data = await res.json()
+    83→    83→      if (!res.ok) throw new Error(data.error || 'Login failed')
+    84→    84→      setUser(data)
+    85→    85→      closeAuth()
+    86→    86→      toast.success(`Welcome back, ${data.name.split(' ')[0]}!`)
+    87→    87→      if (data.role === 'STUDENT') setView('student-dashboard')
+    88→    88→      else if (data.role === 'TUTOR') setView('tutor-dashboard')
+    89→    89→      else if (data.role === 'ADMIN') setView('admin')
+    90→    90→    } catch (e: any) {
+    91→    91→      toast.error(e.message)
+    92→    92→    } finally {
+    93→    93→      setLoading(false)
+    94→    94→    }
+    95→    95→  }
+    96→    96→
+    97→    97→  // ---- REGISTER (final submit) ----
+    98→    98→  const handleRegister = async () => {
+    99→    99→    setLoading(true)
+   100→   100→    try {
+   101→   101→      const payload: any = {
+   102→   102→        name: reg.name,
+   103→   103→        email: reg.email,
+   104→   104→        password: reg.password,
+   105→   105→        role,
+   106→   106→        country: reg.country,
+   107→   107→        phone: reg.phone || undefined,
+   108→   108→      }
+   109→   109→      if (role === 'TUTOR') {
+   110→   110→        Object.assign(payload, {
+   111→   111→          bio: reg.bio || 'New tutor on Qtuor.',
+   112→   112→          specialties: reg.specialties.length ? reg.specialties.join(',') : 'Noorani Qaida,Quran Recitation With Tajweed',
+   113→   113→          languages: reg.languages.length ? reg.languages.join(',') : 'Arabic,English',
+   114→   114→          perClassRate: Number(reg.perClassRate),
+   115→   115→          nativeArabic: reg.nativeArabic,
+   116→   116→          hafiz: reg.hafiz,
+   117→   117→          ijazaCertified: reg.ijazaCertified,
+   118→   118→          experienceYears: Number(reg.experienceYears),
+   119→   119→        })
+   120→   120→      }
+   121→   121→      const res = await fetch('/api/auth/register', {
+   122→   122→        method: 'POST',
+   123→   123→        headers: { 'Content-Type': 'application/json' },
+   124→   124→        body: JSON.stringify(payload),
+   125→   125→      })
+   126→   126→      const data = await res.json()
+   127→   127→      if (!res.ok) throw new Error(data.error || 'Registration failed')
+   128→   128→      setUser(data)
+   129→   129→      closeAuth()
+   130→   130→
+   131→   131→      if (role === 'TUTOR') {
+   132→   132→        toast.success('Application submitted! Your profile is pending admin approval.')
+   133→   133→        setView('tutor-dashboard')
+   134→   134→      } else {
+   135→   135→        // Student: if they chose a plan, open checkout; otherwise go to plans page
+   136→   136→        if (chosenPlanId) {
+   137→   137→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}! Let's set up your plan.`)
+   138→   138→          setSelectedPlanId(chosenPlanId)
+   139→   139→          // Delay opening checkout so the auth dialog can fully close first (Radix focus-trap conflict)
+   140→   140→          setTimeout(() => setCheckoutOpen(true), 350)
+   141→   141→          setView('plans')
+   142→   142→        } else {
+   143→   143→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}! Pick a plan to start learning.`)
+   144→   144→          setView('plans')
+   145→   145→        }
+   146→   146→      }
+   147→   147→    } catch (e: any) {
+   148→   148→      toast.error(e.message)
+   149→   149→    } finally {
+   150→   150→      setLoading(false)
+   151→   151→    }
+   152→   152→  }
+   153→   153→
+   154→   154→  const fillDemo = (kind: 'student' | 'tutor' | 'admin') => {
+   155→   155→    const creds = {
+   156→   156→      student: { email: 'student@qtuor.com', pw: 'student123' },
+   157→   157→      tutor: { email: 'abdullah@qtuor.com', pw: 'tutor123' },
+   158→   158→      admin: { email: 'admin@qtuor.com', pw: 'admin123' },
+   159→   159→    }[kind]
+   160→   160→    setLoginEmail(creds.email)
+   161→   161→    setLoginPw(creds.pw)
+   162→   162→    toast.info(`Demo ${kind} credentials filled in.`)
+   163→   163→  }
+   164→   164→
+   165→   165→  // ---- step validation ----
+   166→   166→  const step1Valid = true // role always selected
+   167→   167→  const step2Valid = reg.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(reg.email) && reg.password.length >= 6
+   168→   168→  const step3TutorValid = role === 'TUTOR' ? (reg.specialties.length > 0 && reg.languages.length > 0 && reg.perClassRate > 0) : true
+   169→   169→
+   170→   170→  const canNext = step === 1 ? step1Valid : step === 2 ? step2Valid : step3TutorValid
+   171→   171→  const nextStep = () => setStep((s) => (s < 3 ? ((s + 1) as Step) : s))
+   172→   172→  const prevStep = () => setStep((s) => (s > 1 ? ((s - 1) as Step) : s))
+   173→   173→
+   174→   174→  const toggleArray = (field: 'specialties' | 'languages', value: string) => {
+   175→   175→    setReg((prev) => {
+   176→   176→      const arr = prev[field]
+   177→   177→      return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] }
+   178→   178→    })
+   179→   179→  }
+   180→   180→
+   181→   181→  return (
+   182→   182→    <Dialog open={authOpen} onOpenChange={(o) => (o ? null : closeAuth())}>
+   183→   183→      <DialogContent className="max-w-lg overflow-y-auto max-h-[94vh] p-0">
+   184→   184→        <div className="relative">
+   185→   185→          {/* Pattern background */}
+   186→   186→          <div className="pointer-events-none absolute inset-0 opacity-[0.05]" aria-hidden>
+   187→   187→            <svg className="h-full w-full"><defs><pattern id="auth-g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M20 0 L28 14 L20 28 L12 14 Z" fill="none" stroke="oklch(0.34 0.13 256)" strokeWidth="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#auth-g)"/></svg>
+   188→   188→          </div>
+   189→   189→
+   190→   190→          {/* Header */}
+   191→   191→          <div className="relative px-6 pt-6 pb-2 flex flex-col items-center text-center">
+   192→   192→            <QtuorLogo className="h-12 w-12" />
+   193→   193→            <StarMedallion className="mt-2 h-4 w-4 text-primary/50" />
+   194→   194→          </div>
+   195→   195→          <DialogHeader className="px-6 pb-2">
+   196→   196→            <DialogTitle className="text-center text-2xl">
+   197→   197→              {mode === 'login' ? 'Welcome back' : 'Join Qtuor'}
+   198→   198→            </DialogTitle>
+   199→   199→            <DialogDescription className="text-center">
+   200→   200→              {mode === 'login'
+   201→   201→                ? 'Sign in to continue your Quran journey.'
+   202→   202→                : role === 'TUTOR'
+   203→   203→                  ? 'Apply to teach and earn — reviewed by our admin team.'
+   204→   204→                  : 'Create your account and start learning in minutes.'}
+   205→   205→            </DialogDescription>
+   206→   206→          </DialogHeader>
+   207→   207→
+   208→   208→          <div className="relative px-6 pb-6">
+   209→   209→            <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
+   210→   210→              <TabsList className="grid w-full grid-cols-2">
+   211→   211→                <TabsTrigger value="login">Log in</TabsTrigger>
+   212→   212→                <TabsTrigger value="register">Sign up</TabsTrigger>
+   213→   213→              </TabsList>
+   214→   214→
+   215→   215→              {/* ============ LOGIN ============ */}
+   216→   216→              <TabsContent value="login" className="mt-4">
+   217→   217→                <form onSubmit={handleLogin} className="space-y-3">
+   218→   218→                  <div className="space-y-1.5">
+   219→   219→                    <Label htmlFor="le">Email</Label>
+   220→   220→                    <Input id="le" type="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="you@example.com" />
+   221→   221→                  </div>
+   222→   222→                  <div className="space-y-1.5">
+   223→   223→                    <Label htmlFor="lp">Password</Label>
+   224→   224→                    <Input id="lp" type="password" required value={loginPw} onChange={(e) => setLoginPw(e.target.value)} placeholder="••••••••" />
+   225→   225→                  </div>
+   226→   226→                  <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+   227→   227→                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   228→   228→                    Sign in
+   229→   229→                  </Button>
+   230→   230→                </form>
+   231→   231→                <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 p-3">
+   232→   232→                  <p className="text-xs font-medium text-muted-foreground">Try a demo account:</p>
+   233→   233→                  <div className="mt-2 grid grid-cols-3 gap-2">
+   234→   234→                    <Button size="sm" variant="outline" onClick={() => fillDemo('student')} className="gap-1 text-xs"><User className="h-3 w-3" /> Student</Button>
+   235→   235→                    <Button size="sm" variant="outline" onClick={() => fillDemo('tutor')} className="gap-1 text-xs"><GraduationCap className="h-3 w-3" /> Tutor</Button>
+   236→   236→                    <Button size="sm" variant="outline" onClick={() => fillDemo('admin')} className="gap-1 text-xs">Admin</Button>
+   237→   237→                  </div>
+   238→   238→                </div>
+   239→   239→              </TabsContent>
+   240→   240→
+   241→   241→              {/* ============ REGISTER (3-STEP WIZARD) ============ */}
+   242→   242→              <TabsContent value="register" className="mt-4">
+   243→   243→                {/* Step indicator */}
+   244→   244→                <div className="mb-5 flex items-center justify-center gap-2">
+   245→   245→                  {[1, 2, 3].map((s) => (
+   246→   246→                    <React.Fragment key={s}>
+   247→   247→                      <div
+   248→   248→                        className={cn(
+   249→   249→                          'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition',
+   250→   250→                          step >= s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+   251→   251→                        )}
+   252→   252→                      >
+   253→   253→                        {step > s ? <Check className="h-4 w-4" /> : s}
+   254→   254→                      </div>
+   255→   255→                      {s < 3 && <div className={cn('h-0.5 w-8 rounded transition', step > s ? 'bg-primary' : 'bg-muted')} />}
+   256→   256→                    </React.Fragment>
+   257→   257→                  ))}
+   258→   258→                </div>
+   259→   259→                <div className="mb-4 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+   260→   260→                  Step {step} of 3 · {step === 1 ? 'Choose your role' : step === 2 ? 'Account details' : role === 'TUTOR' ? 'Tutor profile' : 'Choose your plan'}
+   261→   261→                </div>
+   262→   262→
+   263→   263→                <form onSubmit={(e) => { e.preventDefault(); if (step < 3) nextStep(); else handleRegister() }} className="space-y-3">
+   264→   264→
+   265→   265→                  {/* ---------- STEP 1: ROLE ---------- */}
+   266→   266→                  {step === 1 && (
+   267→   267→                    <div className="space-y-3">
+   268→   268→                      <button
+   269→   269→                        type="button"
+   270→   270→                        onClick={() => setRole('STUDENT')}
+   271→   271→                        className={cn(
+   272→   272→                          'flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition',
+   273→   273→                          role === 'STUDENT' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/40'
+   274→   274→                        )}
+   275→   275→                      >
+   276→   276→                        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition', role === 'STUDENT' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+   277→   277→                          <User className="h-6 w-6" />
+   278→   278→                        </span>
+   279→   279→                        <div className="flex-1">
+   280→   280→                          <div className="flex items-center gap-2">
+   281→   281→                            <span className="font-bold">I'm a Student</span>
+   282→   282→                            {role === 'STUDENT' && <Check className="h-4 w-4 text-primary" />}
+   283→   283→                          </div>
+   284→   284→                          <p className="text-xs text-muted-foreground">Learn Quran with certified tutors. Pick a monthly plan and start classes.</p>
+   285→   285→                        </div>
+   286→   286→                      </button>
+   287→   287→
+   288→   288→                      <button
+   289→   289→                        type="button"
+   290→   290→                        onClick={() => setRole('TUTOR')}
+   291→   291→                        className={cn(
+   292→   292→                          'flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition',
+   293→   293→                          role === 'TUTOR' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/40'
+   294→   294→                        )}
+   295→   295→                      >
+   296→   296→                        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition', role === 'TUTOR' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+   297→   297→                          <GraduationCap className="h-6 w-6" />
+   298→   298→                        </span>
+   299→   299→                        <div className="flex-1">
+   300→   300→                          <div className="flex items-center gap-2">
+   301→   301→                            <span className="font-bold">I'm a Tutor</span>
+   302→   302→                            {role === 'TUTOR' && <Check className="h-4 w-4 text-primary" />}
+   303→   303→                          </div>
+   304→   304→                          <p className="text-xs text-muted-foreground">Teach students worldwide and earn per class. Subject to admin approval.</p>
+   305→   305→                        </div>
+   306→   306→                      </button>
+   307→   307→
+   308→   308→                      <div className="rounded-lg bg-[oklch(0.62_0.14_230/0.06)] p-3 text-xs text-muted-foreground">
+   309→   309→                        {role === 'STUDENT' ? (
+   310→   310→                          <span className="flex items-start gap-1.5"><Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.40_0.11_258)]" /> Every new student gets a <strong className="mx-1 text-foreground">free 30-minute trial class</strong> with any tutor.</span>
+   311→   311→                        ) : (
+   312→   312→                          <span className="flex items-start gap-1.5"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.40_0.11_258)]" /> Tutor profiles are reviewed by our admin team before appearing in the marketplace.</span>
+   313→   313→                        )}
+   314→   314→                      </div>
+   315→   315→                    </div>
+   316→   316→                  )}
+   317→   317→
+   318→   318→                  {/* ---------- STEP 2: ACCOUNT ---------- */}
+   319→   319→                  {step === 2 && (
+   320→   320→                    <div className="space-y-3">
+   321→   321→                      <div className="space-y-1.5">
+   322→   322→                        <Label htmlFor="rn">Full name <span className="text-destructive">*</span></Label>
+   323→   323→                        <Input id="rn" required value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} placeholder="e.g. Ahmed Khan" />
+   324→   324→                      </div>
+   325→   325→                      <div className="grid grid-cols-2 gap-2">
+   326→   326→                        <div className="space-y-1.5">
+   327→   327→                          <Label htmlFor="re">Email <span className="text-destructive">*</span></Label>
+   328→   328→                          <Input id="re" type="email" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} placeholder="you@example.com" />
+   329→   329→                        </div>
+   330→   330→                        <div className="space-y-1.5">
+   331→   331→                          <Label htmlFor="rp">Password <span className="text-destructive">*</span></Label>
+   332→   332→                          <Input id="rp" type="password" required value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} placeholder="Min 6 characters" />
+   333→   333→                        </div>
+   334→   334→                      </div>
+   335→   335→                      <div className="grid grid-cols-2 gap-2">
+   336→   336→                        <div className="space-y-1.5">
+   337→   337→                          <Label htmlFor="rc">Country</Label>
+   338→   338→                          <div className="relative">
+   339→   339→                            <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   340→   340→                            <Input id="rc" value={reg.country} onChange={(e) => setReg({ ...reg, country: e.target.value })} placeholder="e.g. Egypt" className="pl-9" />
+   341→   341→                          </div>
+   342→   342→                        </div>
+   343→   343→                        <div className="space-y-1.5">
+   344→   344→                          <Label htmlFor="rph">Phone (optional)</Label>
+   345→   345→                          <div className="relative">
+   346→   346→                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   347→   347→                            <Input id="rph" value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} placeholder="+20..." className="pl-9" />
+   348→   348→                          </div>
+   349→   349→                        </div>
+   350→   350→                      </div>
+   351→   351→                      {reg.password && reg.password.length < 6 && (
+   352→   352→                        <p className="text-xs text-amber-600">Password must be at least 6 characters.</p>
+   353→   353→                      )}
+   354→   354→                    </div>
+   355→   355→                  )}
+   356→   356→
+   357→   357→                  {/* ---------- STEP 3: STUDENT (PLAN) / TUTOR (PROFILE) ---------- */}
+   358→   358→                  {step === 3 && role === 'STUDENT' && (
+   359→   359→                    <div className="space-y-3">
+   360→   360→                      <div className="text-center">
+   361→   361→                        <h3 className="text-base font-bold">Choose your monthly plan</h3>
+   362→   362→                        <p className="text-xs text-muted-foreground">3 subjects · 2–5 classes per week. Pick a plan or skip for now.</p>
+   363→   363→                      </div>
+   364→   364→                      {plans.length === 0 && (
+   365→   365→                        <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+   366→   366→                      )}
+   367→   367→                      <div className="max-h-[320px] space-y-3 overflow-y-auto scrollbar-quran pr-1">
+   368→   368→                        {['Noorani Qaida', 'Quran Recitation With Tajweed', 'Hifz'].map((cat) => {
+   369→   369→                          const catPlans = plans.filter((p) => (p.category || 'General') === cat)
+   370→   370→                          if (catPlans.length === 0) return null
+   371→   371→                          const meta = { 'Noorani Qaida': { icon: BookOpen, color: 'oklch(0.62 0.14 230)' }, 'Quran Recitation With Tajweed': { icon: Sparkles, color: 'oklch(0.40 0.11 258)' }, 'Hifz': { icon: Brain, color: 'oklch(0.78 0.15 85)' } }[cat]
+   372→   372→                          const CatIcon = meta?.icon || BookOpen
+   373→   373→                          return (
+   374→   374→                            <div key={cat}>
+   375→   375→                              <div className="mb-1.5 flex items-center gap-1.5 px-1">
+   376→   376→                                <CatIcon className="h-3.5 w-3.5" style={{ color: meta?.color }} />
+   377→   377→                                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: meta?.color }}>{cat}</span>
+   378→   378→                              </div>
+   379→   379→                              <div className="grid grid-cols-2 gap-1.5">
+   380→   380→                                {catPlans.map((p) => {
+   381→   381→                                  const selected = chosenPlanId === p.id
+   382→   382→                                  return (
+   383→   383→                                    <button
+   384→   384→                                      key={p.id}
+   385→   385→                                      type="button"
+   386→   386→                                      onClick={() => setChosenPlanId(selected ? null : p.id)}
+   387→   387→                                      className={cn(
+   388→   388→                                        'relative flex flex-col items-start rounded-lg border-2 p-2 text-left transition',
+   389→   389→                                        selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+   390→   390→                                      )}
+   391→   391→                                      style={selected ? { borderColor: meta?.color, background: `color-mix(in oklch, ${meta?.color} 6%, white)` } : undefined}
+   392→   392→                                    >
+   393→   393→                                      {p.popular && (
+   394→   394→                                        <span className="absolute -top-1.5 right-1.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white" style={{ background: meta?.color }}>
+   395→   395→                                          ★
+   396→   396→                                        </span>
+   397→   397→                                      )}
+   398→   398→                                      <span className="flex w-full items-center gap-1">
+   399→   399→                                        <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2', selected ? 'border-transparent' : 'border-border')} style={selected ? { background: meta?.color } : undefined}>
+   400→   400→                                          {selected && <Check className="h-2.5 w-2.5 text-white" />}
+   401→   401→                                        </span>
+   402→   402→                                        <span className="text-[11px] font-bold">{p.name}</span>
+   403→   403→                                      </span>
+   404→   404→                                      <div className="mt-1 flex items-baseline gap-0.5 pl-5">
+   405→   405→                                        <span className="text-base font-extrabold" style={{ color: meta?.color }}>${p.monthlyPrice}</span>
+   406→   406→                                        <span className="text-[9px] text-muted-foreground">/mo</span>
+   407→   407→                                      </div>
+   408→   408→                                      <span className="pl-5 text-[9px] text-muted-foreground">{p.classesPerMonth} classes/mo</span>
+   409→   409→                                    </button>
+   410→   410→                                  )
+   411→   411→                                })}
+   412→   412→                              </div>
+   413→   413→                            </div>
+   414→   414→                          )
+   415→   415→                        })}
+   416→   416→                      </div>
+   417→   417→                      <button
+   418→   418→                        type="button"
+   419→   419→                        onClick={() => setChosenPlanId(null)}
+   420→   420→                        className={cn(
+   421→   421→                          'flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border p-2 text-xs text-muted-foreground transition hover:bg-muted',
+   422→   422→                          chosenPlanId === null && 'border-primary text-primary'
+   423→   423→                        )}
+   424→   424→                      >
+   425→   425→                        Skip for now — I'll choose a plan later
+   426→   426→                      </button>
+   427→   427→                    </div>
+   428→   428→                  )}
+   429→   429→
+   430→   430→                  {step === 3 && role === 'TUTOR' && (
+   431→   431→                    <div className="space-y-3">
+   432→   432→                      <div className="space-y-1.5">
+   433→   433→                        <Label htmlFor="rb">Bio <span className="text-destructive">*</span></Label>
+   434→   434→                        <Textarea id="rb" rows={3} value={reg.bio} onChange={(e) => setReg({ ...reg, bio: e.target.value })} placeholder="Tell students about your teaching style, experience, and what makes your classes special..." />
+   435→   435→                      </div>
+   436→   436→
+   437→   437→                      <div className="space-y-1.5">
+   438→   438→                        <Label>Specialties <span className="text-destructive">*</span> <span className="text-xs font-normal text-muted-foreground">(select at least one)</span></Label>
+   439→   439→                        <div className="flex flex-wrap gap-1.5">
+   440→   440→                          {SUBJECT_OPTIONS.map((s) => {
+   441→   441→                            const Icon = { 'Noorani Qaida': BookOpen, 'Quran Recitation With Tajweed': Sparkles, 'Hifz': Brain, 'Arabic Language': Languages, Tafsir: BookOpenCheck, 'Islamic Studies': Award }[s] || BookOpen
+   442→   442→                            const active = reg.specialties.includes(s)
+   443→   443→                            return (
+   444→   444→                              <button
+   445→   445→                                key={s}
+   446→   446→                                type="button"
+   447→   447→                                onClick={() => toggleArray('specialties', s)}
+   448→   448→                                className={cn(
+   449→   449→                                  'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition',
+   450→   450→                                  active ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/40'
+   451→   451→                                )}
+   452→   452→                              >
+   453→   453→                                <Icon className="h-3 w-3" /> {s}
+   454→   454→                              </button>
+   455→   455→                            )
+   456→   456→                          })}
+   457→   457→                        </div>
+   458→   458→                      </div>
+   459→   459→
+   460→   460→                      <div className="space-y-1.5">
+   461→   461→                        <Label>Languages <span className="text-destructive">*</span> <span className="text-xs font-normal text-muted-foreground">(select at least one)</span></Label>
+   462→   462→                        <div className="flex flex-wrap gap-1.5">
+   463→   463→                          {LANGUAGE_OPTIONS.map((l) => {
+   464→   464→                            const active = reg.languages.includes(l)
+   465→   465→                            return (
+   466→   466→                              <button
+   467→   467→                                key={l}
+   468→   468→                                type="button"
+   469→   469→                                onClick={() => toggleArray('languages', l)}
+   470→   470→                                className={cn(
+   471→   471→                                  'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition',
+   472→   472→                                  active ? 'border-[oklch(0.62_0.14_230)] bg-[oklch(0.62_0.14_230/0.1)] text-[oklch(0.40_0.11_258)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.5)]'
+   473→   473→                                )}
+   474→   474→                              >
+   475→   475→                                {active && <Check className="h-3 w-3" />} {l}
+   476→   476→                              </button>
+   477→   477→                            )
+   478→   478→                          })}
+   479→   479→                        </div>
+   480→   480→                      </div>
+   481→   481→
+   482→   482→                      <div className="grid grid-cols-2 gap-2">
+   483→   483→                        <div className="space-y-1.5">
+   484→   484→                          <Label htmlFor="rh">Per-class rate ($) <span className="text-destructive">*</span></Label>
+   485→   485→                          <Input id="rh" type="number" min="1" value={reg.perClassRate} onChange={(e) => setReg({ ...reg, perClassRate: Number(e.target.value) })} />
+   486→   486→                          <p className="text-[10px] text-muted-foreground">What you earn per completed 30-min class</p>
+   487→   487→                        </div>
+   488→   488→                        <div className="space-y-1.5">
+   489→   489→                          <Label htmlFor="rx">Experience (years)</Label>
+   490→   490→                          <Input id="rx" type="number" min="0" value={reg.experienceYears} onChange={(e) => setReg({ ...reg, experienceYears: Number(e.target.value) })} />
+   491→   491→                        </div>
+   492→   492→                      </div>
+   493→   493→
+   494→   494→                      <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+   495→   495→                        <p className="text-xs font-semibold text-primary">Qualifications (optional)</p>
+   496→   496→                        {([
+   497→   497→                          ['nativeArabic', 'Native Arabic speaker', Languages],
+   498→   498→                          ['hafiz', 'Hafiz of the Quran', BookOpenCheck],
+   499→   499→                          ['ijazaCertified', 'Ijaza certified', Award],
+   500→   500→                        ] as const).map(([key, label, Icon]) => (
+   501→   501→                          <label key={key} className="flex cursor-pointer items-center gap-2 text-sm">
+   502→   502→                            <Checkbox checked={reg[key] as boolean} onCheckedChange={(v) => setReg({ ...reg, [key]: !!v })} />
+   503→   503→                            <Icon className="h-4 w-4 text-muted-foreground" />
+   504→   504→                            {label}
+   505→   505→                          </label>
+   506→   506→                        ))}
+   507→   507→                      </div>
+   508→   508→
+   509→   509→                      <div className="flex items-start gap-2 rounded-lg bg-[oklch(0.62_0.14_230/0.06)] p-2.5 text-xs text-muted-foreground">
+   510→   510→                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.40_0.11_258)]" />
+   511→   511→                        <span>After submitting, your application is reviewed by our admin team. You'll be visible to students once approved.</span>
+   512→   512→                      </div>
+   513→   513→                    </div>
+   514→   514→                  )}
+   515→   515→
+   516→   516→                  {/* ---------- NAV BUTTONS ---------- */}
+   517→   517→                  <div className="flex items-center gap-2 pt-1">
+   518→   518→                    {step > 1 && (
+   519→   519→                      <Button type="button" variant="outline" onClick={prevStep} className="gap-1" disabled={loading}>
+   520→   520→                        <ChevronLeft className="h-4 w-4" /> Back
+   521→   521→                      </Button>
+   522→   522→                    )}
+   523→   523→                    {step < 3 ? (
+   524→   524→                      <Button type="submit" disabled={!canNext || loading} className="flex-1 gap-1 bg-primary text-primary-foreground hover:bg-primary/90">
+   525→   525→                        Continue <ChevronRight className="h-4 w-4" />
+   526→   526→                      </Button>
+   527→   527→                    ) : (
+   528→   528→                      <Button type="submit" disabled={!canNext || loading} className="flex-1 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
+   529→   529→                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   530→   530→                        {role === 'TUTOR' ? (
+   531→   531→                          <><ShieldCheck className="h-4 w-4" /> Submit application</>
+   532→   532→                        ) : chosenPlanId ? (
+   533→   533→                          <><CreditCard className="h-4 w-4" /> Create account & subscribe</>
+   534→   534→                        ) : (
+   535→   535→                          <><User className="h-4 w-4" /> Create my account</>
+   536→   536→                        )}
+   537→   537→                      </Button>
+   538→   538→                    )}
+   539→   539→                  </div>
+   540→   540→                </form>
+   541→   541→              </TabsContent>
+   542→   542→            </Tabs>
+   543→   543→          </div>
+   544→   544→        </div>
+   545→   545→      </DialogContent>
+   546→   546→    </Dialog>
+   547→   547→  )
+   548→   548→}
+   549→   549→

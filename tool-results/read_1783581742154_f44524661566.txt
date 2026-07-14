@@ -1,0 +1,1112 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import * as React from 'react'
+     4→     4→import { Card } from '@/components/ui/card'
+     5→     5→import { Button } from '@/components/ui/button'
+     6→     6→import { Badge } from '@/components/ui/badge'
+     7→     7→import { Input } from '@/components/ui/input'
+     8→     8→import { Textarea } from '@/components/ui/textarea'
+     9→     9→import { Label } from '@/components/ui/label'
+    10→    10→import { Checkbox } from '@/components/ui/checkbox'
+    11→    11→import { Switch } from '@/components/ui/switch'
+    12→    12→import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+    13→    13→import {
+    14→    14→  Table,
+    15→    15→  TableBody,
+    16→    16→  TableCell,
+    17→    17→  TableHead,
+    18→    18→  TableHeader,
+    19→    19→  TableRow,
+    20→    20→} from '@/components/ui/table'
+    21→    21→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    22→    22→import {
+    23→    23→  Dialog,
+    24→    24→  DialogContent,
+    25→    25→  DialogDescription,
+    26→    26→  DialogFooter,
+    27→    27→  DialogHeader,
+    28→    28→  DialogTitle,
+    29→    29→  DialogTrigger,
+    30→    30→} from '@/components/ui/dialog'
+    31→    31→import { QtuorLogoLockup } from '@/components/brand/logo'
+    32→    32→import { StarRating } from '@/components/brand/badges'
+    33→    33→import { StarMedallion, IslamicPatternBand } from '@/components/brand/patterns'
+    34→    34→import { Avatar, countryFlag } from '@/components/shared/avatar'
+    35→    35→import { useAppStore } from '@/lib/store'
+    36→    36→import { useAdminDashboard, useUpdateTutorStatus, useCreatePlan } from '@/lib/queries'
+    37→    37→import { toast } from 'sonner'
+    38→    38→import { cn } from '@/lib/utils'
+    39→    39→import { format } from 'date-fns'
+    40→    40→import {
+    41→    41→  ShieldCheck,
+    42→    42→  ShieldAlert,
+    43→    43→  Users,
+    44→    44→  GraduationCap,
+    45→    45→  Clock3,
+    46→    46→  CalendarCheck,
+    47→    47→  DollarSign,
+    48→    48→  Banknote,
+    49→    49→  CheckCircle2,
+    50→    50→  XCircle,
+    51→    51→  Ban,
+    52→    52→  RotateCcw,
+    53→    53→  Plus,
+    54→    54→  Star,
+    55→    55→  Sparkles,
+    56→    56→  LockKeyhole,
+    57→    57→  AlertTriangle,
+    58→    58→  MessageCircle,
+    59→    59→  Bell,
+    60→    60→  Settings,
+    61→    61→} from 'lucide-react'
+    62→    62→import { useNotifications, useWhatsAppSettings, useUpdateWhatsAppSettings } from '@/lib/queries'
+    63→    63→
+    64→    64→/* ============================================================
+    65→    65→ * Types — mirror shape returned by /api/dashboard/admin
+    66→    66→ * ============================================================ */
+    67→    67→type TutorStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+    68→    68→
+    69→    69→interface AdminTutor {
+    70→    70→  id: string
+    71→    71→  name: string
+    72→    72→  email: string
+    73→    73→  country: string | null
+    74→    74→  createdAt: string
+    75→    75→  status: TutorStatus
+    76→    76→  verified: boolean
+    77→    77→  rating: number
+    78→    78→  perClassRate: number
+    79→    79→  walletBalance: number
+    80→    80→  profile: {
+    81→    81→    bio: string | null
+    82→    82→    specialties: string[]
+    83→    83→    languages: string[]
+    84→    84→    nativeArabic: boolean
+    85→    85→    hafiz: boolean
+    86→    86→    ijazaCertified: boolean
+    87→    87→    experienceYears: number
+    88→    88→  } | null
+    89→    89→}
+    90→    90→
+    91→    91→interface AdminPlan {
+    92→    92→  id: string
+    93→    93→  name: string
+    94→    94→  category?: string
+    95→    95→  classesPerMonth: number
+    96→    96→  monthlyPrice: number
+    97→    97→  description: string | null
+    98→    98→  features: string[]
+    99→    99→  popular: boolean
+   100→   100→  active: boolean
+   101→   101→}
+   102→   102→
+   103→   103→interface AdminWithdrawal {
+   104→   104→  id: string
+   105→   105→  amount: number
+   106→   106→  status: string
+   107→   107→  method: string | null
+   108→   108→  createdAt?: string
+   109→   109→  tutor: { id: string; name: string; email: string }
+   110→   110→}
+   111→   111→
+   112→   112→interface AdminStats {
+   113→   113→  totalStudents: number
+   114→   114→  totalTutors: number
+   115→   115→  approvedTutors: number
+   116→   116→  pendingTutors: number
+   117→   117→  totalBookings: number
+   118→   118→  totalRevenue: number
+   119→   119→}
+   120→   120→
+   121→   121→interface AdminDashboardData {
+   122→   122→  tutors: AdminTutor[]
+   123→   123→  plans: AdminPlan[]
+   124→   124→  pendingWithdrawals: AdminWithdrawal[]
+   125→   125→  stats: AdminStats
+   126→   126→}
+   127→   127→
+   128→   128→/* ============================================================
+   129→   129→ * Auth guard
+   130→   130→ * ============================================================ */
+   131→   131→function AdminAuthGuard() {
+   132→   132→  const user = useAppStore((s) => s.user)
+   133→   133→  const openAuth = useAppStore((s) => s.openAuth)
+   134→   134→
+   135→   135→  if (!user) {
+   136→   136→    return (
+   137→   137→      <section className="mx-auto max-w-md px-4 py-20">
+   138→   138→        <Card className="relative overflow-hidden p-8 text-center">
+   139→   139→          <IslamicPatternBand opacity={0.06} />
+   140→   140→          <div className="relative flex flex-col items-center gap-4">
+   141→   141→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   142→   142→              <LockKeyhole className="h-7 w-7" />
+   143→   143→            </div>
+   144→   144→            <h2 className="text-2xl font-bold text-foreground">Admin sign-in required</h2>
+   145→   145→            <p className="text-sm text-muted-foreground">
+   146→   146→              Please sign in with an administrator account to access the Control Center.
+   147→   147→            </p>
+   148→   148→            <Button
+   149→   149→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   150→   150→              onClick={() => openAuth('login')}
+   151→   151→            >
+   152→   152→              Sign in to continue
+   153→   153→            </Button>
+   154→   154→            <p className="mt-1 text-xs text-muted-foreground">
+   155→   155→              Demo admin: <span className="font-mono font-semibold text-foreground">admin@qtuor.com / admin123</span>
+   156→   156→            </p>
+   157→   157→          </div>
+   158→   158→        </Card>
+   159→   159→      </section>
+   160→   160→    )
+   161→   161→  }
+   162→   162→
+   163→   163→  if (user.role !== 'ADMIN') {
+   164→   164→    return (
+   165→   165→      <section className="mx-auto max-w-md px-4 py-20">
+   166→   166→        <Card className="relative overflow-hidden p-8 text-center">
+   167→   167→          <IslamicPatternBand opacity={0.06} />
+   168→   168→          <div className="relative flex flex-col items-center gap-4">
+   169→   169→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]">
+   170→   170→              <ShieldAlert className="h-7 w-7" />
+   171→   171→            </div>
+   172→   172→            <h2 className="text-2xl font-bold text-foreground">Admin access required</h2>
+   173→   173→            <p className="text-sm text-muted-foreground">
+   174→   174→              You are signed in as <span className="font-semibold text-foreground">{user.email}</span> ({user.role.toLowerCase()}).
+   175→   175→              The Control Center is restricted to administrators.
+   176→   176→            </p>
+   177→   177→            <div className="w-full rounded-lg border border-dashed border-[oklch(0.62_0.14_230/0.4)] bg-[oklch(0.62_0.14_230/0.05)] p-3 text-xs text-muted-foreground">
+   178→   178→              <div className="mb-1 flex items-center gap-1.5 font-semibold text-[oklch(0.40_0.11_258)]">
+   179→   179→                <Sparkles className="h-3.5 w-3.5" /> Demo admin credentials
+   180→   180→              </div>
+   181→   181→              <div className="font-mono">
+   182→   182→                admin@qtuor.com / admin123
+   183→   183→              </div>
+   184→   184→            </div>
+   185→   185→            <Button
+   186→   186→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   187→   187→              onClick={() => openAuth('login')}
+   188→   188→            >
+   189→   189→              Switch to admin account
+   190→   190→            </Button>
+   191→   191→          </div>
+   192→   192→        </Card>
+   193→   193→      </section>
+   194→   194→    )
+   195→   195→  }
+   196→   196→
+   197→   197→  return null
+   198→   198→}
+   199→   199→
+   200→   200→/* ============================================================
+   201→   201→ * Stat cards
+   202→   202→ * ============================================================ */
+   203→   203→function StatCard({
+   204→   204→  label,
+   205→   205→  value,
+   206→   206→  sub,
+   207→   207→  icon,
+   208→   208→  accent = 'primary',
+   209→   209→}: {
+   210→   210→  label: string
+   211→   211→  value: React.ReactNode
+   212→   212→  sub?: string
+   213→   213→  icon: React.ReactNode
+   214→   214→  accent?: 'primary' | 'amber' | 'gold' | 'green'
+   215→   215→}) {
+   216→   216→  const accents: Record<string, string> = {
+   217→   217→    primary: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]',
+   218→   218→    amber: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)]',
+   219→   219→    gold: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]',
+   220→   220→    green: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)]',
+   221→   221→  }
+   222→   222→  return (
+   223→   223→    <Card className="relative overflow-hidden p-4 sm:p-5">
+   224→   224→      <div className="flex items-start justify-between gap-3">
+   225→   225→        <div className="min-w-0">
+   226→   226→          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+   227→   227→            {label}
+   228→   228→          </p>
+   229→   229→          <p className="mt-1 text-2xl font-extrabold text-foreground sm:text-[1.6rem]">{value}</p>
+   230→   230→          {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+   231→   231→        </div>
+   232→   232→        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accents[accent])}>
+   233→   233→          {icon}
+   234→   234→        </div>
+   235→   235→      </div>
+   236→   236→    </Card>
+   237→   237→  )
+   238→   238→}
+   239→   239→
+   240→   240→/* ============================================================
+   241→   241→ * Status badge
+   242→   242→ * ============================================================ */
+   243→   243→function StatusBadge({ status }: { status: TutorStatus }) {
+   244→   244→  const map: Record<TutorStatus, string> = {
+   245→   245→    PENDING: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)] border-[oklch(0.75_0.13_70/0.35)]',
+   246→   246→    APPROVED: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]',
+   247→   247→    REJECTED: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)] border-[oklch(0.58_0.24_27/0.3)]',
+   248→   248→  }
+   249→   249→  return (
+   250→   250→    <span className={cn('inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold', map[status])}>
+   251→   251→      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+   252→   252→      {status.charAt(0) + status.slice(1).toLowerCase()}
+   253→   253→    </span>
+   254→   254→  )
+   255→   255→}
+   256→   256→
+   257→   257→/* ============================================================
+   258→   258→ * Tutor vetting tab
+   259→   259→ * ============================================================ */
+   260→   260→function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
+   261→   261→  const [filter, setFilter] = React.useState<'ALL' | TutorStatus>('ALL')
+   262→   262→  const updateTutor = useUpdateTutorStatus()
+   263→   263→
+   264→   264→  const filtered = React.useMemo(() => {
+   265→   265→    if (filter === 'ALL') return tutors
+   266→   266→    return tutors.filter((t) => t.status === filter)
+   267→   267→  }, [filter, tutors])
+   268→   268→
+   269→   269→  const counts = React.useMemo(
+   270→   270→    () => ({
+   271→   271→      ALL: tutors.length,
+   272→   272→      PENDING: tutors.filter((t) => t.status === 'PENDING').length,
+   273→   273→      APPROVED: tutors.filter((t) => t.status === 'APPROVED').length,
+   274→   274→      REJECTED: tutors.filter((t) => t.status === 'REJECTED').length,
+   275→   275→    }),
+   276→   276→    [tutors]
+   277→   277→  )
+   278→   278→
+   279→   279→  const handle = (id: string, status: TutorStatus, label: string) => {
+   280→   280→    updateTutor.mutate(
+   281→   281→      { id, status },
+   282→   282→      {
+   283→   283→        onSuccess: () => toast.success(`Tutor ${label.toLowerCase()}`),
+   284→   284→        onError: (e: Error) => toast.error(e.message || 'Failed to update tutor'),
+   285→   285→      }
+   286→   286→    )
+   287→   287→  }
+   288→   288→
+   289→   289→  return (
+   290→   290→    <div className="space-y-4">
+   291→   291→      {/* Filter pills */}
+   292→   292→      <div className="flex flex-wrap items-center gap-2">
+   293→   293→        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((f) => (
+   294→   294→          <button
+   295→   295→            key={f}
+   296→   296→            onClick={() => setFilter(f)}
+   297→   297→            className={cn(
+   298→   298→              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+   299→   299→              filter === f
+   300→   300→                ? 'border-transparent bg-primary text-primary-foreground shadow-sm'
+   301→   301→                : 'border-border bg-background text-muted-foreground hover:bg-muted/60'
+   302→   302→            )}
+   303→   303→          >
+   304→   304→            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+   305→   305→            <span
+   306→   306→              className={cn(
+   307→   307→                'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+   308→   308→                filter === f ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+   309→   309→              )}
+   310→   310→            >
+   311→   311→              {counts[f]}
+   312→   312→            </span>
+   313→   313→          </button>
+   314→   314→        ))}
+   315→   315→      </div>
+   316→   316→
+   317→   317→      <Card className="p-0">
+   318→   318→        <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   319→   319→          <Table>
+   320→   320→            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   321→   321→              <TableRow className="hover:bg-transparent">
+   322→   322→                <TableHead className="pl-4">Tutor</TableHead>
+   323→   323→                <TableHead>Country</TableHead>
+   324→   324→                <TableHead>Specialties</TableHead>
+   325→   325→                <TableHead>Rating</TableHead>
+   326→   326→                <TableHead>Per class</TableHead>
+   327→   327→                <TableHead>Status</TableHead>
+   328→   328→                <TableHead>Wallet</TableHead>
+   329→   329→                <TableHead className="pr-4 text-right">Actions</TableHead>
+   330→   330→              </TableRow>
+   331→   331→            </TableHeader>
+   332→   332→            <TableBody>
+   333→   333→              {filtered.length === 0 ? (
+   334→   334→                <TableRow>
+   335→   335→                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+   336→   336→                    No tutors match this filter.
+   337→   337→                  </TableCell>
+   338→   338→                </TableRow>
+   339→   339→              ) : (
+   340→   340→                filtered.map((t) => (
+   341→   341→                  <TableRow key={t.id} className="group">
+   342→   342→                    <TableCell className="pl-4">
+   343→   343→                      <div className="flex items-center gap-3 py-1">
+   344→   344→                        <Avatar name={t.name} size={40} country={t.country} />
+   345→   345→                        <div className="min-w-0">
+   346→   346→                          <div className="flex items-center gap-1.5">
+   347→   347→                            <span className="truncate font-semibold text-foreground">{t.name}</span>
+   348→   348→                            {t.verified && (
+   349→   349→                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[oklch(0.62_0.14_230)]" />
+   350→   350→                            )}
+   351→   351→                          </div>
+   352→   352→                          <div className="truncate text-xs text-muted-foreground">{t.email}</div>
+   353→   353→                        </div>
+   354→   354→                      </div>
+   355→   355→                    </TableCell>
+   356→   356→                    <TableCell>
+   357→   357→                      <span className="text-sm">{countryFlag(t.country)} {t.country || '—'}</span>
+   358→   358→                    </TableCell>
+   359→   359→                    <TableCell>
+   360→   360→                      <div className="flex max-w-[220px] flex-wrap gap-1">
+   361→   361→                        {(t.profile?.specialties || []).slice(0, 3).map((s) => (
+   362→   362→                          <Badge
+   363→   363→                            key={s}
+   364→   364→                            variant="outline"
+   365→   365→                            className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]"
+   366→   366→                          >
+   367→   367→                            {s}
+   368→   368→                          </Badge>
+   369→   369→                        ))}
+   370→   370→                        {(t.profile?.specialties || []).length > 3 && (
+   371→   371→                          <span className="text-xs text-muted-foreground">+{(t.profile?.specialties || []).length - 3}</span>
+   372→   372→                        )}
+   373→   373→                      </div>
+   374→   374→                    </TableCell>
+   375→   375→                    <TableCell>
+   376→   376→                      {t.rating > 0 ? <StarRating rating={t.rating} size={13} /> : <span className="text-xs text-muted-foreground">New</span>}
+   377→   377→                    </TableCell>
+   378→   378→                    <TableCell>
+   379→   379→                      <span className="font-semibold text-foreground">${t.perClassRate}</span>
+   380→   380→                      <span className="text-xs text-muted-foreground">/class</span>
+   381→   381→                    </TableCell>
+   382→   382→                    <TableCell><StatusBadge status={t.status} /></TableCell>
+   383→   383→                    <TableCell>
+   384→   384→                      <span className="font-mono text-sm font-semibold text-foreground">${t.walletBalance.toFixed(2)}</span>
+   385→   385→                    </TableCell>
+   386→   386→                    <TableCell className="pr-4">
+   387→   387→                      <div className="flex items-center justify-end gap-1.5">
+   388→   388→                        {t.status === 'PENDING' && (
+   389→   389→                          <>
+   390→   390→                            <Button
+   391→   391→                              size="sm"
+   392→   392→                              className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   393→   393→                              disabled={updateTutor.isPending}
+   394→   394→                              onClick={() => handle(t.id, 'APPROVED', 'approved')}
+   395→   395→                            >
+   396→   396→                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+   397→   397→                            </Button>
+   398→   398→                            <Button
+   399→   399→                              size="sm"
+   400→   400→                              variant="outline"
+   401→   401→                              className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   402→   402→                              disabled={updateTutor.isPending}
+   403→   403→                              onClick={() => handle(t.id, 'REJECTED', 'rejected')}
+   404→   404→                            >
+   405→   405→                              <XCircle className="h-3.5 w-3.5" /> Reject
+   406→   406→                            </Button>
+   407→   407→                          </>
+   408→   408→                        )}
+   409→   409→                        {t.status === 'APPROVED' && (
+   410→   410→                          <Button
+   411→   411→                            size="sm"
+   412→   412→                            variant="outline"
+   413→   413→                            className="h-7 gap-1 border-[oklch(0.75_0.13_70/0.4)] text-[oklch(0.50_0.12_70)] hover:bg-[oklch(0.75_0.13_70/0.08)]"
+   414→   414→                            disabled={updateTutor.isPending}
+   415→   415→                            onClick={() => handle(t.id, 'REJECTED', 'suspended')}
+   416→   416→                          >
+   417→   417→                            <Ban className="h-3.5 w-3.5" /> Suspend
+   418→   418→                          </Button>
+   419→   419→                        )}
+   420→   420→                        {t.status === 'REJECTED' && (
+   421→   421→                          <Button
+   422→   422→                            size="sm"
+   423→   423→                            className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   424→   424→                            disabled={updateTutor.isPending}
+   425→   425→                            onClick={() => handle(t.id, 'APPROVED', 're-approved')}
+   426→   426→                          >
+   427→   427→                            <RotateCcw className="h-3.5 w-3.5" /> Re-approve
+   428→   428→                          </Button>
+   429→   429→                        )}
+   430→   430→                      </div>
+   431→   431→                    </TableCell>
+   432→   432→                  </TableRow>
+   433→   433→                ))
+   434→   434→              )}
+   435→   435→            </TableBody>
+   436→   436→          </Table>
+   437→   437→        </div>
+   438→   438→      </Card>
+   439→   439→    </div>
+   440→   440→  )
+   441→   441→}
+   442→   442→
+   443→   443→/* ============================================================
+   444→   444→ * Plans tab
+   445→   445→ * ============================================================ */
+   446→   446→function PlansTab({ plans }: { plans: AdminPlan[] }) {
+   447→   447→  const [open, setOpen] = React.useState(false)
+   448→   448→  const createPlan = useCreatePlan()
+   449→   449→
+   450→   450→  const [form, setForm] = React.useState({
+   451→   451→    name: '',
+   452→   452→    category: 'Quran Recitation With Tajweed',
+   453→   453→    classesPerMonth: '4',
+   454→   454→    monthlyPrice: '49',
+   455→   455→    description: '',
+   456→   456→    features: '',
+   457→   457→    popular: false,
+   458→   458→  })
+   459→   459→
+   460→   460→  const reset = () =>
+   461→   461→    setForm({ name: '', category: 'Quran Recitation With Tajweed', classesPerMonth: '4', monthlyPrice: '49', description: '', features: '', popular: false })
+   462→   462→
+   463→   463→  const submit = (e: React.FormEvent) => {
+   464→   464→    e.preventDefault()
+   465→   465→    if (!form.name.trim() || !form.classesPerMonth || !form.monthlyPrice) {
+   466→   466→      toast.error('Please fill in classes per month and monthly price.')
+   467→   467→      return
+   468→   468→    }
+   469→   469→    createPlan.mutate(
+   470→   470→      {
+   471→   471→        name: form.name.trim(),
+   472→   472→        category: form.category,
+   473→   473→        classesPerMonth: Number(form.classesPerMonth),
+   474→   474→        monthlyPrice: Number(form.monthlyPrice),
+   475→   475→        description: form.description.trim(),
+   476→   476→        features: form.features.trim(),
+   477→   477→        popular: form.popular,
+   478→   478→      },
+   479→   479→      {
+   480→   480→        onSuccess: () => {
+   481→   481→          toast.success('Plan created successfully')
+   482→   482→          reset()
+   483→   483→          setOpen(false)
+   484→   484→        },
+   485→   485→        onError: (e: Error) => toast.error(e.message || 'Failed to create plan'),
+   486→   486→      }
+   487→   487→    )
+   488→   488→  }
+   489→   489→
+   490→   490→  return (
+   491→   491→    <div className="space-y-5">
+   492→   492→      <div className="flex flex-wrap items-center justify-between gap-3">
+   493→   493→        <div>
+   494→   494→          <h3 className="text-lg font-bold text-foreground">Subscription Plans</h3>
+   495→   495→          <p className="text-sm text-muted-foreground">Manage the plans available to students worldwide.</p>
+   496→   496→        </div>
+   497→   497→        <Dialog open={open} onOpenChange={setOpen}>
+   498→   498→          <DialogTrigger asChild>
+   499→   499→            <Button className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
+   500→   500→              <Plus className="h-4 w-4" /> Create New Plan
+   501→   501→            </Button>
+   502→   502→          </DialogTrigger>
+   503→   503→          <DialogContent className="sm:max-w-[520px]">
+   504→   504→            <DialogHeader>
+   505→   505→              <DialogTitle className="flex items-center gap-2">
+   506→   506→                <StarMedallion className="h-5 w-5 text-[oklch(0.62_0.14_230)]" />
+   507→   507→                Create Subscription Plan
+   508→   508→              </DialogTitle>
+   509→   509→              <DialogDescription>Define a new plan for students to subscribe to.</DialogDescription>
+   510→   510→            </DialogHeader>
+   511→   511→            <form onSubmit={submit} className="space-y-4">
+   512→   512→              <div className="grid grid-cols-2 gap-3">
+   513→   513→                <div className="col-span-2 space-y-1.5">
+   514→   514→                  <Label htmlFor="plan-name">Plan name</Label>
+   515→   515→                  <Input
+   516→   516→                    id="plan-name"
+   517→   517→                    placeholder="e.g. 4 Classes / Week"
+   518→   518→                    value={form.name}
+   519→   519→                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+   520→   520→                  />
+   521→   521→                </div>
+   522→   522→                <div className="space-y-1.5">
+   523→   523→                  <Label htmlFor="plan-category">Subject</Label>
+   524→   524→                  <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}>
+   525→   525→                    <SelectTrigger id="plan-category"><SelectValue /></SelectTrigger>
+   526→   526→                    <SelectContent>
+   527→   527→                      <SelectItem value="Noorani Qaida">Noorani Qaida</SelectItem>
+   528→   528→                      <SelectItem value="Quran Recitation With Tajweed">Quran Recitation With Tajweed</SelectItem>
+   529→   529→                      <SelectItem value="Hifz">Hifz</SelectItem>
+   530→   530→                      <SelectItem value="General">General</SelectItem>
+   531→   531→                    </SelectContent>
+   532→   532→                  </Select>
+   533→   533→                </div>
+   534→   534→                <div className="space-y-1.5">
+   535→   535→                  <Label htmlFor="plan-classes">Classes / month</Label>
+   536→   536→                  <Input
+   537→   537→                    id="plan-classes"
+   538→   538→                    type="number"
+   539→   539→                    min={1}
+   540→   540→                    value={form.classesPerMonth}
+   541→   541→                    onChange={(e) => setForm((s) => ({ ...s, classesPerMonth: e.target.value }))}
+   542→   542→                  />
+   543→   543→                </div>
+   544→   544→                <div className="space-y-1.5">
+   545→   545→                  <Label htmlFor="plan-price">Monthly price ($)</Label>
+   546→   546→                  <Input
+   547→   547→                    id="plan-price"
+   548→   548→                    type="number"
+   549→   549→                    min={0}
+   550→   550→                    step="0.01"
+   551→   551→                    value={form.monthlyPrice}
+   552→   552→                    onChange={(e) => setForm((s) => ({ ...s, monthlyPrice: e.target.value }))}
+   553→   553→                  />
+   554→   554→                </div>
+   555→   555→                <div className="col-span-2 space-y-1.5">
+   556→   556→                  <Label htmlFor="plan-desc">Description</Label>
+   557→   557→                  <Textarea
+   558→   558→                    id="plan-desc"
+   559→   559→                    rows={2}
+   560→   560→                    placeholder="Short marketing description"
+   561→   561→                    value={form.description}
+   562→   562→                    onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+   563→   563→                  />
+   564→   564→                </div>
+   565→   565→                <div className="col-span-2 space-y-1.5">
+   566→   566→                  <Label htmlFor="plan-features">Features (one per line)</Label>
+   567→   567→                  <Textarea
+   568→   568→                    id="plan-features"
+   569→   569→                    rows={5}
+   570→   570→                    placeholder={'Weekly 1-on-1 sessions\nRecitation correction\nProgress tracking'}
+   571→   571→                    value={form.features}
+   572→   572→                    onChange={(e) => setForm((s) => ({ ...s, features: e.target.value }))}
+   573→   573→                  />
+   574→   574→                </div>
+   575→   575→                <div className="col-span-2 flex items-center gap-2">
+   576→   576→                  <Checkbox
+   577→   577→                    id="plan-popular"
+   578→   578→                    checked={form.popular}
+   579→   579→                    onCheckedChange={(v) => setForm((s) => ({ ...s, popular: !!v }))}
+   580→   580→                  />
+   581→   581→                  <Label htmlFor="plan-popular" className="cursor-pointer text-sm font-medium">
+   582→   582→                    Mark as <span className="text-[oklch(0.55_0.13_75)]">Most Popular</span> (highlighted on Plans page)
+   583→   583→                  </Label>
+   584→   584→                </div>
+   585→   585→              </div>
+   586→   586→              <DialogFooter>
+   587→   587→                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+   588→   588→                  Cancel
+   589→   589→                </Button>
+   590→   590→                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={createPlan.isPending}>
+   591→   591→                  {createPlan.isPending ? 'Creating…' : 'Create plan'}
+   592→   592→                </Button>
+   593→   593→              </DialogFooter>
+   594→   594→            </form>
+   595→   595→          </DialogContent>
+   596→   596→        </Dialog>
+   597→   597→      </div>
+   598→   598→
+   599→   599→      {plans.length === 0 ? (
+   600→   600→        <Card className="p-10 text-center text-sm text-muted-foreground">
+   601→   601→          No subscription plans yet. Create your first plan.
+   602→   602→        </Card>
+   603→   603→      ) : (
+   604→   604→        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   605→   605→          {plans.map((p) => (
+   606→   606→            <Card
+   607→   607→              key={p.id}
+   608→   608→              className={cn(
+   609→   609→                'relative flex flex-col overflow-hidden p-5 transition-all hover:shadow-lg hover:shadow-primary/5',
+   610→   610→                p.popular && 'ring-2 ring-[oklch(0.78_0.15_85/0.6)]'
+   611→   611→              )}
+   612→   612→            >
+   613→   613→              {p.popular && (
+   614→   614→                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[oklch(0.78_0.15_85)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow">
+   615→   615→                  <Star className="h-3 w-3" /> Popular
+   616→   616→                </span>
+   617→   617→              )}
+   618→   618→              <div className="mb-3 flex items-center gap-2">
+   619→   619→                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   620→   620→                  <StarMedallion className="h-5 w-5" />
+   621→   621→                </div>
+   622→   622→                <div>
+   623→   623→                  <h4 className="font-bold leading-tight text-foreground">{p.name}</h4>
+   624→   624→                  <p className="text-[11px] text-muted-foreground">{p.classesPerMonth} classes / month</p>
+   625→   625→                </div>
+   626→   626→              </div>
+   627→   627→
+   628→   628→              <div className="mb-3 flex items-end gap-1">
+   629→   629→                <span className="text-3xl font-extrabold text-gradient-blue">${p.monthlyPrice}</span>
+   630→   630→                <span className="mb-1 text-xs text-muted-foreground">/ month</span>
+   631→   631→              </div>
+   632→   632→
+   633→   633→              {p.description && (
+   634→   634→                <p className="mb-3 text-xs text-muted-foreground">{p.description}</p>
+   635→   635→              )}
+   636→   636→
+   637→   637→              <ul className="mb-4 flex-1 space-y-1.5">
+   638→   638→                {p.features.map((f, i) => (
+   639→   639→                  <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
+   640→   640→                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.55_0.13_150)]" />
+   641→   641→                    <span>{f}</span>
+   642→   642→                  </li>
+   643→   643→                ))}
+   644→   644→              </ul>
+   645→   645→
+   646→   646→              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+   647→   647→                <div className="flex items-center gap-2">
+   648→   648→                  <Switch
+   649→   649→                    checked={p.active}
+   650→   650→                    // Active state is read-only in this demo (no toggle API)
+   651→   651→                    onCheckedChange={(v) =>
+   652→   652→                      toast.info(
+   653→   653→                        v ? 'Plan activation requires a backend update endpoint' : 'Plan deactivation requires a backend update endpoint'
+   654→   654→                      )
+   655→   655→                    }
+   656→   656→                    aria-label="Plan active status"
+   657→   657→                  />
+   658→   658→                  <span className={cn('text-xs font-medium', p.active ? 'text-[oklch(0.45_0.12_150)]' : 'text-muted-foreground')}>
+   659→   659→                    {p.active ? 'Active' : 'Inactive'}
+   660→   660→                  </span>
+   661→   661→                </div>
+   662→   662→                <Badge
+   663→   663→                  variant="outline"
+   664→   664→                  className={cn(
+   665→   665→                    p.active
+   666→   666→                      ? 'border-[oklch(0.70_0.12_150/0.3)] bg-[oklch(0.70_0.12_150/0.08)] text-[oklch(0.45_0.12_150)]'
+   667→   667→                      : 'border-border text-muted-foreground'
+   668→   668→                  )}
+   669→   669→                >
+   670→   670→                  {p.active ? 'Live' : 'Hidden'}
+   671→   671→                </Badge>
+   672→   672→              </div>
+   673→   673→            </Card>
+   674→   674→          ))}
+   675→   675→        </div>
+   676→   676→      )}
+   677→   677→    </div>
+   678→   678→  )
+   679→   679→}
+   680→   680→
+   681→   681→/* ============================================================
+   682→   682→ * Withdrawals tab
+   683→   683→ * ============================================================ */
+   684→   684→function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
+   685→   685→  if (withdrawals.length === 0) {
+   686→   686→    return (
+   687→   687→      <Card className="p-12 text-center">
+   688→   688→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   689→   689→          <Banknote className="h-6 w-6" />
+   690→   690→        </div>
+   691→   691→        <h4 className="text-lg font-bold text-foreground">No pending payouts</h4>
+   692→   692→        <p className="mt-1 text-sm text-muted-foreground">
+   693→   693→          All tutor withdrawal requests have been processed.
+   694→   694→        </p>
+   695→   695→      </Card>
+   696→   696→    )
+   697→   697→  }
+   698→   698→
+   699→   699→  return (
+   700→   700→    <Card className="p-0">
+   701→   701→      <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   702→   702→        <Table>
+   703→   703→          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   704→   704→            <TableRow className="hover:bg-transparent">
+   705→   705→              <TableHead className="pl-4">Tutor</TableHead>
+   706→   706→              <TableHead>Amount</TableHead>
+   707→   707→              <TableHead>Method</TableHead>
+   708→   708→              <TableHead>Requested</TableHead>
+   709→   709→              <TableHead>Status</TableHead>
+   710→   710→              <TableHead className="pr-4 text-right">Actions</TableHead>
+   711→   711→            </TableRow>
+   712→   712→          </TableHeader>
+   713→   713→          <TableBody>
+   714→   714→            {withdrawals.map((w) => (
+   715→   715→              <TableRow key={w.id}>
+   716→   716→                <TableCell className="pl-4">
+   717→   717→                  <div className="flex items-center gap-3 py-1">
+   718→   718→                    <Avatar name={w.tutor.name} size={36} />
+   719→   719→                    <div className="min-w-0">
+   720→   720→                      <div className="truncate font-semibold text-foreground">{w.tutor.name}</div>
+   721→   721→                      <div className="truncate text-xs text-muted-foreground">{w.tutor.email}</div>
+   722→   722→                    </div>
+   723→   723→                  </div>
+   724→   724→                </TableCell>
+   725→   725→                <TableCell>
+   726→   726→                  <span className="font-mono text-sm font-bold text-foreground">${Number(w.amount).toFixed(2)}</span>
+   727→   727→                </TableCell>
+   728→   728→                <TableCell>
+   729→   729→                  <Badge variant="outline" className="border-border capitalize text-muted-foreground">
+   730→   730→                    {w.method ? w.method.toLowerCase() : 'bank'}
+   731→   731→                  </Badge>
+   732→   732→                </TableCell>
+   733→   733→                <TableCell>
+   734→   734→                  <span className="text-xs text-muted-foreground">
+   735→   735→                    {w.createdAt ? format(new Date(w.createdAt), 'MMM d, yyyy') : '—'}
+   736→   736→                  </span>
+   737→   737→                </TableCell>
+   738→   738→                <TableCell>
+   739→   739→                  <span className="inline-flex items-center gap-1 rounded-md border border-[oklch(0.75_0.13_70/0.35)] bg-[oklch(0.75_0.13_70/0.18)] px-2 py-0.5 text-xs font-semibold text-[oklch(0.50_0.12_70)]">
+   740→   740→                    <Clock3 className="h-3 w-3" /> Pending
+   741→   741→                  </span>
+   742→   742→                </TableCell>
+   743→   743→                <TableCell className="pr-4">
+   744→   744→                  <div className="flex items-center justify-end gap-1.5">
+   745→   745→                    <Button
+   746→   746→                      size="sm"
+   747→   747→                      className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   748→   748→                      onClick={() => toast.success(`Payout approved for ${w.tutor.name} ($${Number(w.amount).toFixed(2)})`)}
+   749→   749→                    >
+   750→   750→                      <CheckCircle2 className="h-3.5 w-3.5" /> Approve Payout
+   751→   751→                    </Button>
+   752→   752→                    <Button
+   753→   753→                      size="sm"
+   754→   754→                      variant="outline"
+   755→   755→                      className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   756→   756→                      onClick={() => toast.error(`Payout rejected for ${w.tutor.name}`)}
+   757→   757→                    >
+   758→   758→                      <XCircle className="h-3.5 w-3.5" /> Reject
+   759→   759→                    </Button>
+   760→   760→                  </div>
+   761→   761→                </TableCell>
+   762→   762→              </TableRow>
+   763→   763→            ))}
+   764→   764→          </TableBody>
+   765→   765→        </Table>
+   766→   766→      </div>
+   767→   767→    </Card>
+   768→   768→  )
+   769→   769→}
+   770→   770→
+   771→   771→/* ============================================================
+   772→   772→ * Main view
+   773→   773→ * ============================================================ */
+   774→   774→export function AdminDashboard() {
+   775→   775→  const user = useAppStore((s) => s.user)
+   776→   776→  const { data, isLoading, isError, error } = useAdminDashboard()
+   777→   777→
+   778→   778→  // Auth gate renders before anything else
+   779→   779→  if (!user || user.role !== 'ADMIN') {
+   780→   780→    return <AdminAuthGuard />
+   781→   781→  }
+   782→   782→
+   783→   783→  return (
+   784→   784→    <div className="relative">
+   785→   785→      {/* ===== Header with decorative Islamic pattern band ===== */}
+   786→   786→      <header className="relative overflow-hidden border-b border-border/60 bg-primary text-primary-foreground">
+   787→   787→        <IslamicPatternBand opacity={0.18} />
+   788→   788→        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
+   789→   789→          <div className="flex flex-wrap items-center justify-between gap-4">
+   790→   790→            <div className="flex items-center gap-4">
+   791→   791→              <div className="hidden sm:block">
+   792→   792→                <QtuorLogoLockup onDark size="md" />
+   793→   793→              </div>
+   794→   794→              <div>
+   795→   795→                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/80 ring-1 ring-white/15">
+   796→   796→                  <Sparkles className="h-3 w-3" /> Admin Console
+   797→   797→                </div>
+   798→   798→                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+   799→   799→                  Admin Control Center
+   800→   800→                </h1>
+   801→   801→                <p className="mt-1 text-sm text-white/70">
+   802→   802→                  Vetting, plans, and payouts — all in one place.
+   803→   803→                </p>
+   804→   804→              </div>
+   805→   805→            </div>
+   806→   806→            <div className="hidden items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm ring-1 ring-white/15 md:flex">
+   807→   807→              <StarMedallion className="h-5 w-5 text-[oklch(0.78_0.15_85)]" />
+   808→   808→              <span className="text-white/80">Signed in as</span>
+   809→   809→              <span className="font-semibold text-white">{user.name}</span>
+   810→   810→            </div>
+   811→   811→          </div>
+   812→   812→        </div>
+   813→   813→      </header>
+   814→   814→
+   815→   815→      {/* ===== Body ===== */}
+   816→   816→      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+   817→   817→        {/* ===== Stats overview ===== */}
+   818→   818→        {isLoading ? (
+   819→   819→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   820→   820→            {Array.from({ length: 6 }).map((_, i) => (
+   821→   821→              <Card key={i} className="h-[104px] animate-pulse bg-muted/40" />
+   822→   822→            ))}
+   823→   823→          </div>
+   824→   824→        ) : isError ? (
+   825→   825→          <Card className="flex items-center gap-3 border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.05)] p-4">
+   826→   826→            <AlertTriangle className="h-5 w-5 text-[oklch(0.50_0.20_27)]" />
+   827→   827→            <div className="text-sm text-foreground">
+   828→   828→              <span className="font-semibold">Couldn't load dashboard data.</span>{' '}
+   829→   829→              <span className="text-muted-foreground">{(error as Error)?.message || 'Please try again shortly.'}</span>
+   830→   830→            </div>
+   831→   831→          </Card>
+   832→   832→        ) : (
+   833→   833→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   834→   834→            <StatCard
+   835→   835→              label="Total Students"
+   836→   836→              value={data?.stats.totalStudents ?? 0}
+   837→   837→              icon={<Users className="h-5 w-5" />}
+   838→   838→              accent="primary"
+   839→   839→            />
+   840→   840→            <StatCard
+   841→   841→              label="Total Tutors"
+   842→   842→              value={data?.stats.totalTutors ?? 0}
+   843→   843→              sub={`approved ${data?.stats.approvedTutors ?? 0}`}
+   844→   844→              icon={<GraduationCap className="h-5 w-5" />}
+   845→   845→              accent="primary"
+   846→   846→            />
+   847→   847→            <StatCard
+   848→   848→              label="Pending Tutors"
+   849→   849→              value={data?.stats.pendingTutors ?? 0}
+   850→   850→              sub="awaiting review"
+   851→   851→              icon={<Clock3 className="h-5 w-5" />}
+   852→   852→              accent="amber"
+   853→   853→            />
+   854→   854→            <StatCard
+   855→   855→              label="Total Bookings"
+   856→   856→              value={data?.stats.totalBookings ?? 0}
+   857→   857→              icon={<CalendarCheck className="h-5 w-5" />}
+   858→   858→              accent="primary"
+   859→   859→            />
+   860→   860→            <StatCard
+   861→   861→              label="Total Revenue"
+   862→   862→              value={`$${(data?.stats.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+   863→   863→              sub="lifetime"
+   864→   864→              icon={<DollarSign className="h-5 w-5" />}
+   865→   865→              accent="gold"
+   866→   866→            />
+   867→   867→            <StatCard
+   868→   868→              label="Pending Payouts"
+   869→   869→              value={data?.pendingWithdrawals.length ?? 0}
+   870→   870→              sub="withdrawal requests"
+   871→   871→              icon={<Banknote className="h-5 w-5" />}
+   872→   872→              accent="amber"
+   873→   873→            />
+   874→   874→          </div>
+   875→   875→        )}
+   876→   876→
+   877→   877→        {/* ===== Tabs ===== */}
+   878→   878→        <Tabs defaultValue="tutors" className="w-full">
+   879→   879→          <div className="overflow-x-auto">
+   880→   880→            <TabsList className="h-auto w-fit rounded-xl bg-muted/60 p-1">
+   881→   881→              <TabsTrigger value="tutors" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   882→   882→                <ShieldCheck className="h-4 w-4" /> Tutor Vetting
+   883→   883→              </TabsTrigger>
+   884→   884→              <TabsTrigger value="plans" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   885→   885→                <Sparkles className="h-4 w-4" /> Subscription Plans
+   886→   886→              </TabsTrigger>
+   887→   887→              <TabsTrigger value="withdrawals" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   888→   888→                <Banknote className="h-4 w-4" /> Withdrawals
+   889→   889→                {(data?.pendingWithdrawals.length ?? 0) > 0 && (
+   890→   890→                  <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[oklch(0.75_0.13_70)] px-1 text-[10px] font-bold text-white">
+   891→   891→                    {data?.pendingWithdrawals.length}
+   892→   892→                  </span>
+   893→   893→                )}
+   894→   894→              </TabsTrigger>
+   895→   895→              <TabsTrigger value="whatsapp" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   896→   896→                <MessageCircle className="h-4 w-4" /> WhatsApp
+   897→   897→              </TabsTrigger>
+   898→   898→            </TabsList>
+   899→   899→          </div>
+   900→   900→
+   901→   901→          <TabsContent value="tutors" className="mt-5">
+   902→   902→            {isLoading ? (
+   903→   903→              <Card className="h-[400px] animate-pulse bg-muted/40" />
+   904→   904→            ) : (
+   905→   905→              <TutorVettingTab tutors={data?.tutors ?? []} />
+   906→   906→            )}
+   907→   907→          </TabsContent>
+   908→   908→
+   909→   909→          <TabsContent value="plans" className="mt-5">
+   910→   910→            {isLoading ? (
+   911→   911→              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   912→   912→                {Array.from({ length: 3 }).map((_, i) => (
+   913→   913→                  <Card key={i} className="h-[260px] animate-pulse bg-muted/40" />
+   914→   914→                ))}
+   915→   915→              </div>
+   916→   916→            ) : (
+   917→   917→              <PlansTab plans={data?.plans ?? []} />
+   918→   918→            )}
+   919→   919→          </TabsContent>
+   920→   920→
+   921→   921→          <TabsContent value="withdrawals" className="mt-5">
+   922→   922→            {isLoading ? (
+   923→   923→              <Card className="h-[300px] animate-pulse bg-muted/40" />
+   924→   924→            ) : (
+   925→   925→              <WithdrawalsTab withdrawals={data?.pendingWithdrawals ?? []} />
+   926→   926→            )}
+   927→   927→          </TabsContent>
+   928→   928→
+   929→   929→          <TabsContent value="whatsapp" className="mt-5">
+   930→   930→            <WhatsAppTab />
+   931→   931→          </TabsContent>
+   932→   932→        </Tabs>
+   933→   933→      </div>
+   934→   934→    </div>
+   935→   935→  )
+   936→   936→}
+   937→   937→
+   938→   938→export default AdminDashboard
+   939→   939→
+   940→   940→/* ============================================================
+   941→   941→ * WhatsApp Notifications Tab
+   942→   942→ * ============================================================ */
+   943→   943→function WhatsAppTab() {
+   944→   944→  const { data: notifData, isLoading: notifLoading } = useNotifications()
+   945→   945→  const { data: settingsData, isLoading: settingsLoading } = useWhatsAppSettings()
+   946→   946→  const updateSettings = useUpdateWhatsAppSettings()
+   947→   947→  const settings = settingsData?.settings
+   948→   948→  const notifications = notifData?.notifications || []
+   949→   949→  const byType = notifData?.byType || []
+   950→   950→
+   951→   951→  const toggle = (key: string, value: boolean) => {
+   952→   952→    updateSettings.mutate({ [key]: !value })
+   953→   953→  }
+   954→   954→
+   955→   955→  if (settingsLoading) return <Card className="h-[400px] animate-pulse bg-muted/40" />
+   956→   956→
+   957→   957→  return (
+   958→   958→    <div className="space-y-4">
+   959→   959→      {/* Settings card */}
+   960→   960→      <Card className="overflow-hidden p-0">
+   961→   961→        <div className="flex items-center gap-2 bg-[#25D366] p-4 text-white">
+   962→   962→          <MessageCircle className="h-5 w-5" />
+   963→   963→          <span className="font-bold">WhatsApp Integration Settings</span>
+   964→   964→        </div>
+   965→   965→        <div className="space-y-4 p-5">
+   966→   966→          {/* Provider */}
+   967→   967→          <div className="grid gap-3 sm:grid-cols-2">
+   968→   968→            <div className="space-y-1.5">
+   969→   969→              <Label htmlFor="wa-provider">API Provider</Label>
+   970→   970→              <Select
+   971→   971→                value={settings?.provider || 'SIMULATED'}
+   972→   972→                onValueChange={(v) => updateSettings.mutate({ provider: v })}
+   973→   973→              >
+   974→   974→                <SelectTrigger id="wa-provider"><SelectValue /></SelectTrigger>
+   975→   975→                <SelectContent>
+   976→   976→                  <SelectItem value="SIMULATED">Simulated (log only — no real messages)</SelectItem>
+   977→   977→                  <SelectItem value="TWILIO">Twilio WhatsApp API</SelectItem>
+   978→   978→                  <SelectItem value="META_CLOUD_API">Meta WhatsApp Cloud API</SelectItem>
+   979→   979→                  <SelectItem value="INFOBIP">Infobip WhatsApp</SelectItem>
+   980→   980→                </SelectContent>
+   981→   981→              </Select>
+   982→   982→              <p className="text-[10px] text-muted-foreground">
+   983→   983→                Currently in <strong>{settings?.provider || 'SIMULATED'}</strong> mode.
+   984→   984→                {settings?.provider === 'SIMULATED' ? ' Messages are logged but not actually sent.' : ' Real WhatsApp messages will be sent.'}
+   985→   985→              </p>
+   986→   986→            </div>
+   987→   987→            <div className="space-y-1.5">
+   988→   988→              <Label htmlFor="wa-admin-phone">Admin / Support WhatsApp Number</Label>
+   989→   989→              <Input
+   990→   990→                id="wa-admin-phone"
+   991→   991→                value={settings?.adminPhone || ''}
+   992→   992→                onChange={(e) => updateSettings.mutate({ adminPhone: e.target.value })}
+   993→   993→                placeholder="+1234567890"
+   994→   994→              />
+   995→   995→              <p className="text-[10px] text-muted-foreground">Used by the floating chat widget and "Ask about this tutor" button.</p>
+   996→   996→            </div>
+   997→   997→          </div>
+   998→   998→
+   999→   999→          {/* Feature toggles */}
+  1000→  1000→          <div className="rounded-lg border border-border bg-muted/30 p-3">
+  1001→  1001→            <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+  1002→  1002→              <Bell className="h-3.5 w-3.5" /> Automated Notification Toggles
+  1003→  1003→            </p>
+  1004→  1004→            <div className="grid gap-2 sm:grid-cols-2">
+  1005→  1005→              {[
+  1006→  1006→                ['notifyTutorApproved', 'Tutor approval + $10 registration fee link'],
+  1007→  1007→                ['notifyBookingConfirmation', 'Class booking confirmation (student + tutor)'],
+  1008→  1008→                ['notifyClassReminder', '15-minute live class reminder'],
+  1009→  1009→                ['notifyPaymentSuccess', 'Payment success / failure receipt'],
+  1010→  1010→                ['notifyTutorPayout', 'Tutor monthly payout (55% share) notification'],
+  1011→  1011→                ['showFloatingWidget', 'Show floating WhatsApp widget on landing page'],
+  1012→  1012→                ['allowTutorContactAdmin', '"Ask about this tutor" button on tutor cards'],
+  1013→  1013→              ].map(([key, label]) => (
+  1014→  1014→                <label key={key} className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-card p-2.5">
+  1015→  1015→                  <span className="text-xs">{label}</span>
+  1016→  1016→                  <Switch
+  1017→  1017→                    checked={settings?.[key as keyof typeof settings] as boolean}
+  1018→  1018→                    onCheckedChange={() => toggle(key, settings?.[key as keyof typeof settings] as boolean)}
+  1019→  1019→                  />
+  1020→  1020→                </label>
+  1021→  1021→              ))}
+  1022→  1022→            </div>
+  1023→  1023→          </div>
+  1024→  1024→
+  1025→  1025→          {/* Reminder minutes */}
+  1026→  1026→          <div className="flex items-center gap-3">
+  1027→  1027→            <Label htmlFor="wa-reminder-min" className="shrink-0 text-sm">Reminder minutes before class:</Label>
+  1028→  1028→            <Input
+  1029→  1029→              id="wa-reminder-min"
+  1030→  1030→              type="number"
+  1031→  1031→              min="5"
+  1032→  1032→              max="60"
+  1033→  1033→              value={settings?.reminderMinutesBefore || 15}
+  1034→  1034→              onChange={(e) => updateSettings.mutate({ reminderMinutesBefore: parseInt(e.target.value) || 15 })}
+  1035→  1035→              className="w-20"
+  1036→  1036→            />
+  1037→  1037→            <span className="text-xs text-muted-foreground">minutes</span>
+  1038→  1038→          </div>
+  1039→  1039→
+  1040→  1040→          {settings?.provider !== 'SIMULATED' && (
+  1041→  1041→            <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+  1042→  1042→              <p className="col-span-full text-xs font-semibold text-amber-800">Provider Credentials (required for real delivery)</p>
+  1043→  1043→              <div className="space-y-1">
+  1044→  1044→                <Label className="text-[10px]">Account SID</Label>
+  1045→  1045→                <Input value={settings?.accountSid || ''} onChange={(e) => updateSettings.mutate({ accountSid: e.target.value })} placeholder="AC..." className="text-xs" />
+  1046→  1046→              </div>
+  1047→  1047→              <div className="space-y-1">
+  1048→  1048→                <Label className="text-[10px]">Auth Token</Label>
+  1049→  1049→                <Input type="password" value={settings?.authToken || ''} onChange={(e) => updateSettings.mutate({ authToken: e.target.value })} placeholder="••••" className="text-xs" />
+  1050→  1050→              </div>
+  1051→  1051→              <div className="space-y-1">
+  1052→  1052→                <Label className="text-[10px]">From Number</Label>
+  1053→  1053→                <Input value={settings?.fromNumber || ''} onChange={(e) => updateSettings.mutate({ fromNumber: e.target.value })} placeholder="whatsapp:+123..." className="text-xs" />
+  1054→  1054→              </div>
+  1055→  1055→            </div>
+  1056→  1056→          )}
+  1057→  1057→        </div>
+  1058→  1058→      </Card>
+  1059→  1059→
+  1060→  1060→      {/* Stats by type */}
+  1061→  1061→      {byType.length > 0 && (
+  1062→  1062→        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+  1063→  1063→          {byType.map((t: any) => (
+  1064→  1064→            <Card key={t.type} className="p-3 text-center">
+  1065→  1065→              <div className="text-xl font-extrabold text-[#25D366]">{t._count}</div>
+  1066→  1066→              <div className="text-[10px] uppercase text-muted-foreground">{t.type.replace(/_/g, ' ').toLowerCase()}</div>
+  1067→  1067→            </Card>
+  1068→  1068→          ))}
+  1069→  1069→        </div>
+  1070→  1070→      )}
+  1071→  1071→
+  1072→  1072→      {/* Notification log */}
+  1073→  1073→      <Card className="overflow-hidden p-0">
+  1074→  1074→        <div className="flex items-center justify-between border-b border-border p-4">
+  1075→  1075→          <span className="flex items-center gap-2 font-bold">
+  1076→  1076→            <Bell className="h-4 w-4" /> Notification Log
+  1077→  1077→          </span>
+  1078→  1078→          <span className="text-xs text-muted-foreground">{notifData?.count || 0} total</span>
+  1079→  1079→        </div>
+  1080→  1080→        {notifLoading ? (
+  1081→  1081→          <div className="p-8 text-center text-sm text-muted-foreground">Loading notifications...</div>
+  1082→  1082→        ) : notifications.length === 0 ? (
+  1083→  1083→          <div className="p-8 text-center text-sm text-muted-foreground">No notifications sent yet.</div>
+  1084→  1084→        ) : (
+  1085→  1085→          <div className="max-h-[400px] overflow-y-auto scrollbar-quran">
+  1086→  1086→            {notifications.map((n: any) => (
+  1087→  1087→              <div key={n.id} className="border-b border-border/60 p-3 last:border-0">
+  1088→  1088→                <div className="flex items-start justify-between gap-2">
+  1089→  1089→                  <div className="min-w-0 flex-1">
+  1090→  1090→                    <div className="flex items-center gap-1.5">
+  1091→  1091→                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${n.status === 'SIMULATED' ? 'bg-amber-100 text-amber-700' : n.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+  1092→  1092→                        {n.status}
+  1093→  1093→                      </span>
+  1094→  1094→                      <span className="rounded bg-[#25D366]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#075E54]">{n.type.replace(/_/g, ' ').toLowerCase()}</span>
+  1095→  1095→                      <span className="text-xs font-semibold">{n.recipientName}</span>
+  1096→  1096→                      {n.recipientPhone && <span className="text-[10px] text-muted-foreground">{n.recipientPhone}</span>}
+  1097→  1097→                    </div>
+  1098→  1098→                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+  1099→  1099→                  </div>
+  1100→  1100→                  <span className="shrink-0 text-[10px] text-muted-foreground">
+  1101→  1101→                    {new Date(n.createdAt).toLocaleString()}
+  1102→  1102→                  </span>
+  1103→  1103→                </div>
+  1104→  1104→              </div>
+  1105→  1105→            ))}
+  1106→  1106→          </div>
+  1107→  1107→        )}
+  1108→  1108→      </Card>
+  1109→  1109→    </div>
+  1110→  1110→  )
+  1111→  1111→}
+  1112→  1112→

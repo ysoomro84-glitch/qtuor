@@ -1,0 +1,1112 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { Card } from '@/components/ui/card'
+     5→import { Button } from '@/components/ui/button'
+     6→import { Badge } from '@/components/ui/badge'
+     7→import { Input } from '@/components/ui/input'
+     8→import { Textarea } from '@/components/ui/textarea'
+     9→import { Label } from '@/components/ui/label'
+    10→import { Checkbox } from '@/components/ui/checkbox'
+    11→import { Switch } from '@/components/ui/switch'
+    12→import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+    13→import {
+    14→  Table,
+    15→  TableBody,
+    16→  TableCell,
+    17→  TableHead,
+    18→  TableHeader,
+    19→  TableRow,
+    20→} from '@/components/ui/table'
+    21→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    22→import {
+    23→  Dialog,
+    24→  DialogContent,
+    25→  DialogDescription,
+    26→  DialogFooter,
+    27→  DialogHeader,
+    28→  DialogTitle,
+    29→  DialogTrigger,
+    30→} from '@/components/ui/dialog'
+    31→import { QtuorLogoLockup } from '@/components/brand/logo'
+    32→import { StarRating } from '@/components/brand/badges'
+    33→import { StarMedallion, IslamicPatternBand } from '@/components/brand/patterns'
+    34→import { Avatar, countryFlag } from '@/components/shared/avatar'
+    35→import { useAppStore } from '@/lib/store'
+    36→import { useAdminDashboard, useUpdateTutorStatus, useCreatePlan } from '@/lib/queries'
+    37→import { toast } from 'sonner'
+    38→import { cn } from '@/lib/utils'
+    39→import { format } from 'date-fns'
+    40→import {
+    41→  ShieldCheck,
+    42→  ShieldAlert,
+    43→  Users,
+    44→  GraduationCap,
+    45→  Clock3,
+    46→  CalendarCheck,
+    47→  DollarSign,
+    48→  Banknote,
+    49→  CheckCircle2,
+    50→  XCircle,
+    51→  Ban,
+    52→  RotateCcw,
+    53→  Plus,
+    54→  Star,
+    55→  Sparkles,
+    56→  LockKeyhole,
+    57→  AlertTriangle,
+    58→  MessageCircle,
+    59→  Bell,
+    60→  Settings,
+    61→} from 'lucide-react'
+    62→import { useNotifications, useWhatsAppSettings, useUpdateWhatsAppSettings } from '@/lib/queries'
+    63→
+    64→/* ============================================================
+    65→ * Types — mirror shape returned by /api/dashboard/admin
+    66→ * ============================================================ */
+    67→type TutorStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+    68→
+    69→interface AdminTutor {
+    70→  id: string
+    71→  name: string
+    72→  email: string
+    73→  country: string | null
+    74→  createdAt: string
+    75→  status: TutorStatus
+    76→  verified: boolean
+    77→  rating: number
+    78→  perClassRate: number
+    79→  walletBalance: number
+    80→  profile: {
+    81→    bio: string | null
+    82→    specialties: string[]
+    83→    languages: string[]
+    84→    nativeArabic: boolean
+    85→    hafiz: boolean
+    86→    ijazaCertified: boolean
+    87→    experienceYears: number
+    88→  } | null
+    89→}
+    90→
+    91→interface AdminPlan {
+    92→  id: string
+    93→  name: string
+    94→  category?: string
+    95→  classesPerMonth: number
+    96→  monthlyPrice: number
+    97→  description: string | null
+    98→  features: string[]
+    99→  popular: boolean
+   100→  active: boolean
+   101→}
+   102→
+   103→interface AdminWithdrawal {
+   104→  id: string
+   105→  amount: number
+   106→  status: string
+   107→  method: string | null
+   108→  createdAt?: string
+   109→  tutor: { id: string; name: string; email: string }
+   110→}
+   111→
+   112→interface AdminStats {
+   113→  totalStudents: number
+   114→  totalTutors: number
+   115→  approvedTutors: number
+   116→  pendingTutors: number
+   117→  totalBookings: number
+   118→  totalRevenue: number
+   119→}
+   120→
+   121→interface AdminDashboardData {
+   122→  tutors: AdminTutor[]
+   123→  plans: AdminPlan[]
+   124→  pendingWithdrawals: AdminWithdrawal[]
+   125→  stats: AdminStats
+   126→}
+   127→
+   128→/* ============================================================
+   129→ * Auth guard
+   130→ * ============================================================ */
+   131→function AdminAuthGuard() {
+   132→  const user = useAppStore((s) => s.user)
+   133→  const openAuth = useAppStore((s) => s.openAuth)
+   134→
+   135→  if (!user) {
+   136→    return (
+   137→      <section className="mx-auto max-w-md px-4 py-20">
+   138→        <Card className="relative overflow-hidden p-8 text-center">
+   139→          <IslamicPatternBand opacity={0.06} />
+   140→          <div className="relative flex flex-col items-center gap-4">
+   141→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   142→              <LockKeyhole className="h-7 w-7" />
+   143→            </div>
+   144→            <h2 className="text-2xl font-bold text-foreground">Admin sign-in required</h2>
+   145→            <p className="text-sm text-muted-foreground">
+   146→              Please sign in with an administrator account to access the Control Center.
+   147→            </p>
+   148→            <Button
+   149→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   150→              onClick={() => openAuth('login')}
+   151→            >
+   152→              Sign in to continue
+   153→            </Button>
+   154→            <p className="mt-1 text-xs text-muted-foreground">
+   155→              Demo admin: <span className="font-mono font-semibold text-foreground">admin@qtuor.com / admin123</span>
+   156→            </p>
+   157→          </div>
+   158→        </Card>
+   159→      </section>
+   160→    )
+   161→  }
+   162→
+   163→  if (user.role !== 'ADMIN') {
+   164→    return (
+   165→      <section className="mx-auto max-w-md px-4 py-20">
+   166→        <Card className="relative overflow-hidden p-8 text-center">
+   167→          <IslamicPatternBand opacity={0.06} />
+   168→          <div className="relative flex flex-col items-center gap-4">
+   169→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]">
+   170→              <ShieldAlert className="h-7 w-7" />
+   171→            </div>
+   172→            <h2 className="text-2xl font-bold text-foreground">Admin access required</h2>
+   173→            <p className="text-sm text-muted-foreground">
+   174→              You are signed in as <span className="font-semibold text-foreground">{user.email}</span> ({user.role.toLowerCase()}).
+   175→              The Control Center is restricted to administrators.
+   176→            </p>
+   177→            <div className="w-full rounded-lg border border-dashed border-[oklch(0.62_0.14_230/0.4)] bg-[oklch(0.62_0.14_230/0.05)] p-3 text-xs text-muted-foreground">
+   178→              <div className="mb-1 flex items-center gap-1.5 font-semibold text-[oklch(0.40_0.11_258)]">
+   179→                <Sparkles className="h-3.5 w-3.5" /> Demo admin credentials
+   180→              </div>
+   181→              <div className="font-mono">
+   182→                admin@qtuor.com / admin123
+   183→              </div>
+   184→            </div>
+   185→            <Button
+   186→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   187→              onClick={() => openAuth('login')}
+   188→            >
+   189→              Switch to admin account
+   190→            </Button>
+   191→          </div>
+   192→        </Card>
+   193→      </section>
+   194→    )
+   195→  }
+   196→
+   197→  return null
+   198→}
+   199→
+   200→/* ============================================================
+   201→ * Stat cards
+   202→ * ============================================================ */
+   203→function StatCard({
+   204→  label,
+   205→  value,
+   206→  sub,
+   207→  icon,
+   208→  accent = 'primary',
+   209→}: {
+   210→  label: string
+   211→  value: React.ReactNode
+   212→  sub?: string
+   213→  icon: React.ReactNode
+   214→  accent?: 'primary' | 'amber' | 'gold' | 'green'
+   215→}) {
+   216→  const accents: Record<string, string> = {
+   217→    primary: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]',
+   218→    amber: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)]',
+   219→    gold: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]',
+   220→    green: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)]',
+   221→  }
+   222→  return (
+   223→    <Card className="relative overflow-hidden p-4 sm:p-5">
+   224→      <div className="flex items-start justify-between gap-3">
+   225→        <div className="min-w-0">
+   226→          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+   227→            {label}
+   228→          </p>
+   229→          <p className="mt-1 text-2xl font-extrabold text-foreground sm:text-[1.6rem]">{value}</p>
+   230→          {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+   231→        </div>
+   232→        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accents[accent])}>
+   233→          {icon}
+   234→        </div>
+   235→      </div>
+   236→    </Card>
+   237→  )
+   238→}
+   239→
+   240→/* ============================================================
+   241→ * Status badge
+   242→ * ============================================================ */
+   243→function StatusBadge({ status }: { status: TutorStatus }) {
+   244→  const map: Record<TutorStatus, string> = {
+   245→    PENDING: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)] border-[oklch(0.75_0.13_70/0.35)]',
+   246→    APPROVED: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]',
+   247→    REJECTED: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)] border-[oklch(0.58_0.24_27/0.3)]',
+   248→  }
+   249→  return (
+   250→    <span className={cn('inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold', map[status])}>
+   251→      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+   252→      {status.charAt(0) + status.slice(1).toLowerCase()}
+   253→    </span>
+   254→  )
+   255→}
+   256→
+   257→/* ============================================================
+   258→ * Tutor vetting tab
+   259→ * ============================================================ */
+   260→function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
+   261→  const [filter, setFilter] = React.useState<'ALL' | TutorStatus>('ALL')
+   262→  const updateTutor = useUpdateTutorStatus()
+   263→
+   264→  const filtered = React.useMemo(() => {
+   265→    if (filter === 'ALL') return tutors
+   266→    return tutors.filter((t) => t.status === filter)
+   267→  }, [filter, tutors])
+   268→
+   269→  const counts = React.useMemo(
+   270→    () => ({
+   271→      ALL: tutors.length,
+   272→      PENDING: tutors.filter((t) => t.status === 'PENDING').length,
+   273→      APPROVED: tutors.filter((t) => t.status === 'APPROVED').length,
+   274→      REJECTED: tutors.filter((t) => t.status === 'REJECTED').length,
+   275→    }),
+   276→    [tutors]
+   277→  )
+   278→
+   279→  const handle = (id: string, status: TutorStatus, label: string) => {
+   280→    updateTutor.mutate(
+   281→      { id, status },
+   282→      {
+   283→        onSuccess: () => toast.success(`Tutor ${label.toLowerCase()}`),
+   284→        onError: (e: Error) => toast.error(e.message || 'Failed to update tutor'),
+   285→      }
+   286→    )
+   287→  }
+   288→
+   289→  return (
+   290→    <div className="space-y-4">
+   291→      {/* Filter pills */}
+   292→      <div className="flex flex-wrap items-center gap-2">
+   293→        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((f) => (
+   294→          <button
+   295→            key={f}
+   296→            onClick={() => setFilter(f)}
+   297→            className={cn(
+   298→              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+   299→              filter === f
+   300→                ? 'border-transparent bg-primary text-primary-foreground shadow-sm'
+   301→                : 'border-border bg-background text-muted-foreground hover:bg-muted/60'
+   302→            )}
+   303→          >
+   304→            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+   305→            <span
+   306→              className={cn(
+   307→                'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+   308→                filter === f ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+   309→              )}
+   310→            >
+   311→              {counts[f]}
+   312→            </span>
+   313→          </button>
+   314→        ))}
+   315→      </div>
+   316→
+   317→      <Card className="p-0">
+   318→        <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   319→          <Table>
+   320→            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   321→              <TableRow className="hover:bg-transparent">
+   322→                <TableHead className="pl-4">Tutor</TableHead>
+   323→                <TableHead>Country</TableHead>
+   324→                <TableHead>Specialties</TableHead>
+   325→                <TableHead>Rating</TableHead>
+   326→                <TableHead>Per class</TableHead>
+   327→                <TableHead>Status</TableHead>
+   328→                <TableHead>Wallet</TableHead>
+   329→                <TableHead className="pr-4 text-right">Actions</TableHead>
+   330→              </TableRow>
+   331→            </TableHeader>
+   332→            <TableBody>
+   333→              {filtered.length === 0 ? (
+   334→                <TableRow>
+   335→                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+   336→                    No tutors match this filter.
+   337→                  </TableCell>
+   338→                </TableRow>
+   339→              ) : (
+   340→                filtered.map((t) => (
+   341→                  <TableRow key={t.id} className="group">
+   342→                    <TableCell className="pl-4">
+   343→                      <div className="flex items-center gap-3 py-1">
+   344→                        <Avatar name={t.name} size={40} country={t.country} />
+   345→                        <div className="min-w-0">
+   346→                          <div className="flex items-center gap-1.5">
+   347→                            <span className="truncate font-semibold text-foreground">{t.name}</span>
+   348→                            {t.verified && (
+   349→                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[oklch(0.62_0.14_230)]" />
+   350→                            )}
+   351→                          </div>
+   352→                          <div className="truncate text-xs text-muted-foreground">{t.email}</div>
+   353→                        </div>
+   354→                      </div>
+   355→                    </TableCell>
+   356→                    <TableCell>
+   357→                      <span className="text-sm">{countryFlag(t.country)} {t.country || '—'}</span>
+   358→                    </TableCell>
+   359→                    <TableCell>
+   360→                      <div className="flex max-w-[220px] flex-wrap gap-1">
+   361→                        {(t.profile?.specialties || []).slice(0, 3).map((s) => (
+   362→                          <Badge
+   363→                            key={s}
+   364→                            variant="outline"
+   365→                            className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]"
+   366→                          >
+   367→                            {s}
+   368→                          </Badge>
+   369→                        ))}
+   370→                        {(t.profile?.specialties || []).length > 3 && (
+   371→                          <span className="text-xs text-muted-foreground">+{(t.profile?.specialties || []).length - 3}</span>
+   372→                        )}
+   373→                      </div>
+   374→                    </TableCell>
+   375→                    <TableCell>
+   376→                      {t.rating > 0 ? <StarRating rating={t.rating} size={13} /> : <span className="text-xs text-muted-foreground">New</span>}
+   377→                    </TableCell>
+   378→                    <TableCell>
+   379→                      <span className="font-semibold text-foreground">${t.perClassRate}</span>
+   380→                      <span className="text-xs text-muted-foreground">/class</span>
+   381→                    </TableCell>
+   382→                    <TableCell><StatusBadge status={t.status} /></TableCell>
+   383→                    <TableCell>
+   384→                      <span className="font-mono text-sm font-semibold text-foreground">${t.walletBalance.toFixed(2)}</span>
+   385→                    </TableCell>
+   386→                    <TableCell className="pr-4">
+   387→                      <div className="flex items-center justify-end gap-1.5">
+   388→                        {t.status === 'PENDING' && (
+   389→                          <>
+   390→                            <Button
+   391→                              size="sm"
+   392→                              className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   393→                              disabled={updateTutor.isPending}
+   394→                              onClick={() => handle(t.id, 'APPROVED', 'approved')}
+   395→                            >
+   396→                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+   397→                            </Button>
+   398→                            <Button
+   399→                              size="sm"
+   400→                              variant="outline"
+   401→                              className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   402→                              disabled={updateTutor.isPending}
+   403→                              onClick={() => handle(t.id, 'REJECTED', 'rejected')}
+   404→                            >
+   405→                              <XCircle className="h-3.5 w-3.5" /> Reject
+   406→                            </Button>
+   407→                          </>
+   408→                        )}
+   409→                        {t.status === 'APPROVED' && (
+   410→                          <Button
+   411→                            size="sm"
+   412→                            variant="outline"
+   413→                            className="h-7 gap-1 border-[oklch(0.75_0.13_70/0.4)] text-[oklch(0.50_0.12_70)] hover:bg-[oklch(0.75_0.13_70/0.08)]"
+   414→                            disabled={updateTutor.isPending}
+   415→                            onClick={() => handle(t.id, 'REJECTED', 'suspended')}
+   416→                          >
+   417→                            <Ban className="h-3.5 w-3.5" /> Suspend
+   418→                          </Button>
+   419→                        )}
+   420→                        {t.status === 'REJECTED' && (
+   421→                          <Button
+   422→                            size="sm"
+   423→                            className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   424→                            disabled={updateTutor.isPending}
+   425→                            onClick={() => handle(t.id, 'APPROVED', 're-approved')}
+   426→                          >
+   427→                            <RotateCcw className="h-3.5 w-3.5" /> Re-approve
+   428→                          </Button>
+   429→                        )}
+   430→                      </div>
+   431→                    </TableCell>
+   432→                  </TableRow>
+   433→                ))
+   434→              )}
+   435→            </TableBody>
+   436→          </Table>
+   437→        </div>
+   438→      </Card>
+   439→    </div>
+   440→  )
+   441→}
+   442→
+   443→/* ============================================================
+   444→ * Plans tab
+   445→ * ============================================================ */
+   446→function PlansTab({ plans }: { plans: AdminPlan[] }) {
+   447→  const [open, setOpen] = React.useState(false)
+   448→  const createPlan = useCreatePlan()
+   449→
+   450→  const [form, setForm] = React.useState({
+   451→    name: '',
+   452→    category: 'Quran Recitation With Tajweed',
+   453→    classesPerMonth: '4',
+   454→    monthlyPrice: '49',
+   455→    description: '',
+   456→    features: '',
+   457→    popular: false,
+   458→  })
+   459→
+   460→  const reset = () =>
+   461→    setForm({ name: '', category: 'Quran Recitation With Tajweed', classesPerMonth: '4', monthlyPrice: '49', description: '', features: '', popular: false })
+   462→
+   463→  const submit = (e: React.FormEvent) => {
+   464→    e.preventDefault()
+   465→    if (!form.name.trim() || !form.classesPerMonth || !form.monthlyPrice) {
+   466→      toast.error('Please fill in classes per month and monthly price.')
+   467→      return
+   468→    }
+   469→    createPlan.mutate(
+   470→      {
+   471→        name: form.name.trim(),
+   472→        category: form.category,
+   473→        classesPerMonth: Number(form.classesPerMonth),
+   474→        monthlyPrice: Number(form.monthlyPrice),
+   475→        description: form.description.trim(),
+   476→        features: form.features.trim(),
+   477→        popular: form.popular,
+   478→      },
+   479→      {
+   480→        onSuccess: () => {
+   481→          toast.success('Plan created successfully')
+   482→          reset()
+   483→          setOpen(false)
+   484→        },
+   485→        onError: (e: Error) => toast.error(e.message || 'Failed to create plan'),
+   486→      }
+   487→    )
+   488→  }
+   489→
+   490→  return (
+   491→    <div className="space-y-5">
+   492→      <div className="flex flex-wrap items-center justify-between gap-3">
+   493→        <div>
+   494→          <h3 className="text-lg font-bold text-foreground">Subscription Plans</h3>
+   495→          <p className="text-sm text-muted-foreground">Manage the plans available to students worldwide.</p>
+   496→        </div>
+   497→        <Dialog open={open} onOpenChange={setOpen}>
+   498→          <DialogTrigger asChild>
+   499→            <Button className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
+   500→              <Plus className="h-4 w-4" /> Create New Plan
+   501→            </Button>
+   502→          </DialogTrigger>
+   503→          <DialogContent className="sm:max-w-[520px]">
+   504→            <DialogHeader>
+   505→              <DialogTitle className="flex items-center gap-2">
+   506→                <StarMedallion className="h-5 w-5 text-[oklch(0.62_0.14_230)]" />
+   507→                Create Subscription Plan
+   508→              </DialogTitle>
+   509→              <DialogDescription>Define a new plan for students to subscribe to.</DialogDescription>
+   510→            </DialogHeader>
+   511→            <form onSubmit={submit} className="space-y-4">
+   512→              <div className="grid grid-cols-2 gap-3">
+   513→                <div className="col-span-2 space-y-1.5">
+   514→                  <Label htmlFor="plan-name">Plan name</Label>
+   515→                  <Input
+   516→                    id="plan-name"
+   517→                    placeholder="e.g. 4 Classes / Week"
+   518→                    value={form.name}
+   519→                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+   520→                  />
+   521→                </div>
+   522→                <div className="space-y-1.5">
+   523→                  <Label htmlFor="plan-category">Subject</Label>
+   524→                  <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}>
+   525→                    <SelectTrigger id="plan-category"><SelectValue /></SelectTrigger>
+   526→                    <SelectContent>
+   527→                      <SelectItem value="Noorani Qaida">Noorani Qaida</SelectItem>
+   528→                      <SelectItem value="Quran Recitation With Tajweed">Quran Recitation With Tajweed</SelectItem>
+   529→                      <SelectItem value="Hifz">Hifz</SelectItem>
+   530→                      <SelectItem value="General">General</SelectItem>
+   531→                    </SelectContent>
+   532→                  </Select>
+   533→                </div>
+   534→                <div className="space-y-1.5">
+   535→                  <Label htmlFor="plan-classes">Classes / month</Label>
+   536→                  <Input
+   537→                    id="plan-classes"
+   538→                    type="number"
+   539→                    min={1}
+   540→                    value={form.classesPerMonth}
+   541→                    onChange={(e) => setForm((s) => ({ ...s, classesPerMonth: e.target.value }))}
+   542→                  />
+   543→                </div>
+   544→                <div className="space-y-1.5">
+   545→                  <Label htmlFor="plan-price">Monthly price ($)</Label>
+   546→                  <Input
+   547→                    id="plan-price"
+   548→                    type="number"
+   549→                    min={0}
+   550→                    step="0.01"
+   551→                    value={form.monthlyPrice}
+   552→                    onChange={(e) => setForm((s) => ({ ...s, monthlyPrice: e.target.value }))}
+   553→                  />
+   554→                </div>
+   555→                <div className="col-span-2 space-y-1.5">
+   556→                  <Label htmlFor="plan-desc">Description</Label>
+   557→                  <Textarea
+   558→                    id="plan-desc"
+   559→                    rows={2}
+   560→                    placeholder="Short marketing description"
+   561→                    value={form.description}
+   562→                    onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+   563→                  />
+   564→                </div>
+   565→                <div className="col-span-2 space-y-1.5">
+   566→                  <Label htmlFor="plan-features">Features (one per line)</Label>
+   567→                  <Textarea
+   568→                    id="plan-features"
+   569→                    rows={5}
+   570→                    placeholder={'Weekly 1-on-1 sessions\nRecitation correction\nProgress tracking'}
+   571→                    value={form.features}
+   572→                    onChange={(e) => setForm((s) => ({ ...s, features: e.target.value }))}
+   573→                  />
+   574→                </div>
+   575→                <div className="col-span-2 flex items-center gap-2">
+   576→                  <Checkbox
+   577→                    id="plan-popular"
+   578→                    checked={form.popular}
+   579→                    onCheckedChange={(v) => setForm((s) => ({ ...s, popular: !!v }))}
+   580→                  />
+   581→                  <Label htmlFor="plan-popular" className="cursor-pointer text-sm font-medium">
+   582→                    Mark as <span className="text-[oklch(0.55_0.13_75)]">Most Popular</span> (highlighted on Plans page)
+   583→                  </Label>
+   584→                </div>
+   585→              </div>
+   586→              <DialogFooter>
+   587→                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+   588→                  Cancel
+   589→                </Button>
+   590→                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={createPlan.isPending}>
+   591→                  {createPlan.isPending ? 'Creating…' : 'Create plan'}
+   592→                </Button>
+   593→              </DialogFooter>
+   594→            </form>
+   595→          </DialogContent>
+   596→        </Dialog>
+   597→      </div>
+   598→
+   599→      {plans.length === 0 ? (
+   600→        <Card className="p-10 text-center text-sm text-muted-foreground">
+   601→          No subscription plans yet. Create your first plan.
+   602→        </Card>
+   603→      ) : (
+   604→        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   605→          {plans.map((p) => (
+   606→            <Card
+   607→              key={p.id}
+   608→              className={cn(
+   609→                'relative flex flex-col overflow-hidden p-5 transition-all hover:shadow-lg hover:shadow-primary/5',
+   610→                p.popular && 'ring-2 ring-[oklch(0.78_0.15_85/0.6)]'
+   611→              )}
+   612→            >
+   613→              {p.popular && (
+   614→                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[oklch(0.78_0.15_85)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow">
+   615→                  <Star className="h-3 w-3" /> Popular
+   616→                </span>
+   617→              )}
+   618→              <div className="mb-3 flex items-center gap-2">
+   619→                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   620→                  <StarMedallion className="h-5 w-5" />
+   621→                </div>
+   622→                <div>
+   623→                  <h4 className="font-bold leading-tight text-foreground">{p.name}</h4>
+   624→                  <p className="text-[11px] text-muted-foreground">{p.classesPerMonth} classes / month</p>
+   625→                </div>
+   626→              </div>
+   627→
+   628→              <div className="mb-3 flex items-end gap-1">
+   629→                <span className="text-3xl font-extrabold text-gradient-blue">${p.monthlyPrice}</span>
+   630→                <span className="mb-1 text-xs text-muted-foreground">/ month</span>
+   631→              </div>
+   632→
+   633→              {p.description && (
+   634→                <p className="mb-3 text-xs text-muted-foreground">{p.description}</p>
+   635→              )}
+   636→
+   637→              <ul className="mb-4 flex-1 space-y-1.5">
+   638→                {p.features.map((f, i) => (
+   639→                  <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
+   640→                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.55_0.13_150)]" />
+   641→                    <span>{f}</span>
+   642→                  </li>
+   643→                ))}
+   644→              </ul>
+   645→
+   646→              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+   647→                <div className="flex items-center gap-2">
+   648→                  <Switch
+   649→                    checked={p.active}
+   650→                    // Active state is read-only in this demo (no toggle API)
+   651→                    onCheckedChange={(v) =>
+   652→                      toast.info(
+   653→                        v ? 'Plan activation requires a backend update endpoint' : 'Plan deactivation requires a backend update endpoint'
+   654→                      )
+   655→                    }
+   656→                    aria-label="Plan active status"
+   657→                  />
+   658→                  <span className={cn('text-xs font-medium', p.active ? 'text-[oklch(0.45_0.12_150)]' : 'text-muted-foreground')}>
+   659→                    {p.active ? 'Active' : 'Inactive'}
+   660→                  </span>
+   661→                </div>
+   662→                <Badge
+   663→                  variant="outline"
+   664→                  className={cn(
+   665→                    p.active
+   666→                      ? 'border-[oklch(0.70_0.12_150/0.3)] bg-[oklch(0.70_0.12_150/0.08)] text-[oklch(0.45_0.12_150)]'
+   667→                      : 'border-border text-muted-foreground'
+   668→                  )}
+   669→                >
+   670→                  {p.active ? 'Live' : 'Hidden'}
+   671→                </Badge>
+   672→              </div>
+   673→            </Card>
+   674→          ))}
+   675→        </div>
+   676→      )}
+   677→    </div>
+   678→  )
+   679→}
+   680→
+   681→/* ============================================================
+   682→ * Withdrawals tab
+   683→ * ============================================================ */
+   684→function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
+   685→  if (withdrawals.length === 0) {
+   686→    return (
+   687→      <Card className="p-12 text-center">
+   688→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   689→          <Banknote className="h-6 w-6" />
+   690→        </div>
+   691→        <h4 className="text-lg font-bold text-foreground">No pending payouts</h4>
+   692→        <p className="mt-1 text-sm text-muted-foreground">
+   693→          All tutor withdrawal requests have been processed.
+   694→        </p>
+   695→      </Card>
+   696→    )
+   697→  }
+   698→
+   699→  return (
+   700→    <Card className="p-0">
+   701→      <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   702→        <Table>
+   703→          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   704→            <TableRow className="hover:bg-transparent">
+   705→              <TableHead className="pl-4">Tutor</TableHead>
+   706→              <TableHead>Amount</TableHead>
+   707→              <TableHead>Method</TableHead>
+   708→              <TableHead>Requested</TableHead>
+   709→              <TableHead>Status</TableHead>
+   710→              <TableHead className="pr-4 text-right">Actions</TableHead>
+   711→            </TableRow>
+   712→          </TableHeader>
+   713→          <TableBody>
+   714→            {withdrawals.map((w) => (
+   715→              <TableRow key={w.id}>
+   716→                <TableCell className="pl-4">
+   717→                  <div className="flex items-center gap-3 py-1">
+   718→                    <Avatar name={w.tutor.name} size={36} />
+   719→                    <div className="min-w-0">
+   720→                      <div className="truncate font-semibold text-foreground">{w.tutor.name}</div>
+   721→                      <div className="truncate text-xs text-muted-foreground">{w.tutor.email}</div>
+   722→                    </div>
+   723→                  </div>
+   724→                </TableCell>
+   725→                <TableCell>
+   726→                  <span className="font-mono text-sm font-bold text-foreground">${Number(w.amount).toFixed(2)}</span>
+   727→                </TableCell>
+   728→                <TableCell>
+   729→                  <Badge variant="outline" className="border-border capitalize text-muted-foreground">
+   730→                    {w.method ? w.method.toLowerCase() : 'bank'}
+   731→                  </Badge>
+   732→                </TableCell>
+   733→                <TableCell>
+   734→                  <span className="text-xs text-muted-foreground">
+   735→                    {w.createdAt ? format(new Date(w.createdAt), 'MMM d, yyyy') : '—'}
+   736→                  </span>
+   737→                </TableCell>
+   738→                <TableCell>
+   739→                  <span className="inline-flex items-center gap-1 rounded-md border border-[oklch(0.75_0.13_70/0.35)] bg-[oklch(0.75_0.13_70/0.18)] px-2 py-0.5 text-xs font-semibold text-[oklch(0.50_0.12_70)]">
+   740→                    <Clock3 className="h-3 w-3" /> Pending
+   741→                  </span>
+   742→                </TableCell>
+   743→                <TableCell className="pr-4">
+   744→                  <div className="flex items-center justify-end gap-1.5">
+   745→                    <Button
+   746→                      size="sm"
+   747→                      className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   748→                      onClick={() => toast.success(`Payout approved for ${w.tutor.name} ($${Number(w.amount).toFixed(2)})`)}
+   749→                    >
+   750→                      <CheckCircle2 className="h-3.5 w-3.5" /> Approve Payout
+   751→                    </Button>
+   752→                    <Button
+   753→                      size="sm"
+   754→                      variant="outline"
+   755→                      className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   756→                      onClick={() => toast.error(`Payout rejected for ${w.tutor.name}`)}
+   757→                    >
+   758→                      <XCircle className="h-3.5 w-3.5" /> Reject
+   759→                    </Button>
+   760→                  </div>
+   761→                </TableCell>
+   762→              </TableRow>
+   763→            ))}
+   764→          </TableBody>
+   765→        </Table>
+   766→      </div>
+   767→    </Card>
+   768→  )
+   769→}
+   770→
+   771→/* ============================================================
+   772→ * Main view
+   773→ * ============================================================ */
+   774→export function AdminDashboard() {
+   775→  const user = useAppStore((s) => s.user)
+   776→  const { data, isLoading, isError, error } = useAdminDashboard()
+   777→
+   778→  // Auth gate renders before anything else
+   779→  if (!user || user.role !== 'ADMIN') {
+   780→    return <AdminAuthGuard />
+   781→  }
+   782→
+   783→  return (
+   784→    <div className="relative">
+   785→      {/* ===== Header with decorative Islamic pattern band ===== */}
+   786→      <header className="relative overflow-hidden border-b border-border/60 bg-primary text-primary-foreground">
+   787→        <IslamicPatternBand opacity={0.18} />
+   788→        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
+   789→          <div className="flex flex-wrap items-center justify-between gap-4">
+   790→            <div className="flex items-center gap-4">
+   791→              <div className="hidden sm:block">
+   792→                <QtuorLogoLockup onDark size="md" />
+   793→              </div>
+   794→              <div>
+   795→                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/80 ring-1 ring-white/15">
+   796→                  <Sparkles className="h-3 w-3" /> Admin Console
+   797→                </div>
+   798→                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+   799→                  Admin Control Center
+   800→                </h1>
+   801→                <p className="mt-1 text-sm text-white/70">
+   802→                  Vetting, plans, and payouts — all in one place.
+   803→                </p>
+   804→              </div>
+   805→            </div>
+   806→            <div className="hidden items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm ring-1 ring-white/15 md:flex">
+   807→              <StarMedallion className="h-5 w-5 text-[oklch(0.78_0.15_85)]" />
+   808→              <span className="text-white/80">Signed in as</span>
+   809→              <span className="font-semibold text-white">{user.name}</span>
+   810→            </div>
+   811→          </div>
+   812→        </div>
+   813→      </header>
+   814→
+   815→      {/* ===== Body ===== */}
+   816→      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+   817→        {/* ===== Stats overview ===== */}
+   818→        {isLoading ? (
+   819→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   820→            {Array.from({ length: 6 }).map((_, i) => (
+   821→              <Card key={i} className="h-[104px] animate-pulse bg-muted/40" />
+   822→            ))}
+   823→          </div>
+   824→        ) : isError ? (
+   825→          <Card className="flex items-center gap-3 border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.05)] p-4">
+   826→            <AlertTriangle className="h-5 w-5 text-[oklch(0.50_0.20_27)]" />
+   827→            <div className="text-sm text-foreground">
+   828→              <span className="font-semibold">Couldn't load dashboard data.</span>{' '}
+   829→              <span className="text-muted-foreground">{(error as Error)?.message || 'Please try again shortly.'}</span>
+   830→            </div>
+   831→          </Card>
+   832→        ) : (
+   833→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   834→            <StatCard
+   835→              label="Total Students"
+   836→              value={data?.stats.totalStudents ?? 0}
+   837→              icon={<Users className="h-5 w-5" />}
+   838→              accent="primary"
+   839→            />
+   840→            <StatCard
+   841→              label="Total Tutors"
+   842→              value={data?.stats.totalTutors ?? 0}
+   843→              sub={`approved ${data?.stats.approvedTutors ?? 0}`}
+   844→              icon={<GraduationCap className="h-5 w-5" />}
+   845→              accent="primary"
+   846→            />
+   847→            <StatCard
+   848→              label="Pending Tutors"
+   849→              value={data?.stats.pendingTutors ?? 0}
+   850→              sub="awaiting review"
+   851→              icon={<Clock3 className="h-5 w-5" />}
+   852→              accent="amber"
+   853→            />
+   854→            <StatCard
+   855→              label="Total Bookings"
+   856→              value={data?.stats.totalBookings ?? 0}
+   857→              icon={<CalendarCheck className="h-5 w-5" />}
+   858→              accent="primary"
+   859→            />
+   860→            <StatCard
+   861→              label="Total Revenue"
+   862→              value={`$${(data?.stats.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+   863→              sub="lifetime"
+   864→              icon={<DollarSign className="h-5 w-5" />}
+   865→              accent="gold"
+   866→            />
+   867→            <StatCard
+   868→              label="Pending Payouts"
+   869→              value={data?.pendingWithdrawals.length ?? 0}
+   870→              sub="withdrawal requests"
+   871→              icon={<Banknote className="h-5 w-5" />}
+   872→              accent="amber"
+   873→            />
+   874→          </div>
+   875→        )}
+   876→
+   877→        {/* ===== Tabs ===== */}
+   878→        <Tabs defaultValue="tutors" className="w-full">
+   879→          <div className="overflow-x-auto">
+   880→            <TabsList className="h-auto w-fit rounded-xl bg-muted/60 p-1">
+   881→              <TabsTrigger value="tutors" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   882→                <ShieldCheck className="h-4 w-4" /> Tutor Vetting
+   883→              </TabsTrigger>
+   884→              <TabsTrigger value="plans" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   885→                <Sparkles className="h-4 w-4" /> Subscription Plans
+   886→              </TabsTrigger>
+   887→              <TabsTrigger value="withdrawals" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   888→                <Banknote className="h-4 w-4" /> Withdrawals
+   889→                {(data?.pendingWithdrawals.length ?? 0) > 0 && (
+   890→                  <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[oklch(0.75_0.13_70)] px-1 text-[10px] font-bold text-white">
+   891→                    {data?.pendingWithdrawals.length}
+   892→                  </span>
+   893→                )}
+   894→              </TabsTrigger>
+   895→              <TabsTrigger value="whatsapp" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   896→                <MessageCircle className="h-4 w-4" /> WhatsApp
+   897→              </TabsTrigger>
+   898→            </TabsList>
+   899→          </div>
+   900→
+   901→          <TabsContent value="tutors" className="mt-5">
+   902→            {isLoading ? (
+   903→              <Card className="h-[400px] animate-pulse bg-muted/40" />
+   904→            ) : (
+   905→              <TutorVettingTab tutors={data?.tutors ?? []} />
+   906→            )}
+   907→          </TabsContent>
+   908→
+   909→          <TabsContent value="plans" className="mt-5">
+   910→            {isLoading ? (
+   911→              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   912→                {Array.from({ length: 3 }).map((_, i) => (
+   913→                  <Card key={i} className="h-[260px] animate-pulse bg-muted/40" />
+   914→                ))}
+   915→              </div>
+   916→            ) : (
+   917→              <PlansTab plans={data?.plans ?? []} />
+   918→            )}
+   919→          </TabsContent>
+   920→
+   921→          <TabsContent value="withdrawals" className="mt-5">
+   922→            {isLoading ? (
+   923→              <Card className="h-[300px] animate-pulse bg-muted/40" />
+   924→            ) : (
+   925→              <WithdrawalsTab withdrawals={data?.pendingWithdrawals ?? []} />
+   926→            )}
+   927→          </TabsContent>
+   928→
+   929→          <TabsContent value="whatsapp" className="mt-5">
+   930→            <WhatsAppTab />
+   931→          </TabsContent>
+   932→        </Tabs>
+   933→      </div>
+   934→    </div>
+   935→  )
+   936→}
+   937→
+   938→export default AdminDashboard
+   939→
+   940→/* ============================================================
+   941→ * WhatsApp Notifications Tab
+   942→ * ============================================================ */
+   943→function WhatsAppTab() {
+   944→  const { data: notifData, isLoading: notifLoading } = useNotifications()
+   945→  const { data: settingsData, isLoading: settingsLoading } = useWhatsAppSettings()
+   946→  const updateSettings = useUpdateWhatsAppSettings()
+   947→  const settings = settingsData?.settings
+   948→  const notifications = notifData?.notifications || []
+   949→  const byType = notifData?.byType || []
+   950→
+   951→  const toggle = (key: string, value: boolean) => {
+   952→    updateSettings.mutate({ [key]: !value })
+   953→  }
+   954→
+   955→  if (settingsLoading) return <Card className="h-[400px] animate-pulse bg-muted/40" />
+   956→
+   957→  return (
+   958→    <div className="space-y-4">
+   959→      {/* Settings card */}
+   960→      <Card className="overflow-hidden p-0">
+   961→        <div className="flex items-center gap-2 bg-[#25D366] p-4 text-white">
+   962→          <MessageCircle className="h-5 w-5" />
+   963→          <span className="font-bold">WhatsApp Integration Settings</span>
+   964→        </div>
+   965→        <div className="space-y-4 p-5">
+   966→          {/* Provider */}
+   967→          <div className="grid gap-3 sm:grid-cols-2">
+   968→            <div className="space-y-1.5">
+   969→              <Label htmlFor="wa-provider">API Provider</Label>
+   970→              <Select
+   971→                value={settings?.provider || 'SIMULATED'}
+   972→                onValueChange={(v) => updateSettings.mutate({ provider: v })}
+   973→              >
+   974→                <SelectTrigger id="wa-provider"><SelectValue /></SelectTrigger>
+   975→                <SelectContent>
+   976→                  <SelectItem value="SIMULATED">Simulated (log only — no real messages)</SelectItem>
+   977→                  <SelectItem value="TWILIO">Twilio WhatsApp API</SelectItem>
+   978→                  <SelectItem value="META_CLOUD_API">Meta WhatsApp Cloud API</SelectItem>
+   979→                  <SelectItem value="INFOBIP">Infobip WhatsApp</SelectItem>
+   980→                </SelectContent>
+   981→              </Select>
+   982→              <p className="text-[10px] text-muted-foreground">
+   983→                Currently in <strong>{settings?.provider || 'SIMULATED'}</strong> mode.
+   984→                {settings?.provider === 'SIMULATED' ? ' Messages are logged but not actually sent.' : ' Real WhatsApp messages will be sent.'}
+   985→              </p>
+   986→            </div>
+   987→            <div className="space-y-1.5">
+   988→              <Label htmlFor="wa-admin-phone">Admin / Support WhatsApp Number</Label>
+   989→              <Input
+   990→                id="wa-admin-phone"
+   991→                value={settings?.adminPhone || ''}
+   992→                onChange={(e) => updateSettings.mutate({ adminPhone: e.target.value })}
+   993→                placeholder="+1234567890"
+   994→              />
+   995→              <p className="text-[10px] text-muted-foreground">Used by the floating chat widget and "Ask about this tutor" button.</p>
+   996→            </div>
+   997→          </div>
+   998→
+   999→          {/* Feature toggles */}
+  1000→          <div className="rounded-lg border border-border bg-muted/30 p-3">
+  1001→            <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+  1002→              <Bell className="h-3.5 w-3.5" /> Automated Notification Toggles
+  1003→            </p>
+  1004→            <div className="grid gap-2 sm:grid-cols-2">
+  1005→              {[
+  1006→                ['notifyTutorApproved', 'Tutor approval + $10 registration fee link'],
+  1007→                ['notifyBookingConfirmation', 'Class booking confirmation (student + tutor)'],
+  1008→                ['notifyClassReminder', '15-minute live class reminder'],
+  1009→                ['notifyPaymentSuccess', 'Payment success / failure receipt'],
+  1010→                ['notifyTutorPayout', 'Tutor monthly payout (55% share) notification'],
+  1011→                ['showFloatingWidget', 'Show floating WhatsApp widget on landing page'],
+  1012→                ['allowTutorContactAdmin', '"Ask about this tutor" button on tutor cards'],
+  1013→              ].map(([key, label]) => (
+  1014→                <label key={key} className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-card p-2.5">
+  1015→                  <span className="text-xs">{label}</span>
+  1016→                  <Switch
+  1017→                    checked={settings?.[key as keyof typeof settings] as boolean}
+  1018→                    onCheckedChange={() => toggle(key, settings?.[key as keyof typeof settings] as boolean)}
+  1019→                  />
+  1020→                </label>
+  1021→              ))}
+  1022→            </div>
+  1023→          </div>
+  1024→
+  1025→          {/* Reminder minutes */}
+  1026→          <div className="flex items-center gap-3">
+  1027→            <Label htmlFor="wa-reminder-min" className="shrink-0 text-sm">Reminder minutes before class:</Label>
+  1028→            <Input
+  1029→              id="wa-reminder-min"
+  1030→              type="number"
+  1031→              min="5"
+  1032→              max="60"
+  1033→              value={settings?.reminderMinutesBefore || 15}
+  1034→              onChange={(e) => updateSettings.mutate({ reminderMinutesBefore: parseInt(e.target.value) || 15 })}
+  1035→              className="w-20"
+  1036→            />
+  1037→            <span className="text-xs text-muted-foreground">minutes</span>
+  1038→          </div>
+  1039→
+  1040→          {settings?.provider !== 'SIMULATED' && (
+  1041→            <div className="grid gap-3 sm:grid-cols-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+  1042→              <p className="col-span-full text-xs font-semibold text-amber-800">Provider Credentials (required for real delivery)</p>
+  1043→              <div className="space-y-1">
+  1044→                <Label className="text-[10px]">Account SID</Label>
+  1045→                <Input value={settings?.accountSid || ''} onChange={(e) => updateSettings.mutate({ accountSid: e.target.value })} placeholder="AC..." className="text-xs" />
+  1046→              </div>
+  1047→              <div className="space-y-1">
+  1048→                <Label className="text-[10px]">Auth Token</Label>
+  1049→                <Input type="password" value={settings?.authToken || ''} onChange={(e) => updateSettings.mutate({ authToken: e.target.value })} placeholder="••••" className="text-xs" />
+  1050→              </div>
+  1051→              <div className="space-y-1">
+  1052→                <Label className="text-[10px]">From Number</Label>
+  1053→                <Input value={settings?.fromNumber || ''} onChange={(e) => updateSettings.mutate({ fromNumber: e.target.value })} placeholder="whatsapp:+123..." className="text-xs" />
+  1054→              </div>
+  1055→            </div>
+  1056→          )}
+  1057→        </div>
+  1058→      </Card>
+  1059→
+  1060→      {/* Stats by type */}
+  1061→      {byType.length > 0 && (
+  1062→        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+  1063→          {byType.map((t: any) => (
+  1064→            <Card key={t.type} className="p-3 text-center">
+  1065→              <div className="text-xl font-extrabold text-[#25D366]">{t._count}</div>
+  1066→              <div className="text-[10px] uppercase text-muted-foreground">{t.type.replace(/_/g, ' ').toLowerCase()}</div>
+  1067→            </Card>
+  1068→          ))}
+  1069→        </div>
+  1070→      )}
+  1071→
+  1072→      {/* Notification log */}
+  1073→      <Card className="overflow-hidden p-0">
+  1074→        <div className="flex items-center justify-between border-b border-border p-4">
+  1075→          <span className="flex items-center gap-2 font-bold">
+  1076→            <Bell className="h-4 w-4" /> Notification Log
+  1077→          </span>
+  1078→          <span className="text-xs text-muted-foreground">{notifData?.count || 0} total</span>
+  1079→        </div>
+  1080→        {notifLoading ? (
+  1081→          <div className="p-8 text-center text-sm text-muted-foreground">Loading notifications...</div>
+  1082→        ) : notifications.length === 0 ? (
+  1083→          <div className="p-8 text-center text-sm text-muted-foreground">No notifications sent yet.</div>
+  1084→        ) : (
+  1085→          <div className="max-h-[400px] overflow-y-auto scrollbar-quran">
+  1086→            {notifications.map((n: any) => (
+  1087→              <div key={n.id} className="border-b border-border/60 p-3 last:border-0">
+  1088→                <div className="flex items-start justify-between gap-2">
+  1089→                  <div className="min-w-0 flex-1">
+  1090→                    <div className="flex items-center gap-1.5">
+  1091→                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${n.status === 'SIMULATED' ? 'bg-amber-100 text-amber-700' : n.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+  1092→                        {n.status}
+  1093→                      </span>
+  1094→                      <span className="rounded bg-[#25D366]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#075E54]">{n.type.replace(/_/g, ' ').toLowerCase()}</span>
+  1095→                      <span className="text-xs font-semibold">{n.recipientName}</span>
+  1096→                      {n.recipientPhone && <span className="text-[10px] text-muted-foreground">{n.recipientPhone}</span>}
+  1097→                    </div>
+  1098→                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+  1099→                  </div>
+  1100→                  <span className="shrink-0 text-[10px] text-muted-foreground">
+  1101→                    {new Date(n.createdAt).toLocaleString()}
+  1102→                  </span>
+  1103→                </div>
+  1104→              </div>
+  1105→            ))}
+  1106→          </div>
+  1107→        )}
+  1108→      </Card>
+  1109→    </div>
+  1110→  )
+  1111→}
+  1112→

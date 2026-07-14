@@ -1,0 +1,520 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { useAppStore, type Role } from '@/lib/store'
+     5→import { usePlans } from '@/lib/queries'
+     6→import { Input } from '@/components/ui/input'
+     7→import { Label } from '@/components/ui/label'
+     8→import { Button } from '@/components/ui/button'
+     9→import { Textarea } from '@/components/ui/textarea'
+    10→import { QtuorLogo, QtuorLogoLockup } from '@/components/brand/logo'
+    11→import { IslamicPatternBand, StarMedallion } from '@/components/brand/patterns'
+    12→import { LegalAgreementGate } from '@/components/auth/legal-agreement-gate'
+    13→import {
+    14→  GraduationCap, Loader2, User, Check, ChevronLeft, ChevronRight, BookOpen,
+    15→  Sparkles, Brain, Languages, ShieldCheck, Award, BookOpenCheck, Phone, Globe,
+    16→  CreditCard, Star, Video, Upload, Lock,
+    17→} from 'lucide-react'
+    18→import { toast } from 'sonner'
+    19→import { cn } from '@/lib/utils'
+    20→
+    21→type Step = 1 | 2 | 3
+    22→
+    23→const GOAL_OPTIONS = [
+    24→  { key: 'Noorani Qaida', label: 'Noorani Qaida', icon: BookOpen },
+    25→  { key: 'Quran Recitation With Tajweed', label: 'Quran Recitation with Tajweed', icon: Sparkles },
+    26→  { key: 'Hifz', label: 'Hifz (Memorization)', icon: Brain },
+    27→  { key: 'Arabic Language', label: 'Arabic Language', icon: Languages },
+    28→]
+    29→const SUBJECT_OPTIONS = ['Noorani Qaida', 'Quran Recitation With Tajweed', 'Hifz', 'Arabic Language', 'Tafsir', 'Islamic Studies']
+    30→const TEACHING_STYLES = ['Patient & gentle', 'Structured & methodical', 'Interactive & engaging', 'Traditional one-on-one', 'Child-friendly']
+    31→const TIMEZONES = ['UTC-12','UTC-11','UTC-10','UTC-9','UTC-8','UTC-7','UTC-6','UTC-5','UTC-4','UTC-3','UTC-2','UTC-1','UTC+0','UTC+1','UTC+2','UTC+3','UTC+3:30','UTC+4','UTC+5','UTC+5:30','UTC+5:45','UTC+6','UTC+7','UTC+8','UTC+9','UTC+10','UTC+11','UTC+12']
+    32→
+    33→function detectTimezone(): string {
+    34→  try {
+    35→    const offset = -new Date().getTimezoneOffset()
+    36→    const hours = Math.floor(Math.abs(offset) / 60)
+    37→    const mins = Math.abs(offset) % 60
+    38→    const sign = offset >= 0 ? '+' : '-'
+    39→    return `UTC${sign}${hours}${mins ? ':' + String(mins).padStart(2, '0') : ''}`
+    40→  } catch { return 'UTC+0' }
+    41→}
+    42→
+    43→export function AuthPage() {
+    44→  const { authMode, authRoleLock, closeAuth, setUser, setView, setSelectedPlanId, setCheckoutOpen } = useAppStore()
+    45→  const [mode, setMode] = React.useState<'login' | 'register'>(authMode)
+    46→  const [role, setRole] = React.useState<Role>('STUDENT')
+    47→  const [step, setStep] = React.useState<Step>(1)
+    48→  const [loading, setLoading] = React.useState(false)
+    49→  const [tutorSubmitted, setTutorSubmitted] = React.useState(false)
+    50→
+    51→  // Legal Agreement Gate state (tutor step-3 submit gate)
+    52→  const [showLegalGate, setShowLegalGate] = React.useState(false)
+    53→  const [legalScrolled, setLegalScrolled] = React.useState(false)
+    54→  const [legalAccepted, setLegalAccepted] = React.useState(false)
+    55→
+    56→  const [loginEmail, setLoginEmail] = React.useState('')
+    57→  const [loginPw, setLoginPw] = React.useState('')
+    58→  const [loginRole, setLoginRole] = React.useState<'STUDENT' | 'TUTOR'>('STUDENT')
+    59→
+    60→  const [reg, setReg] = React.useState({
+    61→    name: '', email: '', password: '', phone: '', country: '',
+    62→    ageBracket: '' as 'kids' | 'adults' | '',
+    63→    goals: [] as string[],
+    64→    preferredTutorGender: '' as 'any' | 'female' | 'male' | '',
+    65→    timezone: detectTimezone(),
+    66→    tutorGender: '' as 'male' | 'female' | '',
+    67→    bio: '', specialties: [] as string[], languages: [] as string[],
+    68→    perClassRate: 6, experienceYears: 1, nativeArabic: false, hafiz: false,
+    69→    ijazaCertified: false, teachingStyle: '', videoUrl: '',
+    70→  })
+    71→
+    72→  const [chosenPlanId, setChosenPlanId] = React.useState<string | null>(null)
+    73→  const { data: plansData } = usePlans()
+    74→  const plans = plansData?.plans || []
+    75→
+    76→  React.useEffect(() => {
+    77→    setMode(authMode)
+    78→    setTutorSubmitted(false)
+    79→    setShowLegalGate(false)
+    80→    setLegalScrolled(false)
+    81→    setLegalAccepted(false)
+    82→    if (authRoleLock) { setRole(authRoleLock); setStep(2) }
+    83→    else { setStep(1); setRole('STUDENT') }
+    84→    setChosenPlanId(null)
+    85→  }, [authMode, authRoleLock])
+    86→
+    87→  const pwStrength = React.useMemo(() => {
+    88→    const pw = reg.password
+    89→    if (!pw) return { score: 0, label: '', color: '' }
+    90→    let score = 0
+    91→    if (pw.length >= 6) score++; if (pw.length >= 10) score++
+    92→    if (/[A-Z]/.test(pw)) score++; if (/[0-9]/.test(pw)) score++; if (/[^A-Za-z0-9]/.test(pw)) score++
+    93→    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
+    94→    const colors = ['', '#EF4444', '#F59E0B', '#EAB308', '#22C55E', '#16A34A']
+    95→    return { score, label: labels[score], color: colors[score] }
+    96→  }, [reg.password])
+    97→
+    98→  const handleLogin = async (e: React.FormEvent) => {
+    99→    e.preventDefault(); setLoading(true)
+   100→    try {
+   101→      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: loginEmail, password: loginPw }) })
+   102→      const data = await res.json()
+   103→      if (!res.ok) throw new Error(data.error || 'Login failed')
+   104→      setUser(data); closeAuth()
+   105→      toast.success(`Welcome back, ${data.name.split(' ')[0]}!`)
+   106→      if (data.role === 'STUDENT') setView('student-dashboard')
+   107→      else if (data.role === 'TUTOR') setView('tutor-dashboard')
+   108→      else if (data.role === 'ADMIN') setView('admin')
+   109→    } catch (e: any) { toast.error(e.message) }
+   110→    finally { setLoading(false) }
+   111→  }
+   112→
+   113→  const handleRegister = async () => {
+   114→    setLoading(true)
+   115→    try {
+   116→      const payload: any = { name: reg.name, email: reg.email, password: reg.password, role, country: reg.country, phone: reg.phone }
+   117→      if (role === 'STUDENT') {
+   118→        Object.assign(payload, { timezone: reg.timezone, learningGoals: reg.goals.join(', '), preferredLanguage: 'English' })
+   119→      } else {
+   120→        Object.assign(payload, {
+   121→          gender: reg.tutorGender || undefined, timezone: reg.timezone,
+   122→          bio: reg.bio || 'New tutor on Qtuor.',
+   123→          specialties: reg.specialties.length ? reg.specialties.join(',') : 'Noorani Qaida,Quran Recitation With Tajweed',
+   124→          languages: reg.languages.length ? reg.languages.join(',') : 'Arabic,English',
+   125→          perClassRate: Number(reg.perClassRate), nativeArabic: reg.nativeArabic, hafiz: reg.hafiz,
+   126→          ijazaCertified: reg.ijazaCertified, experienceYears: Number(reg.experienceYears),
+   127→          teachingStyle: reg.teachingStyle || undefined, videoUrl: reg.videoUrl || undefined,
+   128→        })
+   129→      }
+   130→      const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+   131→      const data = await res.json()
+   132→      if (!res.ok) throw new Error(data.error || 'Registration failed')
+   133→      setUser(data)
+   134→      if (role === 'TUTOR') {
+   135→        // Fire-and-forget: log the legal agreement acceptance now that the
+   136→        // session cookie is set (register endpoint calls setSession). The
+   137→        // tutor cannot reach this point without scrolling + checking the box.
+   138→        try {
+   139→          await fetch('/api/tutor-legal/accept', {
+   140→            method: 'POST',
+   141→            headers: { 'Content-Type': 'application/json' },
+   142→            body: JSON.stringify({ agreementVersion: 'v1.0' }),
+   143→          })
+   144→        } catch (err) {
+   145→          // Non-blocking — surface a console warning only.
+   146→          console.warn('Failed to record legal signature:', err)
+   147→        }
+   148→        setTutorSubmitted(true)
+   149→        toast.success('Application submitted! Pending admin approval.')
+   150→      } else {
+   151→        closeAuth()
+   152→        if (chosenPlanId) {
+   153→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}!`)
+   154→          setSelectedPlanId(chosenPlanId)
+   155→          setTimeout(() => setCheckoutOpen(true), 350)
+   156→          setView('plans')
+   157→        } else {
+   158→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}!`)
+   159→          setView('plans')
+   160→        }
+   161→      }
+   162→    } catch (e: any) { toast.error(e.message) }
+   163→    finally { setLoading(false) }
+   164→  }
+   165→
+   166→  const fillDemo = (kind: 'student' | 'tutor' | 'admin') => {
+   167→    const creds = { student: { email: 'student@qtuor.com', pw: 'student123' }, tutor: { email: 'abdullah@qtuor.com', pw: 'tutor123' }, admin: { email: 'admin@qtuor.com', pw: 'admin123' } }[kind]
+   168→    setLoginEmail(creds.email); setLoginPw(creds.pw)
+   169→    toast.info(`Demo ${kind} credentials filled.`)
+   170→  }
+   171→
+   172→  const isLocked = !!authRoleLock
+   173→  const toggleArray = (field: 'goals' | 'specialties' | 'languages', value: string) => {
+   174→    setReg((prev) => { const arr = prev[field]; return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] } })
+   175→  }
+   176→  const step2Valid = reg.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(reg.email) && reg.password.length >= 6 && reg.phone.trim().length >= 5
+   177→
+   178→  return (
+   179→    <div className="flex" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+   180→
+   181→      {/* ===== LEFT PANEL (40%) — Form ===== */}
+   182→      <div className="flex w-[40%] flex-col" style={{ background: '#F8FAFC' }}>
+   183→
+   184→        {/* Top bar: logo + back button */}
+   185→        <div className="flex items-center justify-between px-8 pt-6">
+   186→          <QtuorLogoLockup />
+   187→          <button onClick={() => closeAuth()} className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground">
+   188→            <ChevronLeft className="h-4 w-4" /> Back to home
+   189→          </button>
+   190→        </div>
+   191→
+   192→        {/* Form area — centered */}
+   193→        <div className="flex flex-1 items-center justify-center px-8">
+   194→          <div className="w-full max-w-sm">
+   195→
+   196→            {/* ===== LOGIN ===== */}
+   197→            {mode === 'login' && (
+   198→              <div className="space-y-5">
+   199→                <div>
+   200→                  <h1 className="text-2xl font-extrabold" style={{ color: '#0A192F' }}>Welcome back</h1>
+   201→                  <p className="mt-1 text-sm text-muted-foreground">Sign in to continue your Quran journey.</p>
+   202→                </div>
+   203→
+   204→                {/* Student/Tutor tabs */}
+   205→                <div className="flex gap-1 rounded-xl border border-border p-1">
+   206→                  <button onClick={() => setLoginRole('STUDENT')} className={cn('flex-1 rounded-lg py-2.5 text-sm font-semibold transition', loginRole === 'STUDENT' ? 'text-white' : 'text-muted-foreground hover:bg-muted')} style={loginRole === 'STUDENT' ? { background: '#0A192F' } : {}}>
+   207→                    <User className="mr-1.5 inline h-4 w-4" /> Student
+   208→                  </button>
+   209→                  <button onClick={() => setLoginRole('TUTOR')} className={cn('flex-1 rounded-lg py-2.5 text-sm font-semibold transition', loginRole === 'TUTOR' ? 'text-white' : 'text-muted-foreground hover:bg-muted')} style={loginRole === 'TUTOR' ? { background: '#0A192F' } : {}}>
+   210→                    <GraduationCap className="mr-1.5 inline h-4 w-4" /> Tutor
+   211→                  </button>
+   212→                </div>
+   213→
+   214→                <form onSubmit={handleLogin} className="space-y-3">
+   215→                  <div className="space-y-1.5">
+   216→                    <Label className="text-xs font-semibold">Email</Label>
+   217→                    <Input type="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="you@example.com" />
+   218→                  </div>
+   219→                  <div className="space-y-1.5">
+   220→                    <Label className="text-xs font-semibold">Password</Label>
+   221→                    <Input type="password" required value={loginPw} onChange={(e) => setLoginPw(e.target.value)} placeholder="••••••••" />
+   222→                  </div>
+   223→                  <Button type="submit" disabled={loading} className="w-full text-white" style={{ background: '#0A192F' }}>
+   224→                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Sign in as {loginRole === 'STUDENT' ? 'Student' : 'Tutor'}
+   225→                  </Button>
+   226→                </form>
+   227→
+   228→                <p className="text-center text-xs text-muted-foreground">
+   229→                  Don{"'"}t have an account?{' '}
+   230→                  <button onClick={() => setMode('register')} className="font-semibold hover:underline" style={{ color: '#0A192F' }}>Sign up</button>
+   231→                </p>
+   232→              </div>
+   233→            )}
+   234→
+   235→            {/* ===== REGISTER ===== */}
+   236→            {mode === 'register' && !tutorSubmitted && (
+   237→              <div className="space-y-5">
+   238→                {/* Step indicator — only for register */}
+   239→                {(!isLocked || step > 2) && (
+   240→                  <div className="flex items-center justify-center gap-2">
+   241→                    {(isLocked ? [2, 3] : [1, 2, 3]).map((s) => (
+   242→                      <React.Fragment key={s}>
+   243→                        <div className={cn('flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition', step >= s ? 'text-white' : 'bg-muted text-muted-foreground')} style={step >= s ? { background: '#0A192F' } : {}}>
+   244→                          {step > s ? <Check className="h-4 w-4" /> : isLocked ? s - 1 : s}
+   245→                        </div>
+   246→                        {s < 3 && <div className={cn('h-0.5 w-6 rounded', step > s ? '' : 'bg-muted')} style={step > s ? { background: '#0A192F' } : {}} />}
+   247→                      </React.Fragment>
+   248→                    ))}
+   249→                  </div>
+   250→                )}
+   251→
+   252→                <form onSubmit={(e) => {
+   253→                  e.preventDefault()
+   254→                  if (step < 3) { setStep((s) => ((s + 1) as Step)); return }
+   255→                  // Tutor gate: require the legal agreement screen before
+   256→                  // the registration POST is allowed to fire.
+   257→                  if (role === 'TUTOR' && !showLegalGate) {
+   258→                    setShowLegalGate(true)
+   259→                    setLegalScrolled(false)
+   260→                    setLegalAccepted(false)
+   261→                    return
+   262→                  }
+   263→                  handleRegister()
+   264→                }} className="space-y-3">
+   265→
+   266→                  {/* Step 1: Role */}
+   267→                  {step === 1 && !isLocked && (
+   268→                    <div className="space-y-3">
+   269→                      <h1 className="text-2xl font-extrabold" style={{ color: '#0A192F' }}>Join Qtuor</h1>
+   270→                      <p className="text-sm text-muted-foreground">Choose your path to get started.</p>
+   271→                      <button type="button" onClick={() => setRole('STUDENT')} className={cn('flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition', role === 'STUDENT' ? 'bg-[oklch(0.62_0.14_230/0.05)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.4)]')} style={role === 'STUDENT' ? { borderColor: '#0A192F' } : {}}>
+   272→                        <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', role === 'STUDENT' ? 'text-white' : 'bg-muted text-muted-foreground')} style={role === 'STUDENT' ? { background: '#0A192F' } : {}}><User className="h-5 w-5" /></span>
+   273→                        <div className="flex-1"><div className="text-sm font-bold">I{"'"}m a Student</div><div className="text-xs text-muted-foreground">Learn Quran with certified tutors.</div></div>
+   274→                      </button>
+   275→                      <button type="button" onClick={() => setRole('TUTOR')} className={cn('flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition', role === 'TUTOR' ? 'bg-[oklch(0.62_0.14_230/0.05)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.4)]')} style={role === 'TUTOR' ? { borderColor: '#0A192F' } : {}}>
+   276→                        <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', role === 'TUTOR' ? 'text-white' : 'bg-muted text-muted-foreground')} style={role === 'TUTOR' ? { background: '#0A192F' } : {}}><GraduationCap className="h-5 w-5" /></span>
+   277→                        <div className="flex-1"><div className="text-sm font-bold">I{"'"}m a Tutor</div><div className="text-xs text-muted-foreground">Teach & earn. $10 verification fee.</div></div>
+   278→                      </button>
+   279→                    </div>
+   280→                  )}
+   281→
+   282→                  {/* Step 2: Account */}
+   283→                  {step === 2 && (
+   284→                    <div className="space-y-3">
+   285→                      <h1 className="text-xl font-extrabold" style={{ color: '#0A192F' }}>{role === 'TUTOR' ? 'Tutor Application' : 'Create your account'}</h1>
+   286→                      <div className="space-y-1.5">
+   287→                        <Label className="text-xs font-semibold">Full Name <span className="text-destructive">*</span></Label>
+   288→                        <Input required value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} placeholder="e.g. Ahmed Khan" />
+   289→                      </div>
+   290→                      <div className="grid grid-cols-2 gap-2">
+   291→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">Email <span className="text-destructive">*</span></Label><Input type="email" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} placeholder="you@example.com" /></div>
+   292→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">Password <span className="text-destructive">*</span></Label><Input type="password" required value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} placeholder="Min 6 chars" /></div>
+   293→                      </div>
+   294→                      {reg.password && <div className="flex items-center gap-1">{[1,2,3,4,5].map((i) => <div key={i} className="h-1 flex-1 rounded-full" style={{ background: i <= pwStrength.score ? pwStrength.color : '#E5E7EB' }} />)}<span className="text-[10px]" style={{ color: pwStrength.color }}>{pwStrength.label}</span></div>}
+   295→                      <div className="grid grid-cols-2 gap-2">
+   296→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">WhatsApp <span className="text-destructive">*</span></Label><div className="relative"><Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} placeholder="+92 300..." className="pl-9" /></div></div>
+   297→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">Country</Label><div className="relative"><Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={reg.country} onChange={(e) => setReg({ ...reg, country: e.target.value })} placeholder="Pakistan" className="pl-9" /></div></div>
+   298→                      </div>
+   299→                      {role === 'TUTOR' && (
+   300→                        <div className="space-y-1.5">
+   301→                          <Label className="text-xs font-semibold">Gender <span className="text-destructive">*</span></Label>
+   302→                          <div className="flex gap-2">
+   303→                            <button type="button" onClick={() => setReg({ ...reg, tutorGender: 'male' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm', reg.tutorGender === 'male' ? 'bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')} style={reg.tutorGender === 'male' ? { borderColor: '#0A192F' } : {}}>Male</button>
+   304→                            <button type="button" onClick={() => setReg({ ...reg, tutorGender: 'female' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm', reg.tutorGender === 'female' ? 'bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')} style={reg.tutorGender === 'female' ? { borderColor: '#0A192F' } : {}}>Female</button>
+   305→                          </div>
+   306→                        </div>
+   307→                      )}
+   308→                      <div className="space-y-1.5">
+   309→                        <Label className="text-xs font-semibold">Timezone <span className="text-[10px] text-muted-foreground">(auto-detected)</span></Label>
+   310→                        <select value={reg.timezone} onChange={(e) => setReg({ ...reg, timezone: e.target.value })} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
+   311→                          {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+   312→                        </select>
+   313→                      </div>
+   314→                    </div>
+   315→                  )}
+   316→
+   317→                  {/* Step 3: Student profile / Tutor verification */}
+   318→                  {step === 3 && role === 'STUDENT' && (
+   319→                    <div className="space-y-3">
+   320→                      <h1 className="text-xl font-extrabold" style={{ color: '#0A192F' }}>Learning Profile</h1>
+   321→                      <div className="space-y-1.5">
+   322→                        <Label className="text-xs font-semibold">Age Bracket</Label>
+   323→                        <div className="flex gap-2">
+   324→                          <button type="button" onClick={() => setReg({ ...reg, ageBracket: 'kids' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm', reg.ageBracket === 'kids' ? 'bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')} style={reg.ageBracket === 'kids' ? { borderColor: '#0A192F' } : {}}>Kids (under 13)</button>
+   325→                          <button type="button" onClick={() => setReg({ ...reg, ageBracket: 'adults' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm', reg.ageBracket === 'adults' ? 'bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')} style={reg.ageBracket === 'adults' ? { borderColor: '#0A192F' } : {}}>Adults (13+)</button>
+   326→                        </div>
+   327→                      </div>
+   328→                      <div className="space-y-1.5">
+   329→                        <Label className="text-xs font-semibold">Learning Goals</Label>
+   330→                        <div className="flex flex-wrap gap-1.5">
+   331→                          {GOAL_OPTIONS.map((g) => { const active = reg.goals.includes(g.key); const Icon = g.icon; return (
+   332→                            <button key={g.key} type="button" onClick={() => toggleArray('goals', g.key)} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs', active ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256)] text-white' : 'border-border')}>
+   333→                              <Icon className="h-3 w-3" /> {g.label}
+   334→                            </button>
+   335→                          )})}
+   336→                        </div>
+   337→                      </div>
+   338→                      <div className="space-y-1.5">
+   339→                        <Label className="text-xs font-semibold">Preferred Tutor Gender</Label>
+   340→                        <div className="flex gap-2">
+   341→                          {(['any', 'female', 'male'] as const).map((g) => (
+   342→                            <button key={g} type="button" onClick={() => setReg({ ...reg, preferredTutorGender: g })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm', reg.preferredTutorGender === g ? 'bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')} style={reg.preferredTutorGender === g ? { borderColor: '#0A192F' } : {}}>
+   343→                              {g === 'any' ? 'No Preference' : g === 'female' ? 'Female Only' : 'Male Only'}
+   344→                            </button>
+   345→                          ))}
+   346→                        </div>
+   347→                      </div>
+   348→                    </div>
+   349→                  )}
+   350→
+   351→                  {/* Legal Agreement Gate — replaces the verification form when shown */}
+   352→                  {step === 3 && role === 'TUTOR' && showLegalGate && (
+   353→                    <LegalAgreementGate
+   354→                      legalScrolled={legalScrolled}
+   355→                      setLegalScrolled={setLegalScrolled}
+   356→                      legalAccepted={legalAccepted}
+   357→                      setLegalAccepted={setLegalAccepted}
+   358→                      onSubmit={handleRegister}
+   359→                      onBack={() => setShowLegalGate(false)}
+   360→                      loading={loading}
+   361→                    />
+   362→                  )}
+   363→
+   364→                  {step === 3 && role === 'TUTOR' && !showLegalGate && (
+   365→                    <div className="space-y-3">
+   366→                      <h1 className="text-xl font-extrabold" style={{ color: '#0A192F' }}>Professional Verification</h1>
+   367→                      <div className="space-y-1.5">
+   368→                        <Label className="text-xs font-semibold">Specialties <span className="text-destructive">*</span></Label>
+   369→                        <div className="flex flex-wrap gap-1.5">
+   370→                          {SUBJECT_OPTIONS.map((s) => { const active = reg.specialties.includes(s); return (
+   371→                            <button key={s} type="button" onClick={() => toggleArray('specialties', s)} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs', active ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256)] text-white' : 'border-border')}>
+   372→                              {active && <Check className="h-3 w-3" />} {s}
+   373→                            </button>
+   374→                          )})}
+   375→                        </div>
+   376→                      </div>
+   377→                      <div className="space-y-1.5">
+   378→                        <Label className="text-xs font-semibold">Languages <span className="text-destructive">*</span></Label>
+   379→                        <div className="flex flex-wrap gap-1.5">
+   380→                          {['Arabic','English','Urdu','Turkish','French','Malay','Hindi','Bengali'].map((l) => { const active = reg.languages.includes(l); return (
+   381→                            <button key={l} type="button" onClick={() => toggleArray('languages', l)} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs', active ? 'border-[oklch(0.62_0.14_230)] bg-[oklch(0.62_0.14_230/0.1)] text-[oklch(0.40_0.11_258)]' : 'border-border')}>
+   382→                              {active && <Check className="h-3 w-3" />} {l}
+   383→                            </button>
+   384→                          )})}
+   385→                        </div>
+   386→                      </div>
+   387→                      <div className="grid grid-cols-2 gap-2">
+   388→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">Experience (yrs)</Label><Input type="number" value={reg.experienceYears} onChange={(e) => setReg({ ...reg, experienceYears: Number(e.target.value) })} /></div>
+   389→                        <div className="space-y-1.5"><Label className="text-xs font-semibold">Per-class rate ($)</Label><Input type="number" value={reg.perClassRate} onChange={(e) => setReg({ ...reg, perClassRate: Number(e.target.value) })} /></div>
+   390→                      </div>
+   391→                      <div className="space-y-1.5">
+   392→                        <Label className="text-xs font-semibold">Brief Bio</Label>
+   393→                        <Textarea rows={2} value={reg.bio} onChange={(e) => setReg({ ...reg, bio: e.target.value })} placeholder="Teaching style and background..." />
+   394→                      </div>
+   395→                      <div className="space-y-1.5">
+   396→                        <Label className="text-xs font-semibold">Video Intro URL <span className="text-muted-foreground">(optional)</span></Label>
+   397→                        <div className="relative"><Video className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={reg.videoUrl} onChange={(e) => setReg({ ...reg, videoUrl: e.target.value })} placeholder="YouTube link" className="pl-9" /></div>
+   398→                      </div>
+   399→                      <div className="space-y-1.5">
+   400→                        <Label className="text-xs font-semibold">Ijaza / Certification Upload <span className="text-muted-foreground">(optional)</span></Label>
+   401→                        <div className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border p-3">
+   402→                          <Upload className="h-5 w-5 text-muted-foreground" />
+   403→                          <button type="button" onClick={() => toast.info('File upload available after approval')} className="text-xs text-muted-foreground hover:text-foreground">Click to upload PDF/Image</button>
+   404→                        </div>
+   405→                      </div>
+   406→                      <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+   407→                        <p className="text-xs font-semibold" style={{ color: '#0A192F' }}>Qualifications</p>
+   408→                        {([['nativeArabic','Native Arabic speaker',Languages],['hafiz','Hafiz of the Quran',BookOpenCheck],['ijazaCertified','Ijaza certified',Award]] as const).map(([key,label,Icon]) => (
+   409→                          <label key={key} className="flex cursor-pointer items-center gap-2 text-xs">
+   410→                            <input type="checkbox" checked={reg[key] as boolean} onChange={(e) => setReg({ ...reg, [key]: e.target.checked })} className="h-4 w-4 rounded border-border" />
+   411→                            <Icon className="h-3.5 w-3.5 text-muted-foreground" /> {label}
+   412→                          </label>
+   413→                        ))}
+   414→                      </div>
+   415→                      <div className="flex items-start gap-2 rounded-lg p-3 text-xs" style={{ background: 'rgba(212,175,55,0.08)', color: '#B8941F' }}>
+   416→                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
+   417→                        <span>After admin approval, you{"'"}ll receive a WhatsApp notification to pay your <strong>$10 USD</strong> activation fee.</span>
+   418→                      </div>
+   419→                    </div>
+   420→                  )}
+   421→
+   422→                  {/* Nav buttons — hidden when the legal gate is open (gate has its own) */}
+   423→                  {!showLegalGate && (
+   424→                    <>
+   425→                      <div className="flex items-center gap-2 pt-1">
+   426→                        {step > (isLocked ? 2 : 1) && <Button type="button" variant="outline" onClick={() => setStep((s) => ((s - 1) as Step))} disabled={loading} className="gap-1"><ChevronLeft className="h-4 w-4" /> Back</Button>}
+   427→                        {step < 3 ? (
+   428→                          <Button type="submit" disabled={(step === 2 && !step2Valid) || loading} className="flex-1 gap-1 text-white" style={{ background: '#0A192F' }}>Continue <ChevronRight className="h-4 w-4" /></Button>
+   429→                        ) : (
+   430→                          <Button type="submit" disabled={loading} className="flex-1 gap-1.5 text-white" style={{ background: '#0A192F' }}>
+   431→                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   432→                            {role === 'TUTOR' ? <><ShieldCheck className="h-4 w-4" /> Submit Application</> : <><User className="h-4 w-4" /> Create Account</>}
+   433→                          </Button>
+   434→                        )}
+   435→                      </div>
+   436→                      <p className="text-center text-xs text-muted-foreground">Already have an account? <button type="button" onClick={() => setMode('login')} className="font-semibold hover:underline" style={{ color: '#0A192F' }}>Log in</button></p>
+   437→                    </>
+   438→                  )}
+   439→                </form>
+   440→              </div>
+   441→            )}
+   442→
+   443→            {/* Tutor submitted */}
+   444→            {mode === 'register' && tutorSubmitted && (
+   445→              <div className="flex flex-col items-center gap-4 py-8 text-center">
+   446→                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100"><Check className="h-8 w-8 text-green-600" /></div>
+   447→                <h1 className="text-xl font-extrabold" style={{ color: '#0A192F' }}>Application Submitted!</h1>
+   448→                <p className="max-w-sm text-sm text-muted-foreground">Thank you for your application. Once our team approves your profile, you will receive a WhatsApp notification to pay your <strong>$10 USD</strong> activation fee and launch your profile.</p>
+   449→                <Button onClick={() => { closeAuth(); setView('tutor-dashboard') }} className="text-white" style={{ background: '#0A192F' }}>Go to Dashboard</Button>
+   450→              </div>
+   451→            )}
+   452→          </div>
+   453→        </div>
+   454→
+   455→        {/* Demo credentials — bottom of left panel */}
+   456→        <div className="px-8 pb-6">
+   457→          <div className="rounded-xl border border-border bg-white p-3">
+   458→            <p className="mb-2 text-[10px] font-medium text-muted-foreground">Try a demo account:</p>
+   459→            <div className="grid grid-cols-3 gap-2">
+   460→              <Button size="sm" variant="outline" onClick={() => { setMode('login'); fillDemo('student') }} className="text-[10px]">Student</Button>
+   461→              <Button size="sm" variant="outline" onClick={() => { setMode('login'); fillDemo('tutor') }} className="text-[10px]">Tutor</Button>
+   462→              <Button size="sm" variant="outline" onClick={() => { setMode('login'); fillDemo('admin') }} className="text-[10px]">Admin</Button>
+   463→            </div>
+   464→          </div>
+   465→        </div>
+   466→      </div>
+   467→
+   468→      {/* ===== RIGHT PANEL (60%) — Brand Showcase ===== */}
+   469→      <div className="relative flex w-[60%] flex-col items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A192F 0%, #0B2545 50%, #133356 100%)' }}>
+   470→        <IslamicPatternBand opacity={0.06} />
+   471→
+   472→        <div className="relative z-10 flex flex-col items-center px-12 text-center text-white">
+   473→          {/* Bismillah */}
+   474→          <span className="font-arabic text-3xl text-white/80 mb-8" dir="rtl" style={{ fontFamily: "var(--font-amiri), serif" }}>
+   475→            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+   476→          </span>
+   477→
+   478→          <StarMedallion className="mb-6 h-12 w-12" style={{ color: 'rgba(212,175,55,0.4)' }} />
+   479→
+   480→          {/* Main headline */}
+   481→          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl" style={{ maxWidth: '600px' }}>
+   482→            Embark on Your Quranic Journey Today
+   483→          </h1>
+   484→
+   485→          {/* Sub-headline */}
+   486→          <p className="mt-5 text-lg" style={{ color: '#8EAEC6', maxWidth: '500px' }}>
+   487→            Access personalized monthly plans, track learning milestones natively, and interact word-by-word with the world{"'"}s most elite certified Tajweed tutors.
+   488→          </p>
+   489→
+   490→          {/* Decorative star divider */}
+   491→          <div className="mt-10 flex items-center gap-4">
+   492→            <div className="h-px w-20" style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.4))' }} />
+   493→            <StarMedallion className="h-6 w-6" style={{ color: 'rgba(212,175,55,0.5)' }} />
+   494→            <div className="h-px w-20" style={{ background: 'linear-gradient(to left, transparent, rgba(212,175,55,0.4))' }} />
+   495→          </div>
+   496→
+   497→          {/* Stats */}
+   498→          <div className="mt-10 grid grid-cols-3 gap-8">
+   499→            {[
+   500→              { value: '500+', label: 'Certified Tutors' },
+   501→              { value: '60+', label: 'Countries' },
+   502→              { value: '10K+', label: 'Classes Taught' },
+   503→            ].map((s) => (
+   504→              <div key={s.label} className="text-center">
+   505→                <div className="text-3xl font-extrabold text-white">{s.value}</div>
+   506→                <div className="mt-1 text-[10px] uppercase tracking-wide" style={{ color: '#8EAEC6' }}>{s.label}</div>
+   507→              </div>
+   508→            ))}
+   509→          </div>
+   510→        </div>
+   511→
+   512→        {/* Footer */}
+   513→        <div className="absolute bottom-6 left-0 right-0 text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+   514→          © {new Date().getFullYear()} Qtuor · Gateway to Tajweed Excellence
+   515→        </div>
+   516→      </div>
+   517→    </div>
+   518→  )
+   519→}
+   520→

@@ -1,0 +1,300 @@
+    - Light Blue `#8EAEC6` / Accent Blue `#00A8CC` for active tabs, video glow outlines.
+    - Gold `#D4AF37` for borders, End Lesson button, and accent details.
+    - Charcoal `#1F2937` for left/right panel backgrounds.
+    - Red `#EF4444` for Leave button.
+    - Ultra-faint borders `rgba(142, 174, 198, 0.3)`.
+  • **Left column (20%)**:
+    - Teacher & Student video tiles with rounded corners (12px) + subtle light blue glow.
+    - Camera/mic toggle buttons.
+    - Live session chat box at bottom.
+  • **Center column (60%)**:
+    - Tab bar with 4 tabs: [Quran] [White Board] [Noorani Qaida] [Uploads].
+    - Active tab = Light Blue background with white text; Inactive = Charcoal with white/50 text.
+    - Drawing tools (highlight, pen, eraser, pointer) + color swatches in the tab bar.
+    - Main viewport renders Quran/Qaida text in an elegant gold-bordered frame.
+    - Page navigation bar at bottom (Prev/Next + page counter).
+  • **Right column (20%)**:
+    - Navigation section: Surah dropdown, Qaida Lesson dropdown, Font Family dropdown (Uthmani/IndoPak/Simple), Font Size buttons (S/M/L/XL).
+    - Teacher Controls: End Lesson & Bookmark, Revision Mode toggle, Resume Lesson button.
+    - Student Interaction toggles: "Hide Student's View" and "Disable Student Control".
+    - Browse Library button.
+  • **Content lock**: Tabs respect the student's plan (Quran tab hidden for Qaida-only plans, Qaida tab hidden for Quran-only plans).
+  • All features preserved: word-by-word hover sync, drawing canvas, bookmark, revision mode, chat, video, safety snapshots.
+
+Agent Browser + VLM verification:
+- Marketplace: Gender filter shows All/Male/Female buttons. Female filter shows 2 tutors (Maryam, Fatima). ✅
+- Classroom: 3-column layout confirmed by VLM. Left: video/chat, Center: Quran text visible (Al-Fatihah), Right: control panel with navigation. ✅
+- 13 visible word spans in center panel. ✅
+- Zero console errors, zero lint warnings. ✅
+
+Stage Summary:
+- Gender filter (All/Male/Female) added to marketplace sidebar. ✅
+- Virtual classroom completely redesigned with 3-column layout (20% / 60% / 20%). ✅
+- Premium Islamic theme: Deep Blue, Light Blue, Gold, Charcoal. ✅
+- Center panel tabs: Quran, White Board, Noorani Qaida, Uploads. ✅
+- Right panel: Surah/Qaida/Font selectors + teacher controls + student interaction toggles. ✅
+
+---
+Task ID: LOGO-ADV-2
+Agent: main (Z.ai Code)
+Task: Redesign the Qtuor logo into a best-in-class, advanced Q icon + "tuor" wordmark with authentic Islamic theme (per user request: "i want best and advance Q Icon and tuor iwht Islamic theme please make best and advance Logi").
+
+Work Log:
+- Reviewed current logo.tsx (previous minimal Q with Rehal arc tail — too simple for "advanced" request).
+- Designed a new "Geometric Seal" monogram concept that embeds Islamic identity through authentic geometric art (girih/khatam), not literal clip-art.
+- Rewrote src/components/brand/logo.tsx:
+  • Q bowl = clean bold navy ring (Deep Navy Blue gradient #0B2545 → #174A75, stroke 5.5).
+  • Khatam star (Rub' el Hizb) engraved inside the ring's negative space as fine gold girih lines: two overlapped squares (M20 20 H34 V34 H20 Z axis-aligned + M27 20 L34 27 L27 34 L20 27 Z rotated 45°) forming the authentic 8-point Islamic star — the foundational motif of Islamic geometric art found in Quran manuscript illumination & mosque girih. Stroke 1.15, gold gradient, opacity 0.92.
+  • Q tail = clean typographic diagonal navy stroke (M37.5 37.5 L49 49, round cap).
+  • Rehal gem = gold geometric diamond (rotated square, rotate(45 53 53)) at tail tip — evokes apex of open Quran on a Rehal stand.
+  • onDark prop renders white-on-dark for footer/admin header.
+- Refined QtuorLogoLockup: wordmark "Qtuor" unified navy (Qt 800 + uor 700, Plus Jakarta Sans); added a small gold geometric diamond accent (rotate-45) before the slogan "Gateway to Tajweed Excellence" (#8EAEC6) — echoes the icon's Rehal gem, tying wordmark to mark.
+- Rewrote public/favicon.svg (white rounded tile + advanced monogram) and public/logo.svg (full horizontal lockup with wordmark + slogan).
+- Removed unused QtuorLogo import from landing-view.tsx (already done previously, verified clean).
+
+Verification:
+- bun run lint: clean, zero errors.
+- Agent Browser DOM inspection (navbar): viewBox 0 0 64 64, 1 circle + 3 paths (2 Khatam squares + tail) + 1 rect (Rehal gem rotate(45 53 53)), 2 linear gradients. Gold slogan diamond present with gold gradient bg. Wordmark color rgb(11,37,69) = #0B2545 unified.
+- Agent Browser DOM inspection (footer, dark mode): logo SVG has 1 circle + 3 paths (Khatam star confirmed) + 1 Rehal gem rect + 2 gradients; wordmark white rgb(255,255,255); gold slogan diamond present.
+- Favicon served (/favicon.svg): hasKhatam=true, hasRehalGem=true, hasNavy=true, hasGold=true, noOldCrescent=true.
+- VLM visual verification (glm-4.6v): confirmed navy ring + 8-point gold Islamic geometric star inside + diagonal tail + gold diamond tip; unified navy wordmark; gold diamond + slogan in grey-blue. Rated 8/10 premium quality — "leaning toward a high-end global tech brand logo with cultural specificity rather than generic clip-art feel."
+- Zero console errors, zero runtime errors.
+
+Stage Summary:
+- Advanced "Geometric Seal" Q monogram live across navbar, footer (white-on-dark), admin header, auth pages, tutor dashboard, favicon.
+- Islamic theme delivered through authentic geometric art (Rub' el Hizb / Khatam 8-point star + Rehal open-book gem) — mathematically constructed girih, not literal moon/star clip-art.
+- Layered meaning: at favicon size (16px) reads as clean navy Q + gold dot; at navbar size (32-40px) the 8-point star becomes visible; at large size the full Khatam star + Rehal gem revealed.
+- Cohesive color story: Deep Navy Blue + Metallic Islamic Gold + soft grey-blue slogan.
+- Premium typography: Plus Jakarta Sans wordmark, unified navy with weight depth (Qt 800 / uor 700).
+
+---
+Task ID: LOGO-MINIMAL-3
+Agent: main (Z.ai Code)
+Task: User rejected the advanced Khatam-star logo ("i dont like This") and provided a reference image (pasted_image_1783577078266.png) showing a large bold blue Q ring + small black "tuor" wordmark, no slogan. Rebuild logo to match the reference exactly.
+
+Work Log:
+- Analyzed reference image via VLM: large thick bold blue Q ring (uniform stroke, hollow, tail to bottom-right) + small black "tuor" sans-serif wordmark to its right, vertically centered, NO slogan.
+- Rewrote src/components/brand/logo.tsx (QtuorLogo): clean perfect Q — circle cx=26 cy=26 r=15 + diagonal tail M33 33 L52 52, Deep Navy Blue gradient #0B2545→#13315C. Iterated stroke width 6.5 → 9 → 11 (final) to match the reference's heavy bold ring.
+- Rewrote QtuorLogoLockup: LARGE Q icon (h-12 for md) + SMALL "tuor" wordmark (text-xl, Plus Jakarta Sans bold 700, tracking-tight) to its right, vertically centered (flex items-center). NO slogan. "tuor" color #0F172A (near-black) on light, #FFFFFF on dark. Size ratio Q:tuor ≈ 2.4:1 (matches reference's 2-2.5x).
+- Updated public/favicon.svg (just the bold Q on white rounded tile, stroke 11) and public/logo.svg (Q + tuor horizontal lockup, stroke 11, tuor #0F172A).
+- Removed all previous Islamic geometric details (Khatam star, Rehal gem, gold slogan diamond) per user rejection.
+
+Verification:
+- bun run lint: clean.
+- Agent Browser DOM (navbar): 1 circle + 1 path (M33 33 L52 52), stroke-width 11, 0 rects (no star/gem), "tuor" span color rgb(15,23,42)=#0F172A, Plus Jakarta Sans weight 700, Q height 48px / tuor 20px = 2.4x ratio. No slogan in lockup.
+- Agent Browser DOM (footer dark mode): white Q (stroke 11, 1 circle + 1 tail, no star/gem) + white "tuor", no slogan.
+- Favicon served: stroke 11, hasStar=false, hasGem=false, navy=true.
+- VLM comparison (glm-4.6v) of cropped 3x logo vs reference: 9/10 match — "Q ring is thick/bold/heavy like the reference; tuor is small, dark, and to the right of Q."
+- Zero console errors, zero runtime errors.
+
+Stage Summary:
+- Logo now matches user's reference: large bold perfect Q (thick navy ring + clean tail) + small dark "tuor", no slogan, no decorative geometry.
+- Clean minimal premium look across navbar (navy Q + near-black tuor), footer (white Q + white tuor on dark), admin header, auth pages, favicon.
+- Slogan "Gateway to Tajweed Excellence" preserved only in footer copyright line, removed from logo lockup per reference.
+- Plus Jakarta Sans bold wordmark, stroke-11 heavy Q ring for maximum boldness/legibility at all sizes.
+
+---
+Task ID: LOGO-UPLOADED-4
+Agent: main (Z.ai Code)
+Task: User uploaded their own logo (upload/webLogo-dp8O607a.png, 1589x599, transparent) — a filled navy "Q" disc with a triangular bottom-right notch + black "tuor" wordmark. Use this exact logo across the website.
+
+Work Log:
+- Analyzed uploaded logo via VLM: filled navy blue Q disc with triangular notch cut into bottom-right (modern minimalist Q) + black sans-serif "tuor" wordmark to its right, transparent background, aspect ~2.65:1.
+- Saved uploaded PNG to public/brand/qtuor-logo.png (official brand asset).
+- Attempted to crop a Q-only icon mark via PIL (column extent + color analysis). Found the "t" crossbar of "tuor" overlaps the Q's x-range (x=593-630, pure black) — a clean square icon crop is infeasible without artifacts. Decision: use the FULL logo image everywhere (it's designed as a unit), and use a clean SVG Q for the favicon.
+- Rewrote src/components/brand/logo.tsx: QtuorLogo and QtuorLogoLockup now render <img src="/brand/qtuor-logo.png"> height-constrained (h-7/h-9/h-11 by size). onDark applies CSS filter brightness(0) invert(1) to render the logo white on dark surfaces (standard treatment). Removed all previous inline-SVG logo code.
+- Updated call sites that used icon-only QtuorLogo in square containers → now use QtuorLogoLockup:
+  • admin-dashboard.tsx: replaced h-14 w-14 rounded square chip with <QtuorLogoLockup onDark />.
+  • tutor-dashboard.tsx: h-14 w-14 icon → <QtuorLogoLockup size="lg" />.
+  • auth-modal.tsx: h-12 w-12 icon → <QtuorLogoLockup size="md" />.
+  • Updated imports (QtuorLogo → QtuorLogoLockup) in all three files.
+- Favicon: created public/favicon.svg matching the uploaded Q style — filled navy disc (linearGradient #1E2A5E→#152052) with a triangular notch cut from bottom-right via SVG path evenodd (M 38 38 L 44 57 L 57 44 Z). Verified via cairosvg render + VLM: "filled solid blue Q, clearly reads as the letter Q, no issues."
+- Regenerated PNG favicons (qtuor-fav-32/64/180.png) cleanly from the SVG via cairosvg (replaced earlier imperfect mark-based crops).
+- Updated src/app/layout.tsx metadata icons: SVG favicon (icon/shortcut) + 32px PNG (sizes) + 180px apple-touch-icon.
+- Footer (dark) confirmed using same logo with brightness(0) invert(1) → renders white.
+
+Verification:
+- bun run lint: clean (fixed unused eslint-disable warning).
+- Agent Browser (navbar): <img src="/brand/qtuor-logo.png"> naturalWidth 1589×599, rendered 95×36 (correct ~2.65:1 aspect), filter none, complete.
+- Agent Browser (footer): same logo, filter "brightness(0) invert(1)" = white on dark.
+- Favicon served: hasDisc=true, hasNotch=true (M38 38 L44 57 L57 44), navy=#1E2A5E.
+- VLM visual check (navbar logo, 3x zoom): "navy blue Q icon + black tuor text, clean and professional, no rendering issues."
+- Zero console errors.
+
+Stage Summary:
+- Official uploaded Qtuor logo (navy filled-Q + black "tuor") now used across navbar, footer (white on dark), admin header (white on dark), tutor dashboard, auth-modal, auth-page.
+- Favicon (SVG + PNG) matches the uploaded Q style: filled navy disc with triangular bottom-right notch.
+- All previous inline-SVG logos (Khatam star, Rehal gem, stroke-ring Q) removed; single source of truth = public/brand/qtuor-logo.png.
+- onDark treatment via CSS brightness(0) invert(1) for dark surfaces (footer, admin header).
+
+---
+Task ID: LOGO-SLOGAN-5
+Agent: main (Z.ai Code)
+Task: Add slogan "LEARN · RECITE · EXCEL" below the logo.
+
+Work Log:
+- Edited src/components/brand/logo.tsx QtuorLogoLockup: changed from horizontal flex to vertical flex-col items-center. Logo image on top, slogan div below with mt-1 spacing.
+- Slogan styling: font-display (Plus Jakarta Sans), font-semibold, uppercase, tracking-[0.22em] (1.76px at 8px), whitespace-nowrap. Size scales with lockup size: sm=text-[7px], md=text-[8px], lg=text-[9.5px].
+- Slogan color: #8EAEC6 (soft muted grey-blue) on light backgrounds; rgba(255,255,255,0.62) on dark (footer/admin) via onDark prop.
+
+Verification:
+- bun run lint: clean.
+- Agent Browser (navbar): slogan "Learn · Recite · Excel" present, color rgb(142,174,198)=#8EAEC6, font-size 8px, letter-spacing 1.76px, uppercase. Logo 36px + slogan = lockup 48px (fits navbar h-16=64px).
+- Agent Browser (footer dark): slogan present, color rgba(255,255,255,0.62) soft white.
+- VLM visual check (navbar, 3x zoom): "navy blue Q + black tuor; LEARN · RECITE · EXCEL directly below in small grey-blue uppercase, centered below logo, clean and professional, no issues."
+- Zero console errors.
+
+Stage Summary:
+- Slogan "LEARN · RECITE · EXCEL" added below the official uploaded logo, centered, in soft grey-blue (light) / soft white (dark).
+- Applies to all QtuorLogoLockup usages: navbar, footer, admin header, tutor dashboard, auth-modal, auth-page.
+- QtuorLogo (standalone image, no slogan) unchanged for favicon/tight contexts.
+
+---
+Task ID: MOD-3-LEGAL
+Agent: full-stack-developer
+Task: Tutor Onboarding Legal Agreement Gateway — intercept tutor step-3 submit with a mandatory scrollable Terms of Service & Instructor Agreement gate; record acceptance (IP + user agent + version + timestamp) for compliance audit.
+
+Work Log:
+- Read worklog.md and the active auth entry points: confirmed `src/app/page.tsx` renders `<AuthPage />` (full-screen 40/60 split) when `view === 'auth'`. The legacy `src/components/auth/auth-modal.tsx` is not mounted by the app but kept for parity.
+- Inspected `src/lib/auth.ts` (getSession returns `{ userId, role, email, name }`), `src/app/api/auth/register/route.ts` (sets session cookie via setSession after creating User + TutorProfile + Wallet, returns `{ id, email, name, role, country }`), and the `TutorLegalSignature` Prisma model (already pushed — did NOT touch schema, did NOT run db:push).
+- Created `src/app/api/tutor-legal/accept/route.ts`:
+  • POST (auth required): parses optional `{ agreementVersion }` (default "v1.0"), captures IP from `x-forwarded-for` (first IP) or `x-real-ip` fallback, captures `user-agent`, creates a `TutorLegalSignature` record with `{ userId, userEmail, userName, ipAddress, userAgent, agreementVersion }` from the session, returns `{ ok: true, signature: { id, acceptedAt } }`. Returns 401 if no session, 500 on error.
+  • GET (admin-only): returns `{ signatures: [...] }` ordered by `acceptedAt` desc, limit 500. Returns 403 for non-admin.
+- Created `src/components/auth/legal-agreement-gate.tsx` — reusable gate component shared by both auth entry points. Renders:
+  • Header card with `ScrollText` icon (navy tile + gold icon) + "Qtuor Tutor Terms of Service & Instructor Agreement · Version v1.0".
+  • Scrollable contract container (`max-h-[50vh] overflow-y-auto scrollbar-quran`, bordered, rounded) with 10 numbered clauses: (1) Classroom Code of Conduct, (2) Non-Circumvention Policy (zero-tolerance + termination + forfeit payouts), (3) Flat Subscription Structure (2/3/4/5 classes/week, not hourly), (4) 55% Payout Terms (45% platform, monthly 1st-5th release, bank/PayPal), (5) Automated 15-Min Auto-End Class Rule, (6) $10 Registration Fee, (7) Data & Privacy (session recording consent), (8) Account Termination, (9) Amendments, (10) Governing Law & Acknowledgement.
+  • `onScroll` handler sets `legalScrolled=true` when `scrollTop + clientHeight >= scrollHeight - 8`.
+  • Bottom gradient fade overlay (visible until scrolled) + "Scroll to the bottom to continue" hint pill (clickable, auto-scrolls container).
+  • Sticky acceptance footer with mandatory checkbox (`disabled={!legalScrolled}`) + label "I have read, understood, and agree to follow the Qtuor Tutor Terms of Service & Instructor Agreement…".
+  • Submit Application button (`disabled={!(legalScrolled && legalAccepted)}`) with `ShieldCheck` icon; helper text "Read the agreement and check the box to continue." shown when disabled.
+  • Back button calls `onBack` (returns to verification form).
+- Integrated the gate into `src/components/views/auth-page.tsx`:
+  • Added `showLegalGate`, `legalScrolled`, `legalAccepted` state; reset in the `authMode/authRoleLock` useEffect.
+  • Form `onSubmit` intercepts tutor step-3 submit: if `role==='TUTOR' && !showLegalGate` → opens gate (resets scroll/accept state) instead of calling `handleRegister()`.
+  • Renders `<LegalAgreementGate>` in place of the verification form when `showLegalGate` is true; wraps the regular nav buttons + login link in `{!showLegalGate && (...)}` so they hide when the gate is open.
+  • `handleRegister()` now fires `POST /api/tutor-legal/accept` (fire-and-forget, try/catch with `console.warn` on failure) immediately after a successful tutor registration, so the signature is logged with the freshly-set session cookie.
+- Applied the SAME integration to `src/components/auth/auth-modal.tsx` for parity (legacy modal not mounted by the app, but kept consistent): same state, same gate wiring, same `handleRegister` side-call, same nav-button hiding logic.
+- Skipped admin-dashboard.tsx UI changes per task recommendation (avoid conflicts with sibling agents editing that file). The GET audit endpoint exists and is verified working.
+
+Agent Browser end-to-end verification (via localhost:3000):
+- Opened landing page → clicked "Become a Tutor" (navbar) → AuthPage opened locked to TUTOR at step 2.
+- Filled name/email/password/phone/country/gender → Continue enabled → step 3 Professional Verification.
+- Selected Noorani Qaida + Arabic + English → clicked "Submit Application" → **Legal Agreement Gate appeared** (NOT the registration POST).
+- Verified: checkbox `disabled` ✓ (`agent-browser is enabled` → false); Submit button `disabled` ✓.
+- Clicked "Scroll to the bottom to continue" hint → container scrolled to bottom → checkbox became `enabled` ✓; Submit still `disabled` ✓ (checkbox not yet checked).
+- Clicked the checkbox → `checked=true` → Submit button became `enabled` ✓.
+- Clicked "Submit Application" → registration completed → "Application Submitted!" screen + toast "Application submitted! Pending admin approval."
+- Queried `GET /api/tutor-legal/accept` as admin → signature recorded with userId, userEmail, userName, ipAddress="::1", userAgent="Mozilla/5.0 ... HeadlessChrome/149.0.0.0", agreementVersion="v1.0", acceptedAt timestamp. ✓
+- Also smoke-tested API directly with curl: POST without auth → 401 ✓; GET without auth → 403 ✓; POST as admin → creates record ✓; GET as admin → returns list ✓.
+
+Stage Summary:
+- Legal Agreement Gateway fully implemented and verified end-to-end. Both auth entry points (live `auth-page.tsx` + legacy `auth-modal.tsx`) have parity.
+- Files created: `src/app/api/tutor-legal/accept/route.ts`, `src/components/auth/legal-agreement-gate.tsx`.
+- Files modified: `src/components/views/auth-page.tsx`, `src/components/auth/auth-modal.tsx`.
+- API creates audit-grade signature records with IP + user agent + version + timestamp. Checkbox disabled until scrolled; submit disabled until scrolled + checked. Registration flow (login, student registration, tutor step navigation) fully preserved — no regressions.
+- Lint clean on all 4 of my files (0 errors, 0 warnings). Pre-existing `BlogAdminTab`/`SecurityTab`/`GatewaysTab`/`LedgerTab` errors in admin-dashboard.tsx are sibling agents' in-progress work; pre-existing `StarMedallion style` TS warnings on auth-page.tsx lines 478/493 are in untouched right-panel brand showcase code — not introduced by this task.
+- No new packages installed; only existing shadcn/ui Button + lucide-react icons used. Dev server confirmed healthy (HTTP 200, GET /api/tutor-legal/accept 200).
+
+---
+Task ID: MOD-1-BLOG
+Agent: full-stack-developer
+Task: Module 1 — Automated Blog Engine (public blog view, admin CRUD, auto-generating LLM cron)
+
+Work Log:
+- Added `'blog'` to the `ViewKey` union in `src/lib/store.ts` so the single-page view switcher can render the new blog view.
+- Created three blog API routes (Next.js App Router handlers):
+  - `src/app/api/blog/route.ts` — `GET` public list of PUBLISHED posts (filter by `?category=` and `?search=`, default limit 50, ordered by publishedAt desc, omits `content` for performance) + `POST` admin-only create (zod validation, slug auto-generated from title with random suffix on collision, `source: "MANUAL"`).
+  - `src/app/api/blog/[slug]/route.ts` — `GET` public single post (404 if not PUBLISHED), `PATCH` admin-only update (regenerates slug when title changes), `DELETE` admin-only delete.
+  - `src/app/api/blog/admin/route.ts` — `GET` admin-only list of ALL posts (incl. DRAFT/ARCHIVED), ordered by updatedAt desc, returns full fields minus `content`.
+  - All admin routes use the existing `getSession()` guard pattern (`if (!session || session.role !== 'ADMIN') return 401`). Slugify helper defined inline. Zod used on POST/PATCH.
+- Appended six React Query hooks to `src/lib/queries.ts` (kept all existing exports intact): `useBlogPosts`, `useBlogPost`, `useAdminBlogPosts`, `useCreateBlogPost`, `useUpdateBlogPost`, `useDeleteBlogPost` — invalidating `['blog-posts']`, `['admin-blog-posts']` (and `['blog-post']`) on mutations.
+- Created `src/components/views/blog-view.tsx` — a beautiful public blog page with:
+  - Hero header on deep navy gradient with Bismillah, headline "Learn · Reflect · Excel", subtitle, and Arabic dua accent.
+  - 7 category filter pills (All, Tajweed Tips, Parent Guides, Quran Learning, Arabic Grammar, Hifz, Islamic Education) wired to the `useBlogPosts` category param.
+  - Debounced search input (350ms) filtering by title/excerpt.
+  - Responsive 1/2/3-column article grid with cards: featured image (aspect-[16/10] object-cover, category badge overlay), 2-line clamped title, 3-line clamped excerpt, footer with `Clock` (N min read) + `Calendar` (MMM d, yyyy) icons.
+  - Hover lift/shadow effect. Click → opens a shadcn Dialog showing the full HTML content via `dangerouslySetInnerHTML`, with hero image, author/reading-time/date, excerpt quote, and a back button.
+  - Loading skeletons, error state, and empty state ("No articles yet — check back soon.").
+  - Bottom CTA card linking to the plans view.
+- Added scoped `.blog-content` CSS to `src/app/globals.css` so LLM-generated HTML (`<h2>`, `<p>`, `<ul>`, `<blockquote>`, etc.) renders with proper navy/gold Islamic-theme styling.
+- Wired the blog view into the Shell in `src/app/page.tsx` (`{view === 'blog' && <BlogView />}`) alongside the other views — no new Next.js route created.
+- Added a "Blog" nav item (Newspaper icon) to `src/components/layout/navbar.tsx`, placed between "Plans" and "Become a Tutor" in both the desktop navigation menu and the mobile `NAV_ITEMS` array — exact match to the existing underline-hover button pattern.
+- Added a "Blog" link (`{ label: 'Blog', view: 'blog' }`) under the "Learn" column in `src/components/layout/footer.tsx`.
+- Added a new "Blog Posts" tab to the admin dashboard `Tabs` (value="blog", Newspaper icon) and a full `BlogAdminTab` component in `src/components/views/admin-dashboard.tsx` (appended near the other tab components, did not restructure existing tabs):
+  - Table listing all posts via `useAdminBlogPosts` with: thumbnail + title + slug, category badge, source badge (AUTO gold / MANUAL navy), status badge (PUBLISHED green / DRAFT grey / ARCHIVED red), published date, Edit + Delete actions.
+  - "New Post" button → Dialog form with title, category select, status select, excerpt, content (HTML textarea, large), featuredImage URL (with live image preview), readingTime, tags, author. Save via `useCreateBlogPost`.
+  - Edit → same Dialog pre-filled (content left blank on edit since the admin list endpoint omits it), save via `useUpdateBlogPost`.
+  - Delete → confirmation Dialog then `useDeleteBlogPost`. Toast feedback via `sonner`.
+- Created the `mini-services/blog-cron/` mini-service (independent bun project, port-free cron):
+  - `package.json` — name `qtuor-blog-cron`, `"type": "module"`, `"dev": "bun --hot index.ts"`, deps `@prisma/client` + `z-ai-web-dev-sdk`.
+  - `index.ts` — imports `PrismaClient` from the main app's `node_modules` (mirrors `class-reminder-cron` pattern) and `ZAI` from `z-ai-web-dev-sdk`. Defines 12 topic prompts across all 6 blog categories. On startup: if no post was published in the last 20h, generate ONE article via `zai.chat.completions.create({ messages, thinking: { type: 'disabled' } })`, parse STRICT JSON response (with ```json fence stripping fallback), slugify the title + append short timestamp suffix to avoid collisions, and `db.blogPost.create({ ... source: 'AUTO', status: 'PUBLISHED' })` with a category-appropriate `featuredImage`. Then `setInterval` every 24h. Robust try/catch around LLM call, JSON parse, and DB insert — logs all steps with ISO timestamps to stdout.
+  - No HTTP server (pure cron, no port).
+- Installed dependencies (`bun install`) and started the service in the background via `bun run dev > /home/z/my-project/blog-cron.log 2>&1 &`. Verified the process is running (PID cwd = `/home/z/my-project/mini-services/blog-cron`).
+- Verified the cron log shows: startup tick → correctly skipped the startup run (because a seed post was published within the last 20h) → scheduled the next run for 24h later.
+- Ran a manual end-to-end test of the cron's generation pipeline: LLM call returned valid JSON → parsed → `db.blogPost.create()` succeeded → new article "3 Quick Hifz Revision Tips for Busy Students" now appears at the top of the public `/api/blog` list (7 posts total).
+- Ran `bun run lint` → **0 errors, 0 warnings** after removing two unneeded `eslint-disable` directives.
+- Verified all three blog API endpoints behave correctly via curl:
+  - `GET /api/blog` → 200, returns 7 posts (no `content` field in list).
+  - `GET /api/blog/[slug]` → 200, returns full content for a PUBLISHED post; 404 for DRAFT/nonexistent.
+  - `GET /api/blog/admin` → 401 without admin auth, 200 with admin session (returns all fields incl. source/status).
+  - `POST /api/blog` (admin) → 201, creates with `source: "MANUAL"` and auto-slug.
+  - `PATCH /api/blog/[slug]` (admin) → 200, updates fields and regenerates slug when title changes.
+  - `DELETE /api/blog/[slug]` (admin) → 200 `{ ok: true }`.
+- Dev server log shows no errors related to the blog module — homepage still renders 200.
+
+Stage Summary:
+- The Qtuor blog is fully live: visitors can browse articles on the new Blog view (nav + footer link), filter by category, search by title, and read full articles in a dialog.
+- Admins can manage posts (create/edit/delete) from the Admin Control Center → Blog Posts tab.
+- A background LLM cron service (`mini-services/blog-cron/`) automatically writes and publishes one new SEO-friendly article every 24 hours — already verified end-to-end (LLM → JSON parse → DB insert → public API exposure).
+- All lint passes clean. No new Next.js routes were created (single-page view switcher pattern preserved). Other modules' work (auth-modal, security/gateway/ledger tabs) was untouched.
+
+---
+Task ID: MOD-2-ADMIN
+Agent: full-stack-developer
+Task: Module 2 — Master Central Admin Control Panel (Security + Payment Gateways + Financial Ledgers)
+
+Work Log:
+- Read worklog.md, schema.prisma (PaymentGateway/BankAccount/StudentPayment/PayoutRelease already pushed), src/lib/auth.ts (getSession/setSession/hashPassword/verifyPassword), src/lib/queries.ts, src/app/api/admin/tutors/[id]/route.ts (admin-guard pattern), and src/components/views/admin-dashboard.tsx (existing 5-tab structure).
+- Created 8 admin API routes (all admin-guarded via getSession):
+  • /api/admin/security (GET returns admin id/email/name; PATCH validates currentPassword via verifyPassword, optional newPassword min 6 + != current, optional newEmail validates shape + uniqueness, updates User, then calls setSession to keep cookie in sync).
+  • /api/admin/payment-gateways (GET returns {gateways, bankAccounts}; PUT partial-update by id, transactionally deactivates other gateways when isActive:true). Plus [id]/route.ts PATCH + DELETE.
+  • /api/admin/bank-accounts (GET lists all; POST creates — required bankName+accountHolder, transactional isDefault toggle). Plus [id]/route.ts PATCH (with isDefault toggle) + DELETE.
+  • /api/admin/ledger/receivables (GET returns last 200 StudentPayments + summary {total, successCount, failedCount, pendingCount, refundedCount, totalAmount}).
+  • /api/admin/ledger/payables (GET returns per-tutor wallet auditor: balance/pendingPayout/totalEarned/escrowHeld/platformRevenue + lessonsCount + releasedSplits (via walletSplit.groupBy) + releasable; summary aggregates totals).
+  • /api/admin/ledger/release-payment (POST validates wallet.balance >= amount, transaction: create PayoutRelease CLEARED with masked destination + releasedBy, decrement Wallet.balance, create Notification TUTOR_PAYOUT/SIMULATED).
+- Created scripts/seed-payments.ts — idempotent, inserts 10 StudentPayment rows (varied plans/methods/statuses over last 27 days) if the table is empty. Ran it once → "Seeded 10 StudentPayment rows."
+- Appended 10 React Query hooks to src/lib/queries.ts (useAdminSecurity, useUpdateAdminSecurity, usePaymentGateways, useUpdatePaymentGateway, useCreateBankAccount, useUpdateBankAccount, useDeleteBankAccount, useReceivablesLedger, usePayablesLedger, useReleasePayment) with appropriate invalidation.
+- Added 3 new tabs to admin-dashboard.tsx TabsList (Security/Gateways/Ledger) AFTER the existing blog tab, plus 3 new TabsContent blocks, plus 3 new component functions + helpers at end of file:
+  • SecurityTab: Master Credentials card (current email read-only, update-email input + Save button, current/new/confirm password inputs with show/hide toggles, Update Password button, "Passwords are encrypted" note) + cosmetic Platform Secret Keys card with masked •••• rows + Rotate Keys button (toasts "coming soon"). On email change, also updates the in-memory Zustand user store so navbar refreshes.
+  • GatewaysTab: Two GatewayCard components (Stripe Connect + PayPal Payouts) side-by-side on lg, each with Active/Sandbox Switches, Active/Inactive + Live/Sandbox badges, provider-specific credential inputs (Stripe: publishableKey/secretKey/webhookSecret/payoutEmail; PayPal: clientId/clientSecret/payoutEmail), secret fields rendered through PasswordInput helper with eye toggle, per-card Save button. Below: BankAccountsCard with scrollable table (bank/holder/masked IBAN/SWIFT/currency/default badge), Set Default / Edit / Delete actions, Add Bank Account button opening BankAccountDialog (full form with isDefault switch). Edit pre-fills form.
+  • LedgerTab: Sub-tab toggle (Student Receivables / Teacher Payables). ReceivablesSection: 4 MiniStat cards (Total Received/Successful/Failed/Pending) + scrollable Table (Student/Plan/Amount/Method/Date/Invoice/Status color-coded badge). PayablesSection: 4 MiniStat cards (Pending Payouts/Total Released/In Escrow/Platform Revenue 45%) + scrollable Table (Tutor/Cumulative Earned/Releasable Wallet/Escrow Held/Lessons/Actions) with per-row "Release Payment" button → ReleasePaymentDialog (amount defaults to balance, method Select BANK_TRANSFER/PAYPAL/STRIPE, destination input masked) → useReleasePayment mutation with toast + auto-refresh.
+- Premium Islamic theme preserved (deep-blue primary, light-blue accents, gold for default/platform revenue, green for success, amber for pending/sandbox, red for failed; no indigo/blue Tailwind defaults). All long tables wrapped in max-h-96 overflow-y-auto scrollbar-quran with sticky headers matching the existing tutor/withdrawal tabs.
+- Did NOT touch auth-modal.tsx, auth-page.tsx, blog code, or the Prisma schema. Inserted my 3 tab triggers + 3 TabsContent blocks AFTER the existing blog tab trigger; appended my component functions AFTER the BlogAdminTab function — no restructuring of existing code.
+
+Stage Summary:
+- Module 2 of the master admin control panel is complete: 8 new admin API routes, 10 new React Query hooks, 1 idempotent seed script (already executed), and 3 new admin dashboard tabs with supporting sub-components.
+- `bun run lint` → exit 0, 0 errors, 0 warnings.
+- API smoke tests (admin cookie): GET security 200, PATCH wrong-pw 400 "Current password incorrect", GET payment-gateways 200 (both seeded gateways + default bank), GET bank-accounts 200, GET receivables 200 (10 payments + summary), GET payables 200 (6 tutors with wallets + summary), POST release-payment over-balance 400 "Insufficient wallet balance ($180.00 available)", POST release-payment valid 200 (created PayoutRelease with masked destination "••••.com", decremented Wallet.balance 180→170, created Notification TUTOR_PAYOUT).
+- Dev server healthy on port 3000; no compile errors in dev.log. Ready for user to log in as admin@qtuor.com / admin123 and click Security / Gateways / Ledger tabs.
+- Files: src/app/api/admin/security/route.ts, src/app/api/admin/payment-gateways/{route.ts,[id]/route.ts}, src/app/api/admin/bank-accounts/{route.ts,[id]/route.ts}, src/app/api/admin/ledger/{receivables/route.ts,payables/route.ts,release-payment/route.ts}, scripts/seed-payments.ts; modified src/lib/queries.ts and src/components/views/admin-dashboard.tsx.
+
+---
+Task ID: MOD-INTEGRATION-FINAL
+Agent: main (Z.ai Code) — integration & verification
+Task: Integrate all 3 modules (built by 3 parallel subagents) and run end-to-end Agent Browser verification.
+
+Work Log:
+- Schema foundation: added BlogPost, PaymentGateway, BankAccount, StudentPayment, TutorLegalSignature, PayoutRelease models to prisma/schema.prisma; ran `bun run db:push` (Prisma client regenerated). Seeded 6 blog posts + default STRIPE/PAYPAL gateways + 1 default bank account via scripts/seed-modules.ts. Seeded 10 StudentPayment rows via scripts/seed-payments.ts (subagent).
+- Dispatched 3 parallel full-stack-developer subagents (MOD-1-BLOG, MOD-2-ADMIN, MOD-3-LEGAL) with detailed specs + shared context (schema done, patterns, worklog rules). All 3 completed successfully.
+- Integration verification via Agent Browser:
+  • Module 1 (Blog): Navbar "Blog" item navigates to BlogView. Hero + category pills + search render. 7 article cards (6 seed + 1 LLM-generated). Clicking a card opens detail Dialog with full HTML content. Admin "Blog Posts" tab shows CRUD table.
+  • Module 2 (Admin): All 8 tabs render (Tutor Vetting, Subscription Plans, Withdrawals, WhatsApp, Blog Posts, Security, Gateways, Ledger). Ledger tab confirmed showing Student Receivables summary ($222 total, 7 success, 1 failed, 1 pending) + 10-row payment audit table. Security tab shows "Platform Secret Keys" + password change. Gateways tab shows Stripe/PayPal/Bank management.
+  • Module 3 (Legal Gate): Full tutor registration flow tested — filled steps 2-3, clicked "Submit Application" → Legal Agreement Gate appeared (NOT direct registration). Contract box contains all required clauses (Non-Circumvention, 55% Payout, auto-end, code of conduct). Checkbox DISABLED until scrolled to bottom. After scroll → checkbox enabled. After check → Submit enabled. After submit → "Application Submitted!" + TutorLegalSignature record persisted (userId, email, IP ::1, userAgent HeadlessChrome, version v1.0, timestamp).
+- blog-cron mini-service started in background (mini-services/blog-cron/), confirmed alive via blog-cron.log (24h interval, LLM-driven article generation via z-ai-web-dev-sdk).
+- Final lint: 0 errors, 0 warnings. Zero console errors during full E2E flow.
+
+Stage Summary:
+- Module 1 (Automated Blog): /blog view (BlogView) with premium Islamic grid layout, category pills, search, detail dialog; admin Blog Posts CRUD tab; blog-cron LLM auto-posting service running daily.
+- Module 2 (Master Admin): 3 new tabs — Security (change password/email + secret keys), Gateways (Stripe/PayPal credential switcher + Bank Account IBAN/SWIFT management), Ledger (Student Receivables audit table + Teacher Payables 55% wallet auditor + Release Payment button with PayoutRelease logging).
+- Module 3 (Tutor Legal Agreement): scrollable 10-clause ToS contract injected into tutor registration step-3 submit. Checkbox disabled-until-scrolled, Submit disabled-until-scrolled-and-checked. Signatures persisted to TutorLegalSignature (IP, userAgent, version, timestamp) for compliance audit. Applied to both auth-page.tsx (live) and auth-modal.tsx (parity).
+- All 6 new Prisma models live. All APIs admin-guarded. All frontend matches Premium Light Blue Islamic theme.

@@ -1,0 +1,14 @@
+{
+  "name": "qtuor-whatsapp-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4"
+  }
+}

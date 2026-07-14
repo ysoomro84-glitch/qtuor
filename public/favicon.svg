@@ -1,0 +1,13 @@
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qtuor">
+  <defs>
+    <linearGradient id="qnavy" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E2A5E"/>
+      <stop offset="1" stop-color="#152052"/>
+    </linearGradient>
+  </defs>
+  <!-- Filled navy disc with a triangular Q-tail notch cut from the bottom-right (evenodd) -->
+  <path fill="url(#qnavy)" fill-rule="evenodd" d="
+    M 6 32 A 26 26 0 1 0 58 32 A 26 26 0 1 0 6 32 Z
+    M 38 38 L 44 57 L 57 44 Z
+  "/>
+</svg>

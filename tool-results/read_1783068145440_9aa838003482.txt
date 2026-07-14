@@ -1,0 +1,1289 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import { toast } from 'sonner'
+     6→import { format, parseISO, isToday, isTomorrow } from 'date-fns'
+     7→import {
+     8→  Wallet,
+     9→  TrendingUp,
+    10→  Users,
+    11→  Star,
+    12→  Calendar,
+    13→  Clock,
+    14→  Video,
+    15→  CheckCircle2,
+    16→  GraduationCap,
+    17→  ShieldCheck,
+    18→  Upload,
+    19→  Loader2,
+    20→  AlertCircle,
+    21→  XCircle,
+    22→  Banknote,
+    23→  HandCoins,
+    24→  CalendarClock,
+    25→  Sparkles,
+    26→  Languages,
+    27→  BookOpenCheck,
+    28→  Award,
+    29→} from 'lucide-react'
+    30→import { cn } from '@/lib/utils'
+    31→import { useAppStore } from '@/lib/store'
+    32→import {
+    33→  useTutorDashboard,
+    34→  useSaveAvailability,
+    35→  useUpdateBooking,
+    36→  useRequestWithdrawal,
+    37→} from '@/lib/queries'
+    38→import { Card } from '@/components/ui/card'
+    39→import { Button } from '@/components/ui/button'
+    40→import { Badge } from '@/components/ui/badge'
+    41→import { Input } from '@/components/ui/input'
+    42→import { Label } from '@/components/ui/label'
+    43→import {
+    44→  Select,
+    45→  SelectContent,
+    46→  SelectItem,
+    47→  SelectTrigger,
+    48→  SelectValue,
+    49→} from '@/components/ui/select'
+    50→import { Avatar } from '@/components/shared/avatar'
+    51→import { IslamicPatternBand, StarMedallion } from '@/components/brand/patterns'
+    52→import { QtuorLogo } from '@/components/brand/logo'
+    53→import {
+    54→  VerifiedBadge,
+    55→  NativeArabicBadge,
+    56→  HafizBadge,
+    57→  IjazaBadge,
+    58→} from '@/components/brand/badges'
+    59→
+    60→// ---------------------------------------------------------------------------
+    61→// Types
+    62→// ---------------------------------------------------------------------------
+    63→interface TutorProfile {
+    64→  id: string
+    65→  userId: string
+    66→  bio: string
+    67→  hourlyRate: number
+    68→  rating: number
+    69→  reviewCount: number
+    70→  studentCount: number
+    71→  lessonsCount: number
+    72→  verified: boolean
+    73→  nativeArabic: boolean
+    74→  hafiz: boolean
+    75→  ijazaCertified: boolean
+    76→  specialties: string
+    77→  languages: string
+    78→  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string
+    79→  experienceYears: number
+    80→}
+    81→
+    82→interface WalletData {
+    83→  id: string
+    84→  tutorId: string
+    85→  balance: number
+    86→  pendingPayout: number
+    87→  totalEarned: number
+    88→}
+    89→
+    90→interface WithdrawalRow {
+    91→  id: string
+    92→  amount: number
+    93→  status: string
+    94→  method: string
+    95→  createdAt: string
+    96→}
+    97→
+    98→interface AvailabilityRow {
+    99→  id: string
+   100→  tutorId: string
+   101→  dayOfWeek: number
+   102→  slots: string
+   103→}
+   104→
+   105→interface BookingRow {
+   106→  id: string
+   107→  scheduledAt: string
+   108→  durationMins: number
+   109→  status: string
+   110→  isTrial: boolean
+   111→  topic?: string | null
+   112→  student: {
+   113→    id: string
+   114→    name: string
+   115→    avatar?: string | null
+   116→    country?: string | null
+   117→  }
+   118→}
+   119→
+   120→interface DashboardData {
+   121→  profile: TutorProfile | null
+   122→  wallet: WalletData
+   123→  withdrawals: WithdrawalRow[]
+   124→  availabilities: AvailabilityRow[]
+   125→  bookings: BookingRow[]
+   126→  stats: {
+   127→    totalLessons: number
+   128→    upcomingLessons: number
+   129→    uniqueStudents: number
+   130→    rating: number
+   131→    reviewCount: number
+   132→    balance: number
+   133→    totalEarned: number
+   134→  }
+   135→}
+   136→
+   137→// ---------------------------------------------------------------------------
+   138→// Constants
+   139→// ---------------------------------------------------------------------------
+   140→const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+   141→const DAYS_FULL = [
+   142→  'Sunday',
+   143→  'Monday',
+   144→  'Tuesday',
+   145→  'Wednesday',
+   146→  'Thursday',
+   147→  'Friday',
+   148→  'Saturday',
+   149→] as const
+   150→
+   151→const TIME_SLOTS: string[][] = [
+   152→  ['08:00', '10:00'],
+   153→  ['10:00', '12:00'],
+   154→  ['14:00', '16:00'],
+   155→  ['16:00', '18:00'],
+   156→  ['18:00', '20:00'],
+   157→  ['20:00', '22:00'],
+   158→]
+   159→
+   160→const WITHDRAWAL_METHODS = [
+   161→  { value: 'BANK', label: 'Bank Transfer' },
+   162→  { value: 'PAYPAL', label: 'PayPal' },
+   163→  { value: 'WISE', label: 'Wise' },
+   164→] as const
+   165→
+   166→// ---------------------------------------------------------------------------
+   167→// Helpers
+   168→// ---------------------------------------------------------------------------
+   169→function parseAvailabilities(list: AvailabilityRow[]): Record<number, string[][]> {
+   170→  const map: Record<number, string[][]> = {}
+   171→  for (const a of list) {
+   172→    try {
+   173→      const parsed = JSON.parse(a.slots)
+   174→      map[a.dayOfWeek] = Array.isArray(parsed) ? (parsed as string[][]) : []
+   175→    } catch {
+   176→      map[a.dayOfWeek] = []
+   177→    }
+   178→  }
+   179→  return map
+   180→}
+   181→
+   182→function slotExists(daySlots: string[][] | undefined, slot: string[]): boolean {
+   183→  if (!daySlots) return false
+   184→  return daySlots.some((s) => s[0] === slot[0] && s[1] === slot[1])
+   185→}
+   186→
+   187→function toggleSlot(
+   188→  current: Record<number, string[][]>,
+   189→  day: number,
+   190→  slot: string[]
+   191→): Record<number, string[][]> {
+   192→  const existing = current[day] || []
+   193→  const has = slotExists(existing, slot)
+   194→  const next = has
+   195→    ? existing.filter((s) => !(s[0] === slot[0] && s[1] === slot[1]))
+   196→    : [...existing, slot]
+   197→  return { ...current, [day]: next }
+   198→}
+   199→
+   200→function money(n: number): string {
+   201→  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+   202→}
+   203→
+   204→function formatBookingDate(iso: string): { label: string; relative: string | null } {
+   205→  let d: Date
+   206→  try {
+   207→    d = parseISO(iso)
+   208→  } catch {
+   209→    d = new Date(iso)
+   210→  }
+   211→  const label = format(d, 'EEE, MMM d · h:mm a')
+   212→  let relative: string | null = null
+   213→  if (isToday(d)) relative = 'Today'
+   214→  else if (isTomorrow(d)) relative = 'Tomorrow'
+   215→  return { label, relative }
+   216→}
+   217→
+   218→function withdrawalStatusVariant(status: string): string {
+   219→  switch (status) {
+   220→    case 'PAID':
+   221→      return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+   222→    case 'APPROVED':
+   223→      return 'bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)] border-[oklch(0.62_0.14_230/0.3)]'
+   224→    case 'REJECTED':
+   225→      return 'bg-red-100 text-red-700 border-red-200'
+   226→    default:
+   227→      return 'bg-amber-100 text-amber-700 border-amber-200'
+   228→  }
+   229→}
+   230→
+   231→// ---------------------------------------------------------------------------
+   232→// Sub-components: Guards
+   233→// ---------------------------------------------------------------------------
+   234→function AuthPrompt({ onLogin }: { onLogin: () => void }) {
+   235→  return (
+   236→    <div className="mx-auto max-w-xl px-4 py-20">
+   237→      <Card className="relative overflow-hidden border-0 p-0 text-center shadow-xl">
+   238→        <div className="hero-mesh absolute inset-0" aria-hidden />
+   239→        <IslamicPatternBand opacity={0.06} />
+   240→        <div className="relative flex flex-col items-center gap-4 p-10">
+   241→          <QtuorLogo className="h-14 w-14" />
+   242→          <h2 className="text-2xl font-extrabold text-foreground">Tutor Dashboard</h2>
+   243→          <p className="max-w-md text-sm text-muted-foreground">
+   244→            Sign in to manage your classes, availability, earnings and verification status on
+   245→            Qtuor.
+   246→          </p>
+   247→          <Button
+   248→            onClick={onLogin}
+   249→            className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   250→          >
+   251→            <GraduationCap className="h-4 w-4" /> Sign in as tutor
+   252→          </Button>
+   253→        </div>
+   254→      </Card>
+   255→    </div>
+   256→  )
+   257→}
+   258→
+   259→function BecomeTutorCta({ onRegister }: { onRegister: () => void }) {
+   260→  return (
+   261→    <div className="mx-auto max-w-2xl px-4 py-16">
+   262→      <Card className="relative overflow-hidden p-0">
+   263→        <div className="hero-mesh absolute inset-0" aria-hidden />
+   264→        <IslamicPatternBand opacity={0.07} />
+   265→        <div className="relative flex flex-col items-center gap-5 p-8 text-center sm:p-12">
+   266→          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.62_0.14_230)] text-white shadow-lg">
+   267→            <GraduationCap className="h-8 w-8" />
+   268→          </div>
+   269→          <div>
+   270→            <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
+   271→              Become a Qtuor Tutor
+   272→            </h2>
+   273→            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+   274→              Share your knowledge of the Quran with students worldwide. Set your own rates,
+   275→              schedule, and teach from anywhere — all from one beautiful dashboard.
+   276→            </p>
+   277→          </div>
+   278→          <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+   279→            <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.62_0.14_230/0.1)] px-3 py-1 font-semibold text-[oklch(0.40_0.11_258)]">
+   280→              <Sparkles className="h-3 w-3" /> Earn in USD
+   281→            </span>
+   282→            <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.78_0.15_85/0.15)] px-3 py-1 font-semibold text-[oklch(0.55_0.13_75)]">
+   283→              <Star className="h-3 w-3" /> Verified badge
+   284→            </span>
+   285→            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 font-semibold text-muted-foreground">
+   286→              <CalendarClock className="h-3 w-3" /> Flexible hours
+   287→            </span>
+   288→          </div>
+   289→          <Button
+   290→            onClick={onRegister}
+   291→            size="lg"
+   292→            className="mt-2 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   293→          >
+   294→            <GraduationCap className="h-4 w-4" /> Register as a tutor
+   295→          </Button>
+   296→        </div>
+   297→      </Card>
+   298→    </div>
+   299→  )
+   300→}
+   301→
+   302→function DashboardSkeleton() {
+   303→  return (
+   304→    <div className="mx-auto max-w-6xl px-4 py-10">
+   305→      <div className="mb-8 h-32 animate-pulse rounded-2xl bg-muted" />
+   306→      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   307→        {Array.from({ length: 4 }).map((_, i) => (
+   308→          <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />
+   309→        ))}
+   310→      </div>
+   311→      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+   312→        <div className="space-y-6 lg:col-span-2">
+   313→          <div className="h-72 animate-pulse rounded-xl bg-muted" />
+   314→          <div className="h-96 animate-pulse rounded-xl bg-muted" />
+   315→        </div>
+   316→        <div className="space-y-6">
+   317→          <div className="h-72 animate-pulse rounded-xl bg-muted" />
+   318→          <div className="h-60 animate-pulse rounded-xl bg-muted" />
+   319→        </div>
+   320→      </div>
+   321→    </div>
+   322→  )
+   323→}
+   324→
+   325→// ---------------------------------------------------------------------------
+   326→// Status Banner
+   327→// ---------------------------------------------------------------------------
+   328→function StatusBanner({ profile }: { profile: TutorProfile | null }) {
+   329→  if (!profile) {
+   330→    return (
+   331→      <Card className="border-amber-200 bg-amber-50 p-4">
+   332→        <div className="flex items-start gap-3">
+   333→          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+   334→          <div className="text-sm">
+   335→            <p className="font-semibold text-amber-900">Complete your tutor profile</p>
+   336→            <p className="text-amber-700">
+   337→              Your tutor profile isn&apos;t set up yet. Please contact support to continue.
+   338→            </p>
+   339→          </div>
+   340→        </div>
+   341→      </Card>
+   342→    )
+   343→  }
+   344→
+   345→  if (profile.status === 'PENDING') {
+   346→    return (
+   347→      <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-[oklch(0.62_0.14_230/0.06)] p-4">
+   348→        <div className="flex items-start gap-3">
+   349→          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+   350→            <Clock className="h-4 w-4" />
+   351→          </div>
+   352→          <div className="text-sm">
+   353→            <p className="font-semibold text-amber-900">Application pending admin approval</p>
+   354→            <p className="text-amber-700">
+   355→              You&apos;ll be visible to students once an admin approves your tutor profile. This
+   356→              usually takes 1–2 business days.
+   357→            </p>
+   358→          </div>
+   359→        </div>
+   360→      </Card>
+   361→    )
+   362→  }
+   363→
+   364→  if (profile.status === 'REJECTED') {
+   365→    return (
+   366→      <Card className="border-red-200 bg-red-50 p-4">
+   367→        <div className="flex items-start gap-3">
+   368→          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+   369→          <div className="text-sm">
+   370→            <p className="font-semibold text-red-900">Application not approved</p>
+   371→            <p className="text-red-700">
+   372→              Your tutor application was not approved. Please review your profile details and
+   373→              contact support if you believe this is an error.
+   374→            </p>
+   375→          </div>
+   376→        </div>
+   377→      </Card>
+   378→    )
+   379→  }
+   380→
+   381→  // APPROVED — small green pill shown elsewhere; no banner needed.
+   382→  return null
+   383→}
+   384→
+   385→// ---------------------------------------------------------------------------
+   386→// Welcome Header
+   387→// ---------------------------------------------------------------------------
+   388→function WelcomeHeader({
+   389→  name,
+   390→  approved,
+   391→}: {
+   392→  name: string
+   393→  approved: boolean
+   394→}) {
+   395→  const first = name.split(' ')[0] || 'Teacher'
+   396→  const hour = new Date().getHours()
+   397→  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+   398→  return (
+   399→    <Card className="relative overflow-hidden border-0 p-0 shadow-md">
+   400→      <div className="hero-mesh absolute inset-0" aria-hidden />
+   401→      <IslamicPatternBand opacity={0.08} />
+   402→      <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+   403→        <div className="flex items-center gap-4">
+   404→          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/70 text-primary shadow-sm sm:flex">
+   405→            <StarMedallion className="h-7 w-7" />
+   406→          </div>
+   407→          <div>
+   408→            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+   409→              {greet},
+   410→            </p>
+   411→            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+   412→              <span className="text-gradient-blue">{first}</span>
+   413→            </h1>
+   414→            <p className="mt-1 text-sm text-muted-foreground">
+   415→              Manage your classes, schedule and earnings — all in one place.
+   416→            </p>
+   417→          </div>
+   418→        </div>
+   419→        <div className="flex items-center gap-2">
+   420→          {approved ? (
+   421→            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
+   422→              <CheckCircle2 className="h-3.5 w-3.5" /> Verified Tutor
+   423→            </span>
+   424→          ) : (
+   425→            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+   426→              <Clock className="h-3.5 w-3.5" /> Pending verification
+   427→            </span>
+   428→          )}
+   429→        </div>
+   430→      </div>
+   431→    </Card>
+   432→  )
+   433→}
+   434→
+   435→// ---------------------------------------------------------------------------
+   436→// Stats Row
+   437→// ---------------------------------------------------------------------------
+   438→function StatCard({
+   439→  icon,
+   440→  label,
+   441→  value,
+   442→  sub,
+   443→  accent = 'blue',
+   444→  index = 0,
+   445→}: {
+   446→  icon: React.ReactNode
+   447→  label: string
+   448→  value: React.ReactNode
+   449→  sub?: React.ReactNode
+   450→  accent?: 'blue' | 'gold' | 'muted'
+   451→  index?: number
+   452→}) {
+   453→  const accentClass =
+   454→    accent === 'gold'
+   455→      ? 'bg-[oklch(0.78_0.15_85/0.15)] text-[oklch(0.55_0.13_75)]'
+   456→      : accent === 'muted'
+   457→        ? 'bg-muted text-muted-foreground'
+   458→        : 'bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)]'
+   459→  return (
+   460→    <motion.div
+   461→      initial={{ opacity: 0, y: 10 }}
+   462→      animate={{ opacity: 1, y: 0 }}
+   463→      transition={{ duration: 0.3, delay: index * 0.06 }}
+   464→    >
+   465→      <Card className="p-5">
+   466→        <div className="flex items-start justify-between gap-3">
+   467→          <div className="min-w-0">
+   468→            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+   469→              {label}
+   470→            </p>
+   471→            <p className="mt-2 text-2xl font-extrabold tracking-tight text-foreground">
+   472→              {value}
+   473→            </p>
+   474→            {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+   475→          </div>
+   476→          <div
+   477→            className={cn(
+   478→              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+   479→              accentClass
+   480→            )}
+   481→          >
+   482→            {icon}
+   483→          </div>
+   484→        </div>
+   485→      </Card>
+   486→    </motion.div>
+   487→  )
+   488→}
+   489→
+   490→function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
+   491→  return (
+   492→    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   493→      <StatCard
+   494→        index={0}
+   495→        icon={<Wallet className="h-5 w-5" />}
+   496→        label="Wallet Balance"
+   497→        value={money(stats.balance)}
+   498→        sub="Available to withdraw"
+   499→        accent="blue"
+   500→      />
+   501→      <StatCard
+   502→        index={1}
+   503→        icon={<TrendingUp className="h-5 w-5" />}
+   504→        label="Total Earned"
+   505→        value={money(stats.totalEarned)}
+   506→        sub="Lifetime on Qtuor"
+   507→        accent="gold"
+   508→      />
+   509→      <StatCard
+   510→        index={2}
+   511→        icon={<Users className="h-5 w-5" />}
+   512→        label="Unique Students"
+   513→        value={stats.uniqueStudents}
+   514→        sub={`${stats.totalLessons} lessons taught`}
+   515→        accent="muted"
+   516→      />
+   517→      <StatCard
+   518→        index={3}
+   519→        icon={<Star className="h-5 w-5" />}
+   520→        label="Rating"
+   521→        value={stats.rating ? stats.rating.toFixed(1) : '—'}
+   522→        sub={
+   523→          stats.reviewCount > 0 ? `${stats.reviewCount} reviews` : 'No reviews yet'
+   524→        }
+   525→        accent="gold"
+   526→      />
+   527→    </div>
+   528→  )
+   529→}
+   530→
+   531→// ---------------------------------------------------------------------------
+   532→// Upcoming Classes
+   533→// ---------------------------------------------------------------------------
+   534→function UpcomingClasses({
+   535→  bookings,
+   536→  onStart,
+   537→  onComplete,
+   538→  completing,
+   539→}: {
+   540→  bookings: BookingRow[]
+   541→  onStart: (b: BookingRow) => void
+   542→  onComplete: (b: BookingRow) => void
+   543→  completing: string | null
+   544→}) {
+   545→  const upcoming = bookings
+   546→    .filter((b) => b.status === 'SCHEDULED' && new Date(b.scheduledAt) > new Date(new Date().getTime() - 30 * 60 * 1000))
+   547→    .sort((a, b) => +new Date(a.scheduledAt) - +new Date(b.scheduledAt))
+   548→
+   549→  return (
+   550→    <Card className="p-6">
+   551→      <div className="mb-4 flex items-center justify-between gap-3">
+   552→        <div className="flex items-center gap-2">
+   553→          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)]">
+   554→            <CalendarClock className="h-4.5 w-4.5" />
+   555→          </div>
+   556→          <div>
+   557→            <h2 className="text-lg font-bold text-foreground">Upcoming Classes</h2>
+   558→            <p className="text-xs text-muted-foreground">
+   559→              {upcoming.length} scheduled {upcoming.length === 1 ? 'class' : 'classes'}
+   560→            </p>
+   561→          </div>
+   562→        </div>
+   563→      </div>
+   564→
+   565→      {upcoming.length === 0 ? (
+   566→        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
+   567→          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+   568→            <Calendar className="h-6 w-6" />
+   569→          </div>
+   570→          <div>
+   571→            <p className="text-sm font-semibold text-foreground">No upcoming classes</p>
+   572→            <p className="mt-1 text-xs text-muted-foreground">
+   573→              When students book a session with you, it will appear here.
+   574→            </p>
+   575→          </div>
+   576→        </div>
+   577→      ) : (
+   578→        <div className="max-h-96 space-y-3 overflow-y-auto scrollbar-quran pr-1">
+   579→          {upcoming.map((b) => {
+   580→            const { label, relative } = formatBookingDate(b.scheduledAt)
+   581→            const isCompleting = completing === b.id
+   582→            return (
+   583→              <motion.div
+   584→                key={b.id}
+   585→                initial={{ opacity: 0, y: 6 }}
+   586→                animate={{ opacity: 1, y: 0 }}
+   587→                className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-[oklch(0.62_0.14_230/0.4)] hover:shadow-sm"
+   588→              >
+   589→                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   590→                  <div className="flex min-w-0 items-center gap-3">
+   591→                    <Avatar
+   592→                      name={b.student.name}
+   593→                      src={b.student.avatar}
+   594→                      size={44}
+   595→                      country={b.student.country}
+   596→                    />
+   597→                    <div className="min-w-0">
+   598→                      <div className="flex flex-wrap items-center gap-1.5">
+   599→                        <p className="truncate font-semibold text-foreground">
+   600→                          {b.student.name}
+   601→                        </p>
+   602→                        {b.isTrial && (
+   603→                          <Badge className="bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)] border-[oklch(0.78_0.15_85/0.4)]">
+   604→                            Trial
+   605→                          </Badge>
+   606→                        )}
+   607→                      </div>
+   608→                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+   609→                        {b.topic ? (
+   610→                          <span className="inline-flex items-center gap-1">
+   611→                            <BookOpenCheck className="h-3 w-3" /> {b.topic}
+   612→                          </span>
+   613→                        ) : (
+   614→                          'Quran lesson'
+   615→                        )}
+   616→                      </p>
+   617→                    </div>
+   618→                  </div>
+   619→                  <div className="flex flex-col items-start gap-1 sm:items-end">
+   620→                    <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+   621→                      <Clock className="h-3.5 w-3.5 text-[oklch(0.62_0.14_230)]" />
+   622→                      {b.durationMins} min
+   623→                    </div>
+   624→                    {relative && (
+   625→                      <Badge className="bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)] border-[oklch(0.62_0.14_230/0.25)]">
+   626→                        {relative}
+   627→                      </Badge>
+   628→                    )}
+   629→                  </div>
+   630→                </div>
+   631→
+   632→                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+   633→                  <Calendar className="h-3.5 w-3.5" />
+   634→                  <span>{label}</span>
+   635→                </div>
+   636→
+   637→                <div className="mt-3 flex flex-wrap gap-2">
+   638→                  <Button
+   639→                    size="sm"
+   640→                    onClick={() => onStart(b)}
+   641→                    className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   642→                  >
+   643→                    <Video className="h-4 w-4" /> Start Class
+   644→                  </Button>
+   645→                  <Button
+   646→                    size="sm"
+   647→                    variant="outline"
+   648→                    disabled={isCompleting}
+   649→                    onClick={() => onComplete(b)}
+   650→                  >
+   651→                    {isCompleting ? (
+   652→                      <Loader2 className="h-4 w-4 animate-spin" />
+   653→                    ) : (
+   654→                      <CheckCircle2 className="h-4 w-4" />
+   655→                    )}
+   656→                    Mark Complete
+   657→                  </Button>
+   658→                </div>
+   659→              </motion.div>
+   660→            )
+   661→          })}
+   662→        </div>
+   663→      )}
+   664→    </Card>
+   665→  )
+   666→}
+   667→
+   668→// ---------------------------------------------------------------------------
+   669→// Availability Manager
+   670→// ---------------------------------------------------------------------------
+   671→function AvailabilityManager({
+   672→  availabilities,
+   673→}: {
+   674→  availabilities: AvailabilityRow[]
+   675→}) {
+   676→  const initial = React.useMemo(
+   677→    () => parseAvailabilities(availabilities),
+   678→    [availabilities]
+   679→  )
+   680→  const [slots, setSlots] = React.useState<Record<number, string[][]>>(initial)
+   681→  const [dirty, setDirty] = React.useState(false)
+   682→  const saveMut = useSaveAvailability()
+   683→
+   684→  React.useEffect(() => {
+   685→    const next = parseAvailabilities(availabilities)
+   686→    setSlots(next)
+   687→    setDirty(false)
+   688→  }, [availabilities])
+   689→
+   690→  const handleToggle = (day: number, slot: string[]) => {
+   691→    setSlots((cur) => toggleSlot(cur, day, slot))
+   692→    setDirty(true)
+   693→  }
+   694→
+   695→  const handleSave = () => {
+   696→    // Build payload ensuring all 7 days are present (empty array if none)
+   697→    const payload: Record<number, string[][]> = {}
+   698→    for (let d = 0; d < 7; d++) payload[d] = slots[d] || []
+   699→    saveMut.mutate(payload, {
+   700→      onSuccess: () => {
+   701→        toast.success('Availability saved', {
+   702→          description: 'Your weekly schedule has been updated.',
+   703→        })
+   704→        setDirty(false)
+   705→      },
+   706→      onError: (e: Error) =>
+   707→        toast.error('Failed to save availability', { description: e.message }),
+   708→    })
+   709→  }
+   710→
+   711→  const totalSelected = Object.values(slots).reduce(
+   712→    (sum, arr) => sum + (arr?.length || 0),
+   713→    0
+   714→  )
+   715→
+   716→  return (
+   717→    <Card className="p-6">
+   718→      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+   719→        <div className="flex items-center gap-2">
+   720→          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)]">
+   721→            <Calendar className="h-4.5 w-4.5" />
+   722→          </div>
+   723→          <div>
+   724→            <h2 className="text-lg font-bold text-foreground">Availability</h2>
+   725→            <p className="text-xs text-muted-foreground">
+   726→              {totalSelected} {totalSelected === 1 ? 'slot' : 'slots'} selected ·{' '}
+   727→              {dirty ? 'unsaved changes' : 'all changes saved'}
+   728→            </p>
+   729→          </div>
+   730→        </div>
+   731→        <Button
+   732→          onClick={handleSave}
+   733→          disabled={!dirty || saveMut.isPending}
+   734→          className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   735→        >
+   736→          {saveMut.isPending ? (
+   737→            <Loader2 className="h-4 w-4 animate-spin" />
+   738→          ) : (
+   739→            <CheckCircle2 className="h-4 w-4" />
+   740→          )}
+   741→          Save Availability
+   742→        </Button>
+   743→      </div>
+   744→
+   745→      <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
+   746→        {DAYS_SHORT.map((day, dayIdx) => {
+   747→          const daySlots = slots[dayIdx] || []
+   748→          return (
+   749→            <div
+   750→              key={day}
+   751→              className="rounded-xl border border-border bg-muted/20 p-3"
+   752→            >
+   753→              <div className="mb-2 flex items-center justify-between">
+   754→                <span className="text-xs font-bold uppercase tracking-wide text-foreground">
+   755→                  {day}
+   756→                </span>
+   757→                <span className="text-[10px] font-medium text-muted-foreground">
+   758→                  {daySlots.length}
+   759→                </span>
+   760→              </div>
+   761→              <div className="space-y-1.5">
+   762→                {TIME_SLOTS.map((slot) => {
+   763→                  const selected = slotExists(daySlots, slot)
+   764→                  return (
+   765→                    <button
+   766→                      key={`${slot[0]}-${slot[1]}`}
+   767→                      type="button"
+   768→                      onClick={() => handleToggle(dayIdx, slot)}
+   769→                      aria-pressed={selected}
+   770→                      className={cn(
+   771→                        'w-full rounded-md border px-2 py-1.5 text-left text-[11px] font-semibold transition-all',
+   772→                        selected
+   773→                          ? 'border-transparent bg-[oklch(0.62_0.14_230)] text-white shadow-sm hover:bg-[oklch(0.55_0.14_230)]'
+   774→                          : 'border-border bg-background text-muted-foreground hover:border-[oklch(0.62_0.14_230/0.4)] hover:bg-accent/40 hover:text-foreground'
+   775→                      )}
+   776→                    >
+   777→                      <span className="block">
+   778→                        {slot[0]}–{slot[1]}
+   779→                      </span>
+   780→                    </button>
+   781→                  )
+   782→                })}
+   783→              </div>
+   784→            </div>
+   785→          )
+   786→        })}
+   787→      </div>
+   788→
+   789→      <p className="mt-3 text-xs text-muted-foreground">
+   790→        Times are shown in your local timezone. Toggle chips to set when students can book you.
+   791→      </p>
+   792→    </Card>
+   793→  )
+   794→}
+   795→
+   796→// ---------------------------------------------------------------------------
+   797→// Earnings & Wallet
+   798→// ---------------------------------------------------------------------------
+   799→function EarningsWallet({
+   800→  wallet,
+   801→  withdrawals,
+   802→}: {
+   803→  wallet: WalletData
+   804→  withdrawals: WithdrawalRow[]
+   805→}) {
+   806→  const [showForm, setShowForm] = React.useState(false)
+   807→  const [amount, setAmount] = React.useState('')
+   808→  const [method, setMethod] = React.useState<string>('BANK')
+   809→  const reqMut = useRequestWithdrawal()
+   810→
+   811→  const handleSubmit = (e: React.FormEvent) => {
+   812→    e.preventDefault()
+   813→    const amt = parseFloat(amount)
+   814→    if (isNaN(amt) || amt <= 0) {
+   815→      toast.error('Enter a valid amount')
+   816→      return
+   817→    }
+   818→    if (amt > wallet.balance) {
+   819→      toast.error('Insufficient balance', {
+   820→        description: `Your wallet balance is ${money(wallet.balance)}.`,
+   821→      })
+   822→      return
+   823→    }
+   824→    reqMut.mutate(
+   825→      { amount: amt, method },
+   826→      {
+   827→        onSuccess: () => {
+   828→          toast.success('Withdrawal requested', {
+   829→            description: `${money(amt)} via ${method} is now pending review.`,
+   830→          })
+   831→          setAmount('')
+   832→          setShowForm(false)
+   833→        },
+   834→        onError: (err: Error) =>
+   835→          toast.error('Failed to request withdrawal', { description: err.message }),
+   836→      }
+   837→    )
+   838→  }
+   839→
+   840→  return (
+   841→    <Card className="p-6">
+   842→      <div className="mb-4 flex items-center gap-2">
+   843→        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)]">
+   844→          <Wallet className="h-4.5 w-4.5" />
+   845→        </div>
+   846→        <div>
+   847→          <h2 className="text-lg font-bold text-foreground">Earnings &amp; Wallet</h2>
+   848→          <p className="text-xs text-muted-foreground">Track and withdraw your earnings</p>
+   849→        </div>
+   850→      </div>
+   851→
+   852→      <div className="grid grid-cols-1 gap-3">
+   853→        <div className="rounded-xl bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.62_0.14_230)] p-4 text-white shadow-sm">
+   854→          <div className="flex items-center justify-between">
+   855→            <span className="text-xs font-medium uppercase tracking-wide text-white/70">
+   856→              Available balance
+   857→            </span>
+   858→            <Wallet className="h-4 w-4 text-white/70" />
+   859→          </div>
+   860→          <p className="mt-1 text-3xl font-extrabold tracking-tight">
+   861→            {money(wallet.balance)}
+   862→          </p>
+   863→        </div>
+   864→        <div className="grid grid-cols-2 gap-3">
+   865→          <div className="rounded-lg border border-border bg-muted/30 p-3">
+   866→            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+   867→              Pending payout
+   868→            </p>
+   869→            <p className="mt-1 text-lg font-bold text-foreground">
+   870→              {money(wallet.pendingPayout)}
+   871→            </p>
+   872→          </div>
+   873→          <div className="rounded-lg border border-[oklch(0.78_0.15_85/0.3)] bg-[oklch(0.78_0.15_85/0.06)] p-3">
+   874→            <p className="text-[10px] font-medium uppercase tracking-wide text-[oklch(0.55_0.13_75)]">
+   875→              Total earned
+   876→            </p>
+   877→            <p className="mt-1 text-lg font-bold text-[oklch(0.40_0.10_75)]">
+   878→              {money(wallet.totalEarned)}
+   879→            </p>
+   880→          </div>
+   881→        </div>
+   882→      </div>
+   883→
+   884→      {!showForm ? (
+   885→        <Button
+   886→          onClick={() => setShowForm(true)}
+   887→          className="mt-4 w-full bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   888→          disabled={wallet.balance <= 0}
+   889→        >
+   890→          <HandCoins className="h-4 w-4" /> Request Withdrawal
+   891→        </Button>
+   892→      ) : (
+   893→        <form
+   894→          onSubmit={handleSubmit}
+   895→          className="mt-4 space-y-3 rounded-xl border border-border bg-muted/20 p-3"
+   896→        >
+   897→          <div className="space-y-1.5">
+   898→            <Label htmlFor="wd-amt" className="text-xs">
+   899→              Amount (USD)
+   900→            </Label>
+   901→            <Input
+   902→              id="wd-amt"
+   903→              type="number"
+   904→              min="1"
+   905→              max={wallet.balance}
+   906→              step="0.01"
+   907→              value={amount}
+   908→              onChange={(e) => setAmount(e.target.value)}
+   909→              placeholder={`Up to ${money(wallet.balance)}`}
+   910→              required
+   911→            />
+   912→          </div>
+   913→          <div className="space-y-1.5">
+   914→            <Label className="text-xs">Method</Label>
+   915→            <Select value={method} onValueChange={setMethod}>
+   916→              <SelectTrigger className="w-full">
+   917→                <SelectValue placeholder="Select method" />
+   918→              </SelectTrigger>
+   919→              <SelectContent>
+   920→                {WITHDRAWAL_METHODS.map((m) => (
+   921→                  <SelectItem key={m.value} value={m.value}>
+   922→                    {m.label}
+   923→                  </SelectItem>
+   924→                ))}
+   925→              </SelectContent>
+   926→            </Select>
+   927→          </div>
+   928→          <div className="flex gap-2">
+   929→            <Button
+   930→              type="submit"
+   931→              disabled={reqMut.isPending}
+   932→              className="flex-1 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+   933→            >
+   934→              {reqMut.isPending ? (
+   935→                <Loader2 className="h-4 w-4 animate-spin" />
+   936→              ) : (
+   937→                <Banknote className="h-4 w-4" />
+   938→              )}
+   939→              Withdraw
+   940→            </Button>
+   941→            <Button
+   942→              type="button"
+   943→              variant="outline"
+   944→              onClick={() => {
+   945→                setShowForm(false)
+   946→                setAmount('')
+   947→              }}
+   948→            >
+   949→              Cancel
+   950→            </Button>
+   951→          </div>
+   952→        </form>
+   953→      )}
+   954→
+   955→      {/* Recent withdrawals */}
+   956→      <div className="mt-5">
+   957→        <div className="mb-2 flex items-center justify-between">
+   958→          <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+   959→            Recent withdrawals
+   960→          </h3>
+   961→          <span className="text-[10px] text-muted-foreground">
+   962→            {withdrawals.length} {withdrawals.length === 1 ? 'entry' : 'entries'}
+   963→          </span>
+   964→        </div>
+   965→        {withdrawals.length === 0 ? (
+   966→          <div className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-6 text-center">
+   967→            <p className="text-xs text-muted-foreground">No withdrawals yet.</p>
+   968→          </div>
+   969→        ) : (
+   970→          <div className="max-h-60 space-y-2 overflow-y-auto scrollbar-quran pr-1">
+   971→            {withdrawals.map((w) => (
+   972→              <div
+   973→                key={w.id}
+   974→                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2"
+   975→              >
+   976→                <div className="min-w-0">
+   977→                  <p className="text-sm font-bold text-foreground">{money(w.amount)}</p>
+   978→                  <p className="text-[10px] text-muted-foreground">
+   979→                    {w.method} ·{' '}
+   980→                    {format(parseISO(w.createdAt), 'MMM d, yyyy')}
+   981→                  </p>
+   982→                </div>
+   983→                <Badge
+   984→                  variant="outline"
+   985→                  className={cn('text-[10px] font-semibold', withdrawalStatusVariant(w.status))}
+   986→                >
+   987→                  {w.status}
+   988→                </Badge>
+   989→              </div>
+   990→            ))}
+   991→          </div>
+   992→        )}
+   993→      </div>
+   994→    </Card>
+   995→  )
+   996→}
+   997→
+   998→// ---------------------------------------------------------------------------
+   999→// Verification Center
+  1000→// ---------------------------------------------------------------------------
+  1001→function VerificationCenter({ profile }: { profile: TutorProfile | null }) {
+  1002→  const fileRef = React.useRef<HTMLInputElement>(null)
+  1003→
+  1004→  const specialties = profile?.specialties
+  1005→    ? profile.specialties.split(',').map((s) => s.trim()).filter(Boolean)
+  1006→    : []
+  1007→  const languages = profile?.languages
+  1008→    ? profile.languages.split(',').map((s) => s.trim()).filter(Boolean)
+  1009→    : []
+  1010→
+  1011→  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  1012→    const f = e.target.files?.[0]
+  1013→    if (f) {
+  1014→      toast.success('Certificate uploaded for review', {
+  1015→        description: `${f.name} — our team will verify it shortly.`,
+  1016→      })
+  1017→      e.target.value = ''
+  1018→    }
+  1019→  }
+  1020→
+  1021→  return (
+  1022→    <Card className="p-6">
+  1023→      <div className="mb-4 flex items-center gap-2">
+  1024→        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.15)] text-[oklch(0.40_0.11_258)]">
+  1025→          <ShieldCheck className="h-4.5 w-4.5" />
+  1026→        </div>
+  1027→        <div>
+  1028→          <h2 className="text-lg font-bold text-foreground">Verification Center</h2>
+  1029→          <p className="text-xs text-muted-foreground">
+  1030→            Your credentials &amp; teaching profile
+  1031→          </p>
+  1032→        </div>
+  1033→      </div>
+  1034→
+  1035→      {/* Status pill */}
+  1036→      <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+  1037→        <span className="text-xs font-medium text-muted-foreground">Profile status</span>
+  1038→        {!profile ? (
+  1039→          <Badge variant="outline" className="text-amber-700">
+  1040→            Not set up
+  1041→          </Badge>
+  1042→        ) : profile.status === 'APPROVED' ? (
+  1043→          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
+  1044→            <CheckCircle2 className="h-3 w-3" /> Approved
+  1045→          </span>
+  1046→        ) : profile.status === 'PENDING' ? (
+  1047→          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
+  1048→            <Clock className="h-3 w-3" /> Pending
+  1049→          </span>
+  1050→        ) : (
+  1051→          <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700 ring-1 ring-red-200">
+  1052→            <XCircle className="h-3 w-3" /> Rejected
+  1053→          </span>
+  1054→        )}
+  1055→      </div>
+  1056→
+  1057→      {/* Credential badges */}
+  1058→      <div className="mb-4">
+  1059→        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+  1060→          Credentials
+  1061→        </p>
+  1062→        <div className="flex flex-wrap gap-2">
+  1063→          {profile?.verified ? (
+  1064→            <VerifiedBadge />
+  1065→          ) : (
+  1066→            <Badge
+  1067→              variant="outline"
+  1068→              className="gap-1 border-border bg-muted/40 text-muted-foreground"
+  1069→            >
+  1070→              <ShieldCheck className="h-3 w-3" /> Not verified
+  1071→            </Badge>
+  1072→          )}
+  1073→          {profile?.nativeArabic ? (
+  1074→            <NativeArabicBadge />
+  1075→          ) : (
+  1076→            <Badge
+  1077→              variant="outline"
+  1078→              className="gap-1 border-border bg-muted/40 text-muted-foreground"
+  1079→            >
+  1080→              <Languages className="h-3 w-3" /> Non-native
+  1081→            </Badge>
+  1082→          )}
+  1083→          {profile?.hafiz ? (
+  1084→            <HafizBadge />
+  1085→          ) : (
+  1086→            <Badge
+  1087→              variant="outline"
+  1088→              className="gap-1 border-border bg-muted/40 text-muted-foreground"
+  1089→            >
+  1090→              <BookOpenCheck className="h-3 w-3" /> Not Hafiz
+  1091→            </Badge>
+  1092→          )}
+  1093→          {profile?.ijazaCertified ? (
+  1094→            <IjazaBadge />
+  1095→          ) : (
+  1096→            <Badge
+  1097→              variant="outline"
+  1098→              className="gap-1 border-border bg-muted/40 text-muted-foreground"
+  1099→            >
+  1100→              <Award className="h-3 w-3" /> No Ijaza
+  1101→            </Badge>
+  1102→          )}
+  1103→        </div>
+  1104→      </div>
+  1105→
+  1106→      {/* Specialties & languages */}
+  1107→      {specialties.length > 0 && (
+  1108→        <div className="mb-4">
+  1109→          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+  1110→            Specialties
+  1111→          </p>
+  1112→          <div className="flex flex-wrap gap-1.5">
+  1113→            {specialties.map((s) => (
+  1114→              <Badge
+  1115→                key={s}
+  1116→                variant="outline"
+  1117→                className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]"
+  1118→              >
+  1119→                {s}
+  1120→              </Badge>
+  1121→            ))}
+  1122→          </div>
+  1123→        </div>
+  1124→      )}
+  1125→      {languages.length > 0 && (
+  1126→        <div className="mb-4">
+  1127→          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+  1128→            Languages
+  1129→          </p>
+  1130→          <div className="flex flex-wrap gap-1.5">
+  1131→            {languages.map((l) => (
+  1132→              <Badge
+  1133→                key={l}
+  1134→                variant="outline"
+  1135→                className="border-border bg-muted/40 text-foreground"
+  1136→              >
+  1137→                {l}
+  1138→              </Badge>
+  1139→            ))}
+  1140→          </div>
+  1141→        </div>
+  1142→      )}
+  1143→
+  1144→      {/* Upload Ijaza */}
+  1145→      <input
+  1146→        ref={fileRef}
+  1147→        type="file"
+  1148→        accept="application/pdf,image/*"
+  1149→        onChange={handleFile}
+  1150→        className="hidden"
+  1151→        aria-hidden
+  1152→      />
+  1153→      <Button
+  1154→        type="button"
+  1155→        variant="outline"
+  1156→        onClick={() => fileRef.current?.click()}
+  1157→        className="w-full border-[oklch(0.62_0.14_230/0.4)] text-[oklch(0.40_0.11_258)] hover:bg-[oklch(0.62_0.14_230/0.06)]"
+  1158→      >
+  1159→        <Upload className="h-4 w-4" />
+  1160→        {profile?.ijazaCertified ? 'Replace Ijaza Certificate' : 'Upload Ijaza Certificate'}
+  1161→      </Button>
+  1162→      <p className="mt-2 text-center text-[10px] text-muted-foreground">
+  1163→        PDF or image · reviewed by our team in 1–2 days
+  1164→      </p>
+  1165→    </Card>
+  1166→  )
+  1167→}
+  1168→
+  1169→// ---------------------------------------------------------------------------
+  1170→// Main Dashboard Content
+  1171→// ---------------------------------------------------------------------------
+  1172→function DashboardContent({ data, name }: { data: DashboardData; name: string }) {
+  1173→  const setView = useAppStore((s) => s.setView)
+  1174→  const setActiveBookingId = useAppStore((s) => s.setActiveBookingId)
+  1175→  const updateMut = useUpdateBooking()
+  1176→  const [completingId, setCompletingId] = React.useState<string | null>(null)
+  1177→
+  1178→  const approved = data.profile?.status === 'APPROVED'
+  1179→
+  1180→  const handleStart = (b: BookingRow) => {
+  1181→    setActiveBookingId(b.id)
+  1182→    setView('classroom')
+  1183→  }
+  1184→
+  1185→  const handleComplete = (b: BookingRow) => {
+  1186→    setCompletingId(b.id)
+  1187→    updateMut.mutate(
+  1188→      { id: b.id, status: 'COMPLETED' },
+  1189→      {
+  1190→        onSuccess: () => {
+  1191→          toast.success('Class marked complete', {
+  1192→            description: `${b.student.name}'s lesson has been recorded & wallet credited.`,
+  1193→          })
+  1194→        },
+  1195→        onError: (e: Error) =>
+  1196→          toast.error('Could not mark class complete', { description: e.message }),
+  1197→        onSettled: () => setCompletingId(null),
+  1198→      }
+  1199→    )
+  1200→  }
+  1201→
+  1202→  return (
+  1203→    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+  1204→      <div className="space-y-6">
+  1205→        {/* Status banner */}
+  1206→        {data.profile && data.profile.status !== 'APPROVED' && (
+  1207→          <StatusBanner profile={data.profile} />
+  1208→        )}
+  1209→
+  1210→        {/* Welcome header */}
+  1211→        <WelcomeHeader name={name} approved={approved} />
+  1212→
+  1213→        {/* Stats */}
+  1214→        <StatsRow stats={data.stats} />
+  1215→
+  1216→        {/* Two-column layout */}
+  1217→        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  1218→          <div className="space-y-6 lg:col-span-2">
+  1219→            <UpcomingClasses
+  1220→              bookings={data.bookings}
+  1221→              onStart={handleStart}
+  1222→              onComplete={handleComplete}
+  1223→              completing={completingId}
+  1224→            />
+  1225→            <AvailabilityManager availabilities={data.availabilities} />
+  1226→          </div>
+  1227→          <div className="space-y-6">
+  1228→            <EarningsWallet wallet={data.wallet} withdrawals={data.withdrawals} />
+  1229→            <VerificationCenter profile={data.profile} />
+  1230→          </div>
+  1231→        </div>
+  1232→      </div>
+  1233→    </div>
+  1234→  )
+  1235→}
+  1236→
+  1237→// ---------------------------------------------------------------------------
+  1238→// Default export — top-level Tutor Dashboard view
+  1239→// ---------------------------------------------------------------------------
+  1240→export function TutorDashboard() {
+  1241→  const user = useAppStore((s) => s.user)
+  1242→  const openAuth = useAppStore((s) => s.openAuth)
+  1243→  const { data, isLoading, isError } = useTutorDashboard() as {
+  1244→    data?: DashboardData
+  1245→    isLoading: boolean
+  1246→    isError: boolean
+  1247→  }
+  1248→
+  1249→  // Guard 1: not logged in
+  1250→  if (!user) {
+  1251→    return <AuthPrompt onLogin={() => openAuth('login')} />
+  1252→  }
+  1253→
+  1254→  // Guard 2: not a tutor
+  1255→  if (user.role !== 'TUTOR') {
+  1256→    return <BecomeTutorCta onRegister={() => openAuth('register')} />
+  1257→  }
+  1258→
+  1259→  if (isLoading) {
+  1260→    return <DashboardSkeleton />
+  1261→  }
+  1262→
+  1263→  if (isError || !data) {
+  1264→    return (
+  1265→      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+  1266→        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
+  1267→          <AlertCircle className="h-7 w-7" />
+  1268→        </div>
+  1269→        <h2 className="mt-4 text-xl font-bold text-foreground">
+  1270→          Couldn&apos;t load your dashboard
+  1271→        </h2>
+  1272→        <p className="mt-2 text-sm text-muted-foreground">
+  1273→          Please try again in a moment. If the issue persists, contact support.
+  1274→        </p>
+  1275→        <Button
+  1276→          onClick={() => window.location.reload()}
+  1277→          className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+  1278→        >
+  1279→          Reload
+  1280→        </Button>
+  1281→      </div>
+  1282→    )
+  1283→  }
+  1284→
+  1285→  return <DashboardContent data={data} name={user.name} />
+  1286→}
+  1287→
+  1288→export default TutorDashboard
+  1289→

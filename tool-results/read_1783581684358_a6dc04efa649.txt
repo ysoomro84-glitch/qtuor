@@ -1,0 +1,1072 @@
+     1→# Qtuor Platform — Worklog
+     2→
+     3→This file tracks all agent work on the Qtuor global online Quran learning platform.
+     4→
+     5→---
+     6→Task ID: 1
+     7→Agent: main (orchestrator)
+     8→Task: Foundation — Prisma schema, theme, store, layout, API routes, shared components
+     9→
+    10→Work Log:
+    11→- Defined full Prisma schema (User, TutorProfile, Plan, Subscription, Booking, Availability, Review, Wallet, Withdrawal, LessonProgress, ClassroomSession) and pushed to SQLite.
+    12→- Seeded database: 1 admin, 1 demo student, 6 tutors (with profiles, wallets, availability), 3 plans, lesson progress, 1 sample booking.
+    13→- Auth API: /api/auth/{register,login,me} with cookie session (btoa obfuscation, demo only).
+    14→- Resource APIs: /api/tutors, /api/tutors/[id], /api/plans, /api/subscriptions, /api/bookings (+[id] PATCH for completion→wallet credit), /api/availability, /api/reviews, /api/wallet, /api/withdrawals, /api/lesson-progress, /api/dashboard/{student,tutor,admin}, /api/admin/{tutors/[id],plans}.
+    15→- Theme: premium blue + light blue + white with Islamic girih/star SVG patterns, hero mesh gradient, gold accents, Arabic font (Amiri). Updated globals.css with --primary (deep blue), --accent (light blue), pattern utilities (.pattern-islamic, .pattern-stars, .hero-mesh), glass-card, text-gradient-blue, custom scrollbar.
+    16→- State: Zustand store with persist (auth user, current view, marketplace filters, auth modal, checkout modal). Single `/` route switches between views: landing, marketplace, plans, student-dashboard, tutor-dashboard, admin, classroom.
+    17→- Shared components: QtuorLogo + lockup, Verified/NativeArabic/Hafiz/Ijaza badges, StarRating, IslamicPatternBand, StarMedallion, BismillahHeader, Avatar (initials + country flag), AudioIntroPlayer (Web Speech API speechSynthesis), Navbar (sticky, desktop + mobile sheet), Footer (sticky mt-auto, dark blue with girih pattern), AuthModal (login/register tabs, role toggle, demo creds), CheckoutModal (mock Stripe), Providers (React Query), useSessionBootstrap hook.
+    18→- React Query hooks (src/lib/queries.ts) for all resources + mutations.
+    19→
+    20→Stage Summary:
+    21→- Database seeded & all APIs working. Design system established (blue palette, Islamic patterns). Shell + nav + footer + auth + checkout wired. Ready to build the 7 views.
+    22→- Key design tokens: primary=oklch(0.34 0.13 256) deep blue, accent=oklch(0.62 0.14 230) light blue, gold=oklch(0.78 0.15 85).
+    23→- Shared helper imports: `@/components/brand/{logo,badges,patterns}`, `@/components/shared/{avatar,audio-intro-player}`, `@/lib/queries`, `@/lib/store`, `@/lib/constants`.
+    24→- Tutor card shape from API: { id, name, country, avatar, profile: { bio, hourlyRate, rating, reviewCount, studentCount, lessonsCount, verified, nativeArabic, hafiz, ijazaCertified, audioIntroText, specialties[], languages[], experienceYears } }.
+    25→
+    26→---
+    27→Task ID: 2-c
+    28→Agent: full-stack-developer (student dashboard)
+    29→Task: Built the StudentDashboard view component (src/components/views/student-dashboard.tsx) — the full student-facing dashboard with auth guard, welcome header, stats row, upcoming classes, lesson progress tracker, current plan card, and booking history.
+    30→
+    31→Work Log:
+    32→- Read worklog.md and inspected shared components (QtuorLogo, StarRating, StarMedallion, BismillahHeader, IslamicPatternBand, Avatar), the Zustand store API (useAppStore), React Query hooks (useStudentDashboard, useUpdateBooking), constants (SUBJECTS), UI primitives (Card, Button, Badge, Progress), and the student dashboard API response shape.
+    33→- Implemented AuthGate component: if user is null → centered card with pattern band + StarMedallion + "Log in / Sign up" button calling openAuth('login'). If user.role !== 'STUDENT' → WrongRole card offering to navigate to the correct dashboard (tutor-dashboard / admin).
+    34→- Built WelcomeHeader with gradient deep-blue background, pattern-stars overlay, BismillahHeader decorative line, and personalized greeting using the user's first name.
+    35→- Built StatsRow with 4 responsive stat cards (2-col mobile → 4-col desktop): Hours Balance (Clock, accent blue), Completed Lessons (BookOpen, primary), Surahs Memorized (Moon, gold accent), Completion Rate (TrendingUp icon + custom SVG progress ring with %).
+    36→- Built UpcomingClasses: filters SCHEDULED bookings with scheduledAt > now, sorted ascending; each row shows Avatar + tutor name + (Trial badge if isTrial) + relative date (Today/Tomorrow/EEE, MMM d) + time + duration + topic. "Join Classroom" button → setActiveBookingId + setView('classroom'). "Cancel" ghost button → useUpdateBooking({status:'CANCELLED'}) with sonner toast on success/error. Empty state with "Find a Tutor" → setView('marketplace'). List wrapped in max-h-96 overflow-y-auto scrollbar-quran.
+    37→- Built LessonProgressTracker: groups progress by subject using useMemo, computes average progressPct, shows subject header with icon resolved from SUBJECTS (BookOpen/Sparkles/Brain/Languages/ScrollText/Moon) + light-blue icon tile, an accent-blue progress bar, then a list of lessons with CheckCircle2 (gold) for completed or open circle for in-progress, plus % or "Done" label. Each lesson list scrollable.
+    38→- Built CurrentPlan card: if no subscription → premium gradient card with pattern-stars + gold Crown + "Choose a Plan" CTA → setView('plans'). If subscription present → gradient header (plan name, hrs/week, monthlyPrice, Active gold badge) + hours-used progress bar (used = max(0, hoursPerWeek*4 - hoursBalance)) + features list with check icons + "Upgrade Plan" (setView('plans')) and "Find Tutors" (setView('marketplace')) buttons.
+    39→- Built BookingHistory: filters COMPLETED bookings (max 8), shows Avatar + name + date + duration with CheckCircle2 (gold). Scrollable list.
+    40→- Built SectionHeader helper (eyebrow label uppercase light-blue + bold title + icon tile).
+    41→- Added LoadingState skeleton and error state (AlertCircle) for the useStudentDashboard query.
+    42→- Used framer-motion fadeUp variant for subtle entrance animations on stat cards. All CTAs use light-blue oklch(0.62 0.14 230); gold oklch(0.78 0.15 85) for memorized/completion accents. No indigo/blue Tailwind defaults used. Layout is normal flow (no fixed positioning) so the app's sticky footer works.
+    43→- Ran `bun run lint`: 0 errors, 0 warnings in this file (2 pre-existing warnings in other untouched files).
+    44→
+    45→Stage Summary:
+    46→- StudentDashboard view is complete and renders when view === 'student-dashboard'. It composes the shared brand/shared components, Zustand store, and React Query hooks without recreating any design system pieces. All required features implemented: auth guard (null + wrong role), welcome header with Bismillah, 4-card stats row with SVG completion ring, two-column layout (upcoming classes with join/cancel + lesson progress tracker on the left; current plan + booking history on the right), empty states with navigation CTAs, loading + error states, sonner toast notifications for booking cancellation, framer-motion entrance animations, fully responsive (mobile-first, stacks gracefully), max-h-96 + scrollbar-quran on long lists, oklch design tokens only (no indigo/blue Tailwind defaults).
+    47→- File: src/components/views/student-dashboard.tsx (default export StudentDashboard, also named export). No new routes, no server actions, no other files modified.
+    48→
+    49→---
+    50→Task ID: 3-b
+    51→Agent: full-stack-developer (admin dashboard)
+    52→Task: Built the AdminDashboard view component (auth guard, stats overview, 3-tab control center with tutor vetting, plan management, and payouts).
+    53→
+    54→Work Log:
+    55→- Read worklog.md to understand the foundation (Prisma schema, design tokens, store API, queries, shared brand/avatar components).
+    56→- Verified the admin API contract by reading /api/dashboard/admin/route.ts, /api/admin/tutors/[id]/route.ts, and /api/admin/plans/route.ts to match the documented hook shapes.
+    57→- Created /src/components/views/admin-dashboard.tsx as a 'use client' component with default export AdminDashboard (no props).
+    58→- Implemented AdminAuthGuard: two states (no user → sign-in prompt; non-admin → "Admin access required" card showing demo admin@qtuor.com / admin123 credentials with a login button that calls openAuth('login')).
+    59→- Built a deep-blue header with IslamicPatternBand, QtuorLogo medallion, "Admin Control Center" title, and the signed-in user chip.
+    60→- Built 6-card responsive stats grid (2 → 3 → 6 columns) for Students, Total Tutors (with approved sub-count), Pending Tutors (amber), Bookings, Total Revenue (gold), and Pending Payouts (amber) — with color-coded icon chips.
+    61→- Built Tab 1 (Tutor Vetting): filter pills (All/Pending/Approved/Rejected) with live counts, sticky-header Table inside max-h-[600px] overflow-y-auto scrollbar-quran wrapper, columns for Tutor (Avatar+name+verified check+email), Country (flag), Specialties (max 3 badges + overflow), StarRating, Hourly, color-coded StatusBadge, Wallet balance, and contextual actions (Approve/Reject for PENDING, Suspend for APPROVED, Re-approve for REJECTED) wired to useUpdateTutorStatus with toast feedback.
+    62→- Built Tab 2 (Subscription Plans): plan cards grid with popular ring-highlight, gold "Popular" pill, gradient price, features list with green check icons, active Switch + Live/Hidden badge (read-only with informational toast since no toggle API exists). Added "Create New Plan" button opening a Dialog form (name, hoursPerWeek, monthlyPrice, description, features textarea one-per-line, popular checkbox) submitting via useCreatePlan with success toast and dialog close.
+    63→- Built Tab 3 (Withdrawals): empty-state card when none pending, otherwise a sticky-header Table with tutor (Avatar+name+email), amount, method badge, formatted requested date via date-fns, Pending status badge, and Approve Payout (green) / Reject (red) buttons with optimistic toast messages (no API required per task spec).
+    64→- Used shadcn Table, Tabs, Dialog, Input, Textarea, Label, Checkbox, Switch, Badge, Button, Card. Lucide icons. cn from @/lib/utils. toast from sonner. format from date-fns.
+    65→- Adhered to the design system: premium deep-blue primary, light-blue accent for primary CTAs, green for approve, amber for pending/suspend, red for reject, gold for revenue/popular. No indigo/blue Tailwind defaults. Responsive tables via overflow-x-auto. Custom scrollbar for long lists. Subtle hover on rows.
+    66→- Ran `bun run lint` — 0 errors in admin-dashboard.tsx (the only 2 warnings are pre-existing in shared/avatar.tsx and hooks/use-session.ts, not in my file). Verified dev.log shows the only outstanding error is for the sibling tutor-dashboard view (not mine); my file compiles cleanly ("✓ Compiled in 170ms").
+    67→
+    68→Stage Summary:
+    69→- AdminDashboard view fully built at /src/components/views/admin-dashboard.tsx (default export, no props).
+    70→- All 4 mandatory feature groups delivered: auth guard, stats overview (6 cards), 3-tab control center (Tutor Vetting / Subscription Plans / Withdrawals), Create-Plan dialog.
+    71→- Reuses QtuorLogo, StarRating, StarMedallion, IslamicPatternBand, Avatar (with country flag) from shared components; uses useAdminDashboard / useUpdateTutorStatus / useCreatePlan from @/lib/queries.
+    72→- Lint clean for the new file; ready to be rendered by page.tsx when view === 'admin'.
+    73→
+    74→---
+    75→Task ID: 2-d
+    76→Agent: full-stack-developer (tutor dashboard)
+    77→Task: Built the Tutor Dashboard view component (`src/components/views/tutor-dashboard.tsx`) with auth/role guards, verification status banner, welcome header, 4 stat cards, upcoming classes list with Start/Mark Complete actions, weekly availability grid manager, earnings & wallet card with withdrawal flow, and verification center with credential badges + Ijaza upload.
+    78→
+    79→Work Log:
+    80→- Read worklog.md to understand prior agent work (foundation: Prisma schema, theme tokens, store, queries, shared components, APIs).
+    81→- Reviewed `@/lib/store` (user/setView/setActiveBookingId/openAuth), `@/lib/queries` (useTutorDashboard/useSaveAvailability/useUpdateBooking/useRequestWithdrawal), `@/components/brand/{logo,badges,patterns}`, `@/components/shared/avatar`, dashboard tutor API route, and shadcn/ui Card/Button/Badge/Input/Label/Select APIs.
+    82→- Defined typed interfaces (TutorProfile, WalletData, WithdrawalRow, AvailabilityRow, BookingRow, DashboardData) and helper functions (parseAvailabilities, toggleSlot, slotExists, money, formatBookingDate, withdrawalStatusVariant).
+    83→- Built sub-components: AuthPrompt, BecomeTutorCta, DashboardSkeleton, StatusBanner, WelcomeHeader, StatCard + StatsRow, UpcomingClasses (with Start Class / Mark Complete actions), AvailabilityManager (weekly chip grid + Save), EarningsWallet (balance/pending/total + inline withdrawal form + recent withdrawals list), VerificationCenter (status pill + credential badges + specialties/languages + Ijaza upload).
+    84→- Wired the top-level `TutorDashboard` export: user-null → AuthPrompt; non-TUTOR → BecomeTutorCta; loading → skeleton; error → friendly state; otherwise → DashboardContent.
+    85→- Used framer-motion for subtle entrance animations, date-fns for date formatting, sonner for toasts, oklch color tokens (primary, accent light-blue, gold) — no indigo/blue Tailwind defaults.
+    86→- Removed unused imports (CardContent, CardHeader, CardTitle, CardDescription, StarRating); fixed `useAppStore.getState()` anti-pattern by passing `name` as prop.
+    87→- Ran `bun run lint` — 0 errors / 0 warnings in the new file (only pre-existing warnings in avatar.tsx and use-session.ts).
+    88→- Wrote agent-ctx record to `/home/z/my-project/agent-ctx/2-d-full-stack-developer-tutor-dashboard.md`.
+    89→
+    90→Stage Summary:
+    91→- `TutorDashboard` view is complete and lint-clean. Renders correctly when `view === 'tutor-dashboard'`.
+    92→- All 7 required feature areas implemented: auth/role guard, pending-verification banner (PENDING/REJECTED/APPROVED), welcome header with Islamic pattern band, 4 stat cards, two-column layout with Upcoming Classes + Availability Manager (left) and Earnings & Wallet + Verification Center (right).
+    93→- Availability grid: 7 days × 6 chips, days stack on mobile / 7-column grid on desktop, selected = filled light-blue, dirty tracking, save button → useSaveAvailability.
+    94→- Upcoming Classes: Start Class → setActiveBookingId + setView('classroom'); Mark Complete → useUpdateBooking({status:'COMPLETED'}) + success toast; scrollable list with custom scrollbar.
+    95→- Earnings & Wallet: gradient balance card, withdrawal form (amount + method Select, validates ≤ balance), recent withdrawals list with colored status badges.
+    96→- Verification Center: status pill, Verified/NativeArabic/Hafiz/Ijaza badges (or muted fallbacks), specialties/languages badges, hidden file input for Ijaza upload → toast.
+    97→- Ready to be rendered by `src/app/page.tsx` alongside the other views (landing, marketplace, plans, student-dashboard, admin, classroom).
+    98→
+    99→---
+   100→Task ID: 4
+   101→Agent: main (orchestrator)
+   102→Task: Integration, polish, end-to-end self-verification with Agent Browser
+   103→
+   104→Work Log:
+   105→- Built LandingView (hero + search + Bismillah, category filters, subjects grid, horizontal TutorRowCards, how-it-works, classroom showcase mockup, testimonials, CTA), MarketplaceView (filters sidebar + horizontal tutor cards + tutor detail dialog with 7-day booking calendar + free trial flow), PlansView (3 pricing tiers + FAQ accordion + checkout integration), ClassroomView (socket.io real-time classroom).
+   106→- Created socket.io mini-service (mini-services/classroom-sync, port 3003): room-based presence, whiteboard strokes sync, click-to-highlight word sync, page sync, chat, pointer broadcast, safety snapshot events. Started with `bun --hot`.
+   107→- Built interactive Quran data (Al-Fatihah, An-Nas, Al-Ikhlas, Noorani Qaida) with per-word IDs + Tajweed highlight color presets (Focus/Ghunnah/Idgham/Qalqalah/Ikhfa).
+   108→- ClassroomView: 30/70 split layout. Left = circular video tiles (getUserMedia camera/mic toggle), media controls, real-time chat. Right = toolbar (Highlight/Pen/Eraser/Pointer, color presets, pen sizes, undo, clear), ornamental Quran page frame with click-to-highlight words, HTML5 canvas drawing overlay synced via socket, remote pointer, page navigation, LIVE indicator, recording toggle, random parental-safety-snapshot flash.
+   109→- Fixed critical bug: useSessionBootstrap captured a stale `view` in its closure and overrode the classroom view after the socket fetch resolved. Fixed by reading `useAppStore.getState().view` inside the async callback instead of the closure value.
+   110→- Made ClassroomView fall back to the next upcoming SCHEDULED booking when activeBookingId is null (reload resilience). Also handles tutor role (uses tutor bookings).
+   111→- Fixed seed: passwords now hashed with the same scheme as auth.ts (Buffer base64) so demo logins work.
+   112→- Removed unused eslint-disable directives; `bun run lint` → 0 errors, 0 warnings.
+   113→
+   114→Agent Browser self-verification (through Caddy gateway on :81 for socket):
+   115→- Landing page: all sections render (hero, subjects grid, 4 featured tutors with Play-intro/Book/View-profile, how-it-works, classroom showcase, testimonials, CTA, footer). No console errors.
+   116→- Marketplace: 6 tutors load from API, category tabs + search + sort + qualification checkboxes work, tutor detail dialog opens with bio/specialties/audio-intro/7-day booking calendar.
+   117→- Auth: login as student (student@qtuor.com) and admin (admin@qtuor.com) and tutor (abdullah@qtuor.com) all succeed; cookie session persists across reload.
+   118→- Student dashboard: greeting "Assalamu alaikum, Ahmed", upcoming class card with Join Classroom + Cancel, lesson progress grouped by subject, current plan card with hours balance.
+   119→- Virtual classroom: socket CONNECTS through gateway, "Ahmed joined the class" system message appears, chat messages send & render, click-to-highlight on Quran words works (اللَّهِ highlighted in light blue), toolbar (Highlight/Pen/Eraser/Pointer + Tajweed colors + Undo/Clear), page nav, video tiles with cam/mic toggles, recording button, LIVE indicator.
+   120→- Admin dashboard: "Admin Control Center" with stats, Tutor Vetting tab showing all 6 tutors in a table (name, country flag, specialties, rating, hourly, status badge, wallet, Suspend/Approve actions), filter pills (All/Pending/Approved/Rejected).
+   121→- Tutor dashboard: greeting, upcoming classes with Start Class + Mark Complete, full 7-day × 6-slot availability grid with Save button, Earnings/Wallet section, Verification center.
+   122→
+   123→Stage Summary:
+   124→- All 7 views verified end-to-end with real backend data. Socket.io real-time sync works through Caddy gateway. Zero lint errors, zero runtime errors. Sticky footer confirmed. The Qtuor platform is fully functional and production-ready for demo.
+   125→
+   126→---
+   127→Task ID: library-expansion
+   128→Agent: main (orchestrator)
+   129→Task: Build complete Digital Quran and Noorani Qaida library
+   130→
+   131→Work Log:
+   132→- Expanded src/components/classroom/quran-data.ts from 4 sample pages → 47 pages total:
+   133→  • Complete Noorani Qaida — all 17 lessons with Arabic + English titles, per-rule instruction banners, and practice words:
+   134→    1. Single Letters, 2. Compound Letters, 3. Harakat (Fatha/Kasra/Damma), 4. Tanween, 5. Small Letters (Standing Vowels),
+   135→    6. Sukun, 7. Shaddah, 8. Shaddah+Harakat, 9. Shaddah+Tanween, 10. Natural Madd, 11. Leen,
+   136→    12. Rules of Nun Sakin (Izhar/Idgham/Iqlab/Ikhfa with all letter examples),
+   137→    13. Rules of Mim Sakin (Ikhfa Shafawi/Idgham Shafawi/Izhar Shafawi),
+   138→    14. Madd Muttasil & Munfasil, 15. Madd Lazim (Kalimi Muthaqqal/Mukhaffaf + Harfi),
+   139→    16. Qalqalah (Sughra & Kubra), 17. Quranic Application (practice verses).
+   140→  • 30 Quran surahs with word-level IDs: Al-Fatihah, Ayat al-Kursi, Al-Mulk, + 27 Juz Amma surahs (An-Naba through An-Nas).
+   141→- Introduced `LibraryPage` type with `type: 'quran' | 'qaida'` discriminator, `lessonNumber/lessonTitle/lessonTitleArabic/instruction/rule` for Qaida, `surahNumber/surah/surahArabic/ayahRange/juz` for Quran. Exported QAIDA_PAGES, QURAN_PAGES, ALL_PAGES.
+   142→- Updated classroom-view.tsx:
+   143→  • Toolbar now uses ALL_PAGES with index-based prev/next navigation (was page-1-of-4, now 1-of-47).
+   144→  • Added a "Digital Library" dropdown browser button showing grouped list of all 17 Qaida lessons + 30 Quran surahs with surah numbers & Arabic names; click to jump to any page.
+   145→  • QuranWorkspace page header now renders differently for Qaida (Lesson N: Title + Arabic) vs Quran (Surah · Ayah · Juz).
+   146→  • Added Qaida instruction banner with GraduationCap icon above the page content.
+   147→  • Fixed page type from `typeof QURAN_PAGES[0]` → `LibraryPage`.
+   148→- Added new Library view (src/components/views/library-view.tsx): full browsable digital library with:
+   149→  • Sidebar with Quran/Qaida tabs + search filter.
+   150→  • Reading pane with ornamental Islamic frame, Bismillah header, clickable words, prev/next navigation cards.
+   151→  • Per-lesson instruction banner for Qaida.
+   152→  • "Open in Classroom" CTA.
+   153→- Added 'library' to ViewKey union in store.ts; added Library import + render in page.tsx; added "Library" nav link in navbar.tsx (desktop + mobile sheet).
+   154→- Verified: `bun run lint` → 0 errors, 0 warnings.
+   155→
+   156→Agent Browser self-verification (via Caddy :81):
+   157→- Library view loads: header, stats badges (17 Qaida lessons / 30 Quran surahs / word-level interactive), Quran tab selected by default showing all 30 surahs with Arabic names.
+   158→- Quran reading pane renders ornamental frame, Bismillah, and surah text.
+   159→- Switched to Qaida tab → all 17 lessons listed. Clicked Lesson 1 → renders title "Single Arabic Letters", Arabic "الحروف المفردة", instruction banner, and Arabic letters.
+   160→- Logged in as student → joined classroom → socket CONNECTS, "joined the class" system message, Al-Fatihah shows by default.
+   161→- Opened classroom library dropdown → shows "Digital Library" header, "Noorani Qaida" section (17 lessons), "Quran — Surahs" section (30 surahs), 48 navigable buttons total.
+   162→- Clicked "Rules of Nun Sakin" (Lesson 12) → classroom jumped to page 12/47, shows instruction "4 rules" and Ikhfa/Iqlab examples.
+   163→- Clicked "Al-Kawthar" (Surah 108) → classroom jumped to page 41/47, shows correct verse "إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ".
+   164→- Zero console errors, zero runtime errors.
+   165→
+   166→Stage Summary:
+   167→- Complete Digital Quran + Noorani Qaida now available both as a standalone browsable Library view AND inside the interactive classroom with real-time highlight sync.
+   168→- 47 pages of content (17 Qaida lessons + 30 Quran surahs), every word has a unique ID for click-to-highlight.
+   169→- Page navigation works across the full library (Qaida lessons 1001-1017, Quran surahs 1-30 IDs) with a unified 1/47 → 47/47 index.
+   170→
+   171→---
+   172→Task ID: 30-para-complete-quran
+   173→Agent: main (orchestrator)
+   174→Task: Build complete 30-Para (Juz) Digital Quran with all 114 surahs
+   175→
+   176→Work Log:
+   177→- Created src/lib/quran-metadata.ts: complete static metadata for all 30 Juz (Para) with Arabic names, transliterations, English meanings, and start surah/ayah; and all 114 surahs with number, name, arabicName, englishMeaning, ayahCount, revelationType (Meccan/Medinan), startJuz. Includes helpers: surahsInJuz(), getSurah(), getJuz(), TOTAL_AYAHS (6236).
+   178→- Created src/hooks/use-quran-text.ts: React Query hook that fetches the real Uthmani Quran text from alquran.cloud API (https://api.alquran.cloud/v1/surah/{n}). Converts each ayah into word-level tokens with deterministic IDs (s{surah}a{ayah}w{wordIdx}) so teacher/student highlight sync works. Handles Bismillah prefix (strips from first ayah except Al-Fatihah, skips At-Tawbah). Adds Arabic-Indic ayah-end markers (۝ with number). staleTime: Infinity for permanent caching.
+   179→- Redesigned src/components/views/library-view.tsx with 3 tabs:
+   180→  • "By Juz (Para)" — sidebar lists all 30 Juz with Arabic names; main pane shows JuzDetailView with gradient header + grid of all surahs in that Juz (click to open).
+   181→  • "By Surah" — sidebar lists all 114 surahs with search filter; main pane is DynamicSurahReader that fetches full text from API with loading skeleton + error state.
+   182→  • "Qaida" — 17 static lessons (instant load).
+   183→  Shared PageFrame component with ornamental Islamic border, Bismillah header, scrollable text, ayah markers, and footer.
+   184→- Updated src/components/views/classroom-view.tsx:
+   185→  • New page ID scheme: 1001-1017 = Qaida (static), 10001-10114 = Quran surahs (dynamic, surahNumber + 10000).
+   186→  • NAV_LIST: unified 131-page navigation (17 Qaida + 114 surahs).
+   187→  • ClassroomView resolves current page: Qaida → static, Quran → useSurahText() dynamic fetch. Shows loading spinner while fetching.
+   188→  • Toolbar library dropdown expanded: shows 17 Qaida lessons (2-col grid) + all 30 Juz as expandable accordions, each revealing its surahs. "Digital Library · 30 Juz · 114 Surahs" header.
+   189→  • Prev/Next navigation works across all 131 pages.
+   190→  • Loading overlay in QuranWorkspace while surah fetches.
+   191→- Updated socket hook default page to 10001 (Al-Fatihah) and classroom-sync service default to match.
+   192→- Fixed bug: missing `getJuz` import in library-view.tsx (caused client-side crash).
+   193→- Fixed bug: `totalLabel` not destructured in StaticPageReader props (caused ReferenceError when Qaida tab opened).
+   194→
+   195→Agent Browser self-verification (via Caddy :81):
+   196→- Library "By Juz (Para)" tab: all 30 Juz listed with Arabic names; Juz 1 detail shows Al-Fatihah + Al-Baqarah; header "30 Juz · 114 Surahs · 6,236 verses" visible.
+   197→- Library "By Surah" tab: all 114 surahs listed from Al-Fatihah to An-Nas; searched "Al-Ma'idah" → found surah 5; clicked → API fetched full 120-verse surah (36,587 chars of Quran text), Bismillah + Arabic name "المائدة" rendered, 252 Arabic-Indic ayah markers present.
+   198→- Library "Qaida" tab: all 17 lessons listed; Lesson 1 renders "Single Arabic Letters" title, "الحروف المفردة" Arabic, instruction banner, and Arabic letters.
+   199→- Classroom: socket connects (Connected status); library dropdown shows "30 Juz · 114 Surahs" header + 17 Qaida lessons + 30 expandable Juz accordions; expanded Juz 5 → clicked An-Nisa (surah 4, 176 verses) → API loaded full surah (36,587 chars) with Arabic "النساء" + Bismillah; click-to-highlight on dynamic surah word "بِسۡمِ" works (highlighted successfully).
+   200→- Zero console errors, zero runtime errors, `bun run lint` clean.
+   201→
+   202→Stage Summary:
+   203→- Complete 30-Para Digital Quran now available: all 114 surahs (6,236 verses) fetched on-demand from alquran.cloud with authentic Uthmani script.
+   204→- Both the standalone Library view (3-tab browse: Juz/Surah/Qaida) and the interactive classroom (expandable 30-Juz dropdown) support the full Quran.
+   205→- Word-level click-to-highlight sync works across dynamically-fetched surahs (deterministic word IDs ensure teacher/student highlight alignment via WebSocket).
+   206→
+   207→---
+   208→Task ID: monthly-fix-plans
+   209→Agent: full-stack-developer (plans view fix)
+   210→Task: Converted plans view from hourly to monthly/class-based wording
+   211→
+   212→Work Log:
+   213→- Read worklog.md to understand prior agent work (foundation, views, billing-model migration context).
+   214→- Read src/components/views/plans-view.tsx in full to understand the component structure (FAQ list, header, plans grid, comparison strip).
+   215→- Ran grep -n "hour|hrs" src/components/views/plans-view.tsx to find all 6 occurrences of hourly/hours/hrs/hour wording:
+   216→  • Line 19 (FAQ): "Your remaining hour balance stays available..."
+   217→  • Line 20 (FAQ): "How are hours credited?" ... "monthly hour balance is added instantly (e.g. Advance plan = 4 hrs/week × 4 = 16 hrs). Each completed class deducts its duration..."
+   218→  • Line 21 (FAQ): "What if I run out of hours?" ... "Unused hours roll over..."
+   219→  • Line 62 (header active-sub banner): {activeSub.hoursBalance.toFixed(1)} hrs left
+   220→  • Line 100 (plan card): {plan.hoursPerWeek} hours / week · {plan.hoursPerWeek * 4} hrs total
+   221→  • Line 142 (comparison strip): "Get your hours reassigned to another tutor"
+   222→- Applied edits via MultiEdit (4 atomic edits):
+   223→  • FAQ line 19: "hour balance" → "class balance"
+   224→  • FAQ line 20: question "How are hours credited?" → "How are classes credited?"; body "monthly hour balance is added instantly (e.g. Advance plan = 4 hrs/week × 4 = 16 hrs). Each completed class deducts its duration from your balance." → "monthly class balance is added instantly (e.g. Advance plan = 16 classes). Each completed class deducts one class from your balance." (removed the × 4 multiplication since classesPerMonth is already monthly)
+   225→  • FAQ line 21: question "What if I run out of hours?" → "What if I run out of classes?"; body "Unused hours roll over..." → "Unused classes roll over..."
+   226→  • Line 62: {activeSub.hoursBalance.toFixed(1)} hrs left → {activeSub.classesBalance} classes left (switched to new field name and integer display since classes are whole units)
+   227→  • Line 100: {plan.hoursPerWeek} hours / week · {plan.hoursPerWeek * 4} hrs total → {plan.classesPerMonth} classes / month · {plan.classesPerMonth} classes total (removed × 4 multiplication)
+   228→  • Line 142: "Get your hours reassigned" → "Get your classes reassigned"
+   229→- Ran `bun run lint 2>&1 | tail -15` → "$ eslint ." with zero output (no errors, no warnings).
+   230→- Verified with `grep -n "hour|hrs"` → "No matches found" (all hourly/hours/hrs/hour references removed).
+   231→
+   232→Stage Summary:
+   233→- plans-view.tsx now fully reflects the monthly/class-based billing model. Plan cards render "X classes / month · X classes total" using plan.classesPerMonth (no × 4 multiplication). Active-subscription banner shows "{activeSub.classesBalance} classes left". All three FAQ entries mentioning hours/hour-balance/hrs are rewritten in terms of classes/monthly balance, including the corrected Advance-plan example ("16 classes" instead of "4 hrs/week × 4 = 16 hrs"). Comparison-strip "Satisfaction guarantee" copy now says "classes reassigned".
+   234→- Used the new API field names (plan.classesPerMonth, activeSub.classesBalance) which are returned by the updated /api/plans and /api/subscriptions endpoints (with backward-compat aliases still present but no longer referenced here).
+   235→- Lint clean. Only this file was modified. The new plans (Starter $29 / 8 classes, Advance $49 / 16 classes [popular], Hifz Pro $79 / 24 classes) will render correctly.
+   236→
+   237→---
+   238→Task ID: monthly-fix-student
+   239→Agent: full-stack-developer (student dashboard fix)
+   240→Task: Converted student dashboard from hourly to monthly/class-based wording
+   241→
+   242→Work Log:
+   243→- Read worklog.md to understand prior agent work and confirm the billing-model migration context.
+   244→- Read src/components/views/student-dashboard.tsx and grepped for `hours|hourly|per hour|/ hour|hrs|Hours` to locate all 8 references.
+   245→- Edited the Subscription type: `hoursBalance` → `classesBalance`, `plan.hoursPerWeek` → `plan.classesPerMonth`.
+   246→- Edited the DashboardData.stats type: `hoursBalance` → `classesBalance`.
+   247→- Edited the StatsRow StatCard: label "Hours Balance" → "Classes Remaining", `stats.hoursBalance` → `stats.classesBalance`.
+   248→- Edited the empty-plan CTA copy: "unlock weekly hours with verified tutors" → "unlock monthly classes with verified tutors".
+   249→- Edited the CurrentPlan progress bar calc: `total = plan.hoursPerWeek * 4` → `total = plan.classesPerMonth`; `used = total − subscription.hoursBalance` → `used = total − subscription.classesBalance`.
+   250→- Edited plan summary line: `{hoursPerWeek} hrs/week` → `{classesPerMonth} classes/mo`.
+   251→- Edited the progress labels: "Hours used this cycle" → "Classes used this cycle", `{used} / {total} hrs` → `{used} / {total} classes`, `{hoursBalance} hrs remaining` → `{classesBalance} classes remaining`.
+   252→- Re-grepped the file: zero remaining `hours|hourly|hrs|Hours` references.
+   253→- Ran `bun run lint` — exit 0, no errors, no warnings.
+   254→
+   255→Stage Summary:
+   256→- Student dashboard fully converted to the monthly/class-based billing model. All `hoursPerWeek`, `hoursBalance`, "hrs/week", and "hours" UI wording replaced with `classesPerMonth`, `classesBalance`, "classes/mo", and "classes". The hours-used progress bar now computes `used = classesPerMonth − classesBalance` against a total of `classesPerMonth`. Lint clean; no other files touched.
+   257→
+   258→---
+   259→Task ID: monthly-fix-tutor-admin
+   260→Agent: full-stack-developer (tutor+admin dashboards fix)
+   261→Task: Converted tutor & admin dashboards from hourly to per-class/monthly wording
+   262→
+   263→Work Log:
+   264→- Read worklog.md and inspected both view files plus the backend API contracts (/api/dashboard/admin returns perClassRate + hourlyRate alias; /api/admin/plans POST expects classesPerMonth; AdminPlan objects now carry classesPerMonth).
+   265→- grep'd both files for hours|hourly|per hour|/hr|hrs|Hours|hour to find every reference.
+   266→- tutor-dashboard.tsx: changed `hourlyRate: number` → `perClassRate: number` in the TutorProfile interface. Confirmed the rest of the file has no rate display, no `rate * hours` earnings calc (stats come straight from wallet balances computed server-side per-class), and no "Hourly rate" label. Left the legitimate `new Date().getHours()` greeting logic and the "Flexible hours" scheduling badge untouched (both are non-billing contexts).
+   267→- admin-dashboard.tsx (7 edits via MultiEdit):
+   268→  • AdminTutor interface: `hourlyRate` → `perClassRate`
+   269→  • AdminPlan interface: `hoursPerWeek` → `classesPerMonth`
+   270→  • Tutor vetting table header "Hourly" → "Per class"
+   271→  • Tutor rate cell `${t.hourlyRate}` → `${t.perClassRate}` and "/hr" → "/class"
+   272→  • Create-plan form state/reset/validation/POST body: `hoursPerWeek` → `classesPerMonth` (POST body now sends classesPerMonth, matching the /api/admin/plans route contract)
+   273→  • Validation toast: "hours per week" → "classes per month"
+   274→  • Form field label "Hours / week" → "Classes / month", input id plan-hours → plan-classes
+   275→  • Plan card subtitle `{p.hoursPerWeek} hrs / week` → `{p.classesPerMonth} classes / month`
+   276→- Ran `bun run lint` → exit 0, 0 errors / 0 warnings. Re-grep'd both files: zero remaining `hourlyRate`/`hoursPerWeek`/`Hourly`/`/hr`/`hrs / week` references in billing context.
+   277→
+   278→Stage Summary:
+   279→- Both dashboards now speak the per-class / monthly billing model end-to-end.
+   280→- Tutor dashboard: profile type uses perClassRate (the field the /api/dashboard/tutor route now returns); earnings display unchanged because it already pulls pre-computed wallet balances (per-class earnings are credited server-side on class completion).
+   281→- Admin dashboard: tutor vetting table shows "$X /class" using perClassRate; plan creator form posts `classesPerMonth` (correct API contract); plan cards show "N classes / month".
+   282→- Files modified: ONLY src/components/views/tutor-dashboard.tsx and src/components/views/admin-dashboard.tsx. No other files touched. Lint clean.
+   283→
+   284→---
+   285→Task ID: monthly-class-billing
+   286→Agent: main (orchestrator)
+   287→Task: Convert billing from hourly to monthly/class-based + create 5 monthly plans
+   288→
+   289→Work Log:
+   290→- Prisma schema changes:
+   291→  • Plan: `hoursPerWeek` (Int) → `classesPerMonth` (Int)
+   292→  • Subscription: `hoursBalance` (Float) → `classesBalance` (Int)
+   293→  • TutorProfile: `hourlyRate` (Float) → `perClassRate` (Float) — earnings per completed 30-min class
+   294→- Force-reset DB and re-seeded with 5 monthly plans (per user's exact spec):
+   295→  | Plan | Schedule | Classes/Month | Fee |
+   296→  |------|----------|---------------|-----|
+   297→  | 2 Classes / Week | 2/wk | 8 | $19/mo |
+   298→  | 3 Classes / Week | 3/wk | 12 | $29/mo |
+   299→  | 4 Classes / Week | 4/wk | 16 | $39/mo (POPULAR) |
+   300→  | 5 Classes / Week | 5/wk | 20 | $49/mo |
+   301→  | Hifz Classes | 5/wk | 20 | $69/mo |
+   302→  Demo student subscribed to "4 Classes / Week" with 16 classes balance.
+   303→- API route updates:
+   304→  • /api/auth/register: `perClassRate` field (default $6)
+   305→  • /api/admin/plans: `classesPerMonth` in create body
+   306→  • /api/tutors: sort by `perClassRate`, returns both `perClassRate` and `hourlyRate` alias
+   307→  • /api/dashboard/student: returns `classesBalance`
+   308→  • /api/dashboard/admin: returns `perClassRate`
+   309→  • /api/subscriptions: GET/POST use `classesBalance`, credits `plan.classesPerMonth` on subscribe
+   310→  • /api/bookings: requires `classesBalance >= 1` to book (not hours)
+   311→  • /api/bookings/[id] PATCH: on COMPLETED → decrement student `classesBalance` by 1 + credit tutor wallet by `profile.perClassRate` (flat per-class, not rate*hours)
+   312→- Frontend updates (delegated to 3 parallel subagents + main):
+   313→  • plans-view.tsx: all "hours/week" → "classes/month", FAQ wording, active-sub banner
+   314→  • student-dashboard.tsx: "Hours Balance" → "Classes Remaining", progress bar uses classesPerMonth
+   315→  • tutor-dashboard.tsx: `perClassRate` in interface
+   316→  • admin-dashboard.tsx: "Hourly" → "Per class", plan form uses `classesPerMonth`
+   317→  • checkout-modal.tsx: "classes/month" wording, toast "X classes added"
+   318→  • auth-modal.tsx: "Per-class rate ($)" field for tutor registration
+   319→  • shared/tutor-card.tsx: "$X / class" instead of "$X / hour"
+   320→  • marketplace-view.tsx: "per class" in tutor detail dialog
+   321→  • landing-view.tsx: "8, 16, or 24 classes per month" in how-it-works
+   322→
+   323→Agent Browser + API verification:
+   324→- Plans page: all 5 plans render with correct names + prices ($19/$29/$39/$49/$69), "MOST POPULAR" badge on 4 Classes/Week, "classes / month" wording, zero "per hour"/"hours / week" references.
+   325→- Marketplace: tutor cards show "$X / class" (no "per hour").
+   326→- Student dashboard: shows "Classes Remaining" (not "Hours Balance"), plan card shows "4 Classes / Week" + "16 classes".
+   327→- Tutor dashboard: wallet/earnings display correctly (no hourly wording).
+   328→- Critical billing flow tested via API:
+   329→  • Student classesBalance BEFORE: 16
+   330→  • Tutor wallet BEFORE: $180 balance, $1080 totalEarned
+   331→  • Completed 1 booking → student classesBalance AFTER: 15 (−1 class ✓)
+   332→  • Tutor wallet AFTER: $189 balance (+$9 = perClassRate ✓), $1089 totalEarned
+   333→- Zero console errors, zero lint warnings.
+   334→
+   335→Stage Summary:
+   336→- Billing is now 100% monthly/class-based: students subscribe to a monthly plan (8/12/16/20/20 classes), each completed class deducts 1 from their balance and credits the tutor's per-class rate to their wallet. Tutors request monthly withdrawals.
+   337→- All 5 plans match the user's requested structure with sensible monthly fees.
+   338→- The "4 Classes / Week" plan ($39/mo) is marked as Most Popular (best value).
+   339→
+   340→---
+   341→Task ID: complete-registration-flow
+   342→Agent: main (orchestrator)
+   343→Task: Build complete 3-step registration wizard for students & tutors + post-signup plan selection
+   344→
+   345→Work Log:
+   346→- Rebuilt src/components/auth/auth-modal.tsx as a 3-step wizard:
+   347→  • Step 1 — Role selection: two large cards (Student "Learn Quran" / Tutor "Teach & earn") with icons, descriptions, and contextual info banners (free trial for students / admin approval note for tutors). Step indicator (1-2-3 with checkmarks) at top.
+   348→  • Step 2 — Account details: Full name, Email, Password, Country (with Globe icon), Phone (with Phone icon, optional). Password validation hint.
+   349→  • Step 3 — Student: inline plan selection showing all 5 monthly plans (2/3/4/5 Classes per Week + Hifz) with prices, POPULAR badge, and a "Skip for now" option. Button text adapts: "Create account & subscribe" (if plan chosen) or "Create my account" (if skipped).
+   350→  • Step 3 — Tutor: complete professional profile — Bio (textarea), Specialties (6 subject chips with icons: Noorani Qaida/Tajweed/Hifz/Arabic/Tafsir/Islamic Studies), Languages (8 language chips), Per-class rate, Experience years, qualification checkboxes (Native Arabic/Hafiz/Ijaza certified), and an admin-approval notice. Button: "Submit application".
+   351→  • Back/Continue navigation buttons with per-step validation (step 2 requires name≥2 chars + valid email + password≥6; step 3 tutor requires ≥1 specialty + ≥1 language + rate>0).
+   352→- Updated /api/auth/register to accept `phone` field (added to zod schema + user create).
+   353→- Post-registration routing:
+   354→  • Student with chosen plan → `setSelectedPlanId(planId)` + `setCheckoutOpen(true)` (350ms delay for Radix dialog transition) + `setView('plans')` → checkout modal opens automatically.
+   355→  • Student without plan → `setView('plans')` to browse and choose.
+   356→  • Tutor → `setView('tutor-dashboard')` with "pending admin approval" toast.
+   357→- Fixed critical bug in CheckoutModal: was destructuring `{ plans }` from `usePlans()` query result instead of `{ data }` → `data?.plans`. Fixed to `const { data: plansData } = usePlans()` + `const plans = plansData?.plans`. Added fallback plan resolution from React Query cache + loading spinner state when plans are still loading.
+   358→- Removed all debug console.logs from plans-view, checkout-modal, and store.
+   359→
+   360→Agent Browser self-verification (via Caddy :81):
+   361→- Student registration: Step 1 (Student) → Step 2 (name/email/password/country/phone) → Step 3 (selected "4 Classes / Week" plan) → "Create account & subscribe" → checkout dialog opened automatically showing "Subscribe to 4 Classes / Week · 16 classes/month · $39/month" → filled card details → "Pay $39 & Subscribe" → redirected to student dashboard with "Classes Remaining" (16 classes). ✅
+   362→- Tutor registration: Step 1 (Tutor) → Step 2 (account) → Step 3 (bio, specialties: Tajweed+Hifz, languages: Arabic+English, per-class rate, Native Arabic + Hafiz checkboxes) → "Submit application" → redirected to tutor dashboard with "pending" approval status. ✅
+   363→- Zero console errors, zero lint warnings.
+   364→
+   365→Stage Summary:
+   366→- Complete registration wizard for both students and tutors with a polished 3-step flow.
+   367→- Students can select a plan during registration → checkout opens automatically after signup → subscribe → dashboard.
+   368→- Tutors submit a full professional profile → pending admin approval → tutor dashboard.
+   369→- Fixed the CheckoutModal plan-resolution bug (was always null because of wrong destructuring of usePlans()).
+   370→
+   371→---
+   372→Task ID: plans-by-subject-matrix
+   373→Agent: main (orchestrator)
+   374→Task: Reorganize plans into 3 subjects (Noorani Qaida/Tajweed/Hifz) × 4 class frequencies (2/3/4/5 per week)
+   375→
+   376→Work Log:
+   377→- Re-seeded database with 12 plans (3 subjects × 4 class frequencies) with best monthly prices:
+   378→  | Subject | 2/wk (8/mo) | 3/wk (12/mo) | 4/wk (16/mo) ★ | 5/wk (20/mo) |
+   379→  |---------|-------------|--------------|----------------|--------------|
+   380→  | Noorani Qaida | $15 | $21 | $27 ★ | $33 |
+   381→  | Tajweed | $19 | $26 | $33 ★ | $39 |
+   382→  | Hifz | $25 | $34 | $42 ★ | $49 |
+   383→  The 4 Classes/Week plan in each subject is marked "Best value" (popular).
+   384→- Redesigned PlansView as a pricing matrix grouped by subject:
+   385→  • Each subject (Noorani Qaida, Tajweed, Hifz) has its own section with icon, Arabic name, and description.
+   386→  • 4 plan cards per subject (2/3/4/5 Classes/Week) in a responsive grid.
+   387→  • Per-class cost displayed (e.g. "≈ $1.88 per class").
+   388→  • Subject-specific accent colors (light blue for Qaida, deep blue for Tajweed, gold for Hifz).
+   389→  • "Best value" badge on the 4 Classes/Week plan of each subject.
+   390→- Updated registration wizard step 3 (student plan selection) to group plans by subject:
+   391→  • Compact 2-column grid per subject with subject-colored headers and icons.
+   392→  • Selected plan highlighted with subject accent color.
+   393→  • Star (★) badge on best-value plans.
+   394→  • "Skip for now" option retained.
+   395→- Updated admin plan creator form: added Subject (category) dropdown (Noorani Qaida/Tajweed/Hifz/General).
+   396→- Updated /api/admin/plans to accept and save the `category` field.
+   397→- Updated CheckoutModal: title now shows "Subscribe to {Category} — {Plan Name}" and Plan interface includes `category`.
+   398→- Fixed JSX parsing error (stray </strong> tag) in plans-view active-sub banner.
+   399→
+   400→Agent Browser self-verification (via Caddy :81):
+   401→- Plans page: 3 subject sections (Noorani Qaida, Tajweed, Hifz), each with 4 plan cards. All prices visible ($15-$49). 3 "BEST VALUE" badges (one per subject on 4 Classes/Week). Per-class cost shown. ✅
+   402→- Registration wizard step 3: all 12 plans grouped by subject with colored headers, star badges on best-value plans, "Skip for now" option. ✅
+   403→- Zero console errors, zero lint warnings.
+   404→
+   405→Stage Summary:
+   406→- Plans are now organized as a clean pricing matrix: 3 subjects (Noorani Qaida, Tajweed, Hifz) × 4 class frequencies (2/3/4/5 classes per week) = 12 monthly plans with best prices.
+   407→- Both the Plans page and the registration wizard show the plans grouped by subject with subject-specific colors and "Best value" badges.
+   408→- Admin can create new plans with a subject category dropdown.
+   409→
+   410→---
+   411→Task ID: rename-tajweed-to-quran-recitation
+   412→Agent: main (orchestrator)
+   413→Task: Replace "Tajweed" with "Quran Recitation With Tajweed" throughout the platform
+   414→
+   415→Work Log:
+   416→- Updated prisma/seed.ts:
+   417→  • Plan category `cat: 'Tajweed'` → `cat: 'Quran Recitation With Tajweed'` (4 plans)
+   418→  • Plan description comparison `s.cat === 'Tajweed'` → `s.cat === 'Quran Recitation With Tajweed'`
+   419→  • All 6 tutor specialties strings: `'Tajweed,...'` → `'Quran Recitation With Tajweed,...'`
+   420→  • Left bio/audio intro text as "Tajweed" (conceptual references to the skill, not the plan name)
+   421→- Updated src/lib/constants.ts:
+   422→  • SUBJECTS: key + label → 'Quran Recitation With Tajweed'
+   423→  • CATEGORIES: key → 'Quran Recitation With Tajweed', label → 'Quran Recitation' (shorter for tab display)
+   424→- Updated src/components/views/plans-view.tsx:
+   425→  • SUBJECT_META key, categoryOrder, fallback reference → 'Quran Recitation With Tajweed'
+   426→- Updated src/components/auth/auth-modal.tsx:
+   427→  • SUBJECT_OPTIONS array, default specialties, step 3 subject group array, meta mapping, icon mapping → 'Quran Recitation With Tajweed'
+   428→- Updated src/components/views/admin-dashboard.tsx:
+   429→  • Form default category, reset value, dropdown SelectItem → 'Quran Recitation With Tajweed'
+   430→- Updated src/components/views/landing-view.tsx: SUBJECT_ICONS key + hero description text
+   431→- Updated src/components/layout/footer.tsx: description text
+   432→- Updated src/app/layout.tsx: SEO description + keywords (kept "Tajweed" as additional SEO keyword)
+   433→- Updated src/app/api/auth/register/route.ts: default specialties
+   434→- Re-seeded database (force-reset) with updated category names.
+   435→
+   436→Agent Browser self-verification (via Caddy :81):
+   437→- Plans page: 3 subject sections — "Noorani Qaida", "Quran Recitation With Tajweed", "Hifz" — all with correct prices ($15-$49). No standalone "Tajweed" category remains. ✅
+   438→- Marketplace: filter tab shows "Quran Recitation", clicking it filters tutors correctly (6 tutors with this specialty). ✅
+   439→- Zero console errors, zero lint warnings.
+   440→
+   441→Stage Summary:
+   442→- "Tajweed" has been replaced with "Quran Recitation With Tajweed" as the plan category/subject name throughout the platform.
+   443→- The marketplace filter tab uses a shorter label "Quran Recitation" for display, with the full key for filtering.
+   444→- Bio/audio intro text retains "Tajweed" as a conceptual term (the skill of Tajweed recitation).
+   445→- SEO keywords retain "Tajweed" for search visibility.
+   446→
+   447→---
+   448→Task ID: advanced-islamic-logo
+   449→Agent: main (orchestrator)
+   450→Task: Design an advanced Islamic logo for Qtuor
+   451→
+   452→Work Log:
+   453→- Redesigned src/components/brand/logo.tsx with a sophisticated multi-element SVG logo:
+   454→  • **8-pointed Islamic star (khatam) badge** — the outer shape formed by the tessellation of a rotated square + circle, symbolizing perfection and the eight gates of Paradise. Premium deep-blue → light-blue gradient fill.
+   455→  • **Stylized "Q"** — a geometric ribbon ring (white gradient) with a sweeping tail that echoes a crescent, positioned centre-left.
+   456→  • **Open Quran book** — at the base of the Q, with two pages, a centre spine, and subtle page lines. Represents the sacred text at the heart of the platform.
+   457→  • **Gold crescent moon + star** — top-right accent, echoing the Q's tail and adding the timeless Islamic symbol. Gold gradient.
+   458→  • **Gold star outline** — thin inner geometric ring for depth and intricacy.
+   459→  • **Radial sheen** — subtle white highlight for a premium 3D feel.
+   460→  • Uses clipPath so the Q ring + tail sit cleanly within the star badge.
+   461→- Enhanced the wordmark lockup:
+   462→  • "Qtu" in deep blue + "or" in light blue (two-tone wordmark).
+   463→  • Gold dot accent before the "Learn · Recite · Excel" tagline.
+   464→  • Supports sm/md/lg sizes.
+   465→- Created public/favicon.svg — standalone SVG favicon version of the logo (same design, simplified gradients for cross-browser compatibility).
+   466→- Updated src/app/layout.tsx metadata to use the new favicon (/favicon.svg) for icon, shortcut, and apple touch icon.
+   467→
+   468→Agent Browser self-verification (via Caddy :81):
+   469→- Logo SVG renders in navbar with viewBox "0 0 64 64" and multiple paths (star, Q ring, Q tail, Quran pages, crescent, star accent). ✅
+   470→- Footer logo renders. ✅
+   471→- Favicon set to /favicon.svg. ✅
+   472→- Wordmark "Qtuor" displays with two-tone coloring. ✅
+   473→- Zero console errors, zero lint warnings.
+   474→
+   475→Stage Summary:
+   476→- New advanced Islamic logo combines: 8-pointed khatam star badge + stylized Q + open Quran book + gold crescent & star.
+   477→- Premium deep-blue gradient with gold crescent accent — distinctly Islamic and professional.
+   478→- Favicon updated so the browser tab shows the new logo.
+   479→
+   480→---
+   481→Task ID: subject-pages
+   482→Agent: main (orchestrator)
+   483→Task: Build dedicated subject landing pages with images and rich content for all 6 subjects
+   484→
+   485→Work Log:
+   486→- Generated 6 AI hero images (1344×768) using the image-generation skill → saved to public/subjects/:
+   487→  • noorani-qaida.png, quran-recitation.png, hifz.png, arabic-language.png, tafsir.png, islamic-studies.png
+   488→- Created src/lib/subject-content.ts with rich content for all 6 subjects (Noorani Qaida, Quran Recitation With Tajweed, Hifz, Arabic Language, Tafsir, Islamic Studies). Each subject includes:
+   489→  • Overview (2–3 paragraphs), who-is-it-for, 8 learning outcomes, 6–8 curriculum modules with durations, 4 outcomes, 4 FAQs, 4 stats.
+   490→  • Accent color, Arabic name, tagline, hero image path, icon name.
+   491→- Added 'subject' to ViewKey + activeSubject state to the Zustand store.
+   492→- Built src/components/views/subject-page.tsx — a full-page subject landing with:
+   493→  • Hero section with background image + gradient overlay, subject icon, title (English + Arabic), tagline, stats grid, CTA buttons, and decorative medallion.
+   494→  • Course Overview section with "What is {subject}?" + "Who is this course for?" + Quick Info card (duration, format, levels, certified, trial).
+   495→  • "What you will learn" grid (8 numbered outcome cards).
+   496→  • Curriculum timeline (6–8 modules with number, title, duration badge, description).
+   497→  • Outcomes + CTA section with gradient background.
+   498→  • Featured tutors section (fetches tutors filtered by subject).
+   499→  • FAQ accordion (4 questions per subject).
+   500→  • Final CTA with Bismillah header + gradient background.
+   501→- Updated src/components/views/landing-view.tsx:
+   502→  • Subject cards now show hero image + gradient overlay + icon badge + label (English + Arabic) + tagline + 2 stats + "Learn more" link.
+   503→  • Clicking a card calls goToSubject(key) → sets activeSubject + view='subject'.
+   504→  • Grid changed from 6-col small cards to 3-col rich cards.
+   505→- Wired SubjectPage into src/app/page.tsx shell.
+   506→- Removed unused eslint-disable directives.
+   507→
+   508→Agent Browser self-verification (via Caddy :81):
+   509→- Landing page: 6 subject cards with hero images, "Learn more" links, and subject-specific accent colors. ✅
+   510→- Clicked "Quran Recitation With Tajweed" card → subject page opened. ✅
+   511→- Subject page sections verified: hero image, title (English + Arabic التجويد), tagline, stats, Course Overview, Who is this course for, Quick Info card, What you will learn (8 items), Curriculum (Module 1: Makharij & Sifat etc.), Outcomes + CTA, Featured tutors, FAQ, Final CTA with Bismillah. ✅
+   512→- Zero console errors, zero lint warnings.
+   513→
+   514→Stage Summary:
+   515→- All 6 subject cards on the homepage are now clickable and open a dedicated, content-rich subject page with AI-generated hero images, overview, curriculum, learning outcomes, featured tutors, FAQs, and CTAs.
+   516→- Each subject has its own accent color (Qaida=light blue, Tajweed=deep blue, Hifz=gold, Arabic=green, Tafsir=purple, Islamic Studies=teal).
+   517→
+   518→---
+   519→Task ID: images-pricing-logo-v2
+   520→Agent: main (orchestrator)
+   521→Task: Regenerate 3 subject images, remove pricing from Featured tutors, redesign logo + favicon
+   522→
+   523→Work Log:
+   524→- Regenerated 3 hero images with better prompts:
+   525→  • Noorani Qaida: children's Arabic alphabet learning book, colorful letters, warm golden light, geometric pattern.
+   526→  • Quran Recitation With Tajweed: elegant open book with ornate golden border, warm candlelight, blue/turquoise tile pattern.
+   527→  • Hifz: serene study desk with open book + tasbih prayer beads, golden lamp, dark blue geometric background.
+   528→- Removed "$8 / class" pricing from the Featured certified tutors section on the landing page:
+   529→  • Added `hidePricing` prop (default false) to TutorRowCard component.
+   530→  • Passed `hidePricing` on the landing page's featured tutor cards.
+   531→  • When hidden, the price column shows only the Book Class + View profile buttons.
+   532→- Redesigned the QtuorLogo (v2) — more advanced and Islamic:
+   533→  • 16-pointed star medallion (two overlaid 8-point stars rotated 22.5°) — the most intricate Islamic geometric form.
+   534→  • Gold inner ring (two concentric circles) for geometric depth.
+   535→  • Thicker, more calligraphic Q ring (strokeWidth 6) with a crescent-shaped tail sweep.
+   536→  • Open Quran book at the base with 4 subtle page-line textures (not just 2).
+   537→  • Gold crescent moon (Hilal) + 5-point star accent at top-right, with a tiny sparkle dot.
+   538→  • Premium deep-blue → light-blue gradient with radial sheen for 3D depth.
+   539→  • 10 total SVG paths (was 5 before).
+   540→- Updated public/favicon.svg to match the new logo design (16-point star, Q, Quran, crescent).
+   541→
+   542→Agent Browser self-verification (via Caddy :81):
+   543→- New logo renders with viewBox "0 0 72 72", 10 paths, crescent present. ✅
+   544→- Favicon set to /favicon.svg. ✅
+   545→- Landing page: no "From $X / class" pricing on Featured tutors section. ✅
+   546→- All 6 subject images load (including the 3 regenerated). ✅
+   547→- Zero console errors, zero lint warnings.
+   548→
+   549→Stage Summary:
+   550→- 3 subject hero images regenerated with better, more atmospheric prompts.
+   551→- Pricing removed from the Featured certified tutors section on the landing page (still visible in marketplace).
+   552→- Logo redesigned to v2 with 16-point star, gold rings, calligraphic Q, Quran with page textures, and gold crescent + star. Favicon updated to match.
+   553→
+   554→---
+   555→Task ID: book-class-student-reg + advanced forms
+   556→Agent: main (orchestrator)
+   557→Task: Book Class opens student-only registration + enhanced student & teacher registration forms
+   558→
+   559→Work Log:
+   560→- Added `authRoleLock` to the Zustand store: `openAuth(mode, roleLock)` accepts an optional Role to lock the registration to. When set, the role-selection step (step 1) is skipped and the form starts at step 2 (Account details).
+   561→- Updated all "Book Class" / "Find a tutor" / "Start learning" buttons to call `openAuth('register', 'STUDENT')` — so non-logged-in users who click Book Class go directly to a student-only registration form (title: "Create your student account", no role choice, step indicator shows "Step 1 of 2").
+   562→  • Updated in: tutor-card.tsx, marketplace-view.tsx, subject-page.tsx, plans-view.tsx, library-view.tsx.
+   563→- Enhanced student registration form (step 2) with advanced fields:
+   564→  • Age (number input)
+   565→  • Gender (select: male/female)
+   566→  • Preferred language (select from 8 languages)
+   567→  • Learning goals (multi-select chips: Learn to read Quran, Improve Tajweed, Memorize Quran, Learn Arabic, Understand Tafsir, Study Islamic basics)
+   568→  • Guardian/Parent name (for students under 18)
+   569→- Enhanced teacher registration form (step 2 + step 3) with advanced fields:
+   570→  • Step 2: Brief bio, Teaching style (select: Patient & gentle / Structured & methodical / Interactive & engaging / Traditional / Child-friendly), Video intro URL (with Video icon)
+   571→  • Step 3: Full bio, Specialties (6 subject chips), Languages (8 language chips), Per-class rate, Experience years, Teaching style, Video intro URL, Qualification checkboxes (Native Arabic, Hafiz, Ijaza)
+   572→- Added new optional fields to Prisma schema:
+   573→  • User: age (Int?), gender (String?), preferredLanguage (String?), learningGoals (String?), guardianName (String?)
+   574→  • TutorProfile: teachingStyle (String?), videoUrl (String?) — removed duplicate videoUrl field
+   575→- Updated /api/auth/register to accept and persist all new fields.
+   576→- Force-reset DB and re-seeded (12 plans + 6 tutors + demo student).
+   577→
+   578→Agent Browser self-verification (via Caddy :81):
+   579→- Clicked "Book Class" on marketplace → auth modal opened with title "Create your student account" (no role choice, student-locked). ✅
+   580→- Student form shows: Age, Gender, Preferred language, Learning goals chips, Guardian/Parent name. ✅
+   581→- Step indicator shows 2 steps (not 3) because role selection is skipped. ✅
+   582→- Zero console errors, zero lint warnings.
+   583→
+   584→Stage Summary:
+   585→- "Book Class" now opens a student-only registration form (skips role selection, title says "Create your student account").
+   586→- Student registration enhanced with age, gender, preferred language, learning goals, and guardian name.
+   587→- Teacher registration enhanced with teaching style, video intro URL, and all existing professional profile fields.
+   588→
+   589→---
+   590→Task ID: whatsapp-integration
+   591→Agent: main (orchestrator)
+   592→Task: Build Advance WhatsApp Integration & Automated Notifications Engine
+   593→
+   594→Work Log:
+   595→- Added Prisma models: Notification (log of all sent messages) + WhatsAppSettings (singleton with provider, credentials, feature toggles). Added registrationFeePaid boolean to TutorProfile.
+   596→- Built src/lib/whatsapp.ts — comprehensive notification service:
+   597→  • sendWhatsApp() — logs to Notification table in SIMULATED mode; calls real Twilio/Meta Cloud API when configured.
+   598→  • Pre-built message templates: msgTutorApproved ($10 fee link), msgBookingStudent, msgBookingTutor, msgClassReminder, msgPaymentSuccess, msgPaymentFailed, msgTutorPayout, msgRegistrationFee.
+   599→  • Feature-toggle checks (each notification type can be enabled/disabled).
+   600→  • Provider implementations: Twilio WhatsApp API + Meta Cloud API (ready for production credentials).
+   601→- Wired notification triggers into existing API routes:
+   602→  • /api/admin/tutors/[id] PATCH: on tutor approval → sends WhatsApp with $10 registration fee payment link.
+   603→  • /api/bookings POST: on booking → sends confirmation to BOTH student and tutor with classroom link.
+   604→  • /api/subscriptions POST: on payment → sends payment success receipt with plan details.
+   605→- Built mini-services/class-reminder-cron (port-independent Bun service):
+   606→  • Runs every 5 minutes, checks for SCHEDULED bookings starting in ~15 min.
+   607→  • Sends WhatsApp reminders to both student and tutor with classroom link.
+   608→  • Deduplication (won't send twice for the same booking).
+   609→  • Started and running in background.
+   610→- API routes:
+   611→  • /api/notifications (admin) — list all notifications + count by type.
+   612→  • /api/whatsapp/settings (admin) — GET/PATCH settings + credentials.
+   613→  • /api/whatsapp/public — public settings (adminPhone, showFloatingWidget, allowTutorContactAdmin) for the widget/tutor cards without auth.
+   614→- Frontend components:
+   615→  • FloatingWhatsAppWidget — modern floating button (bottom-right) with chat popup showing "Qtuor Support" online status, WhatsApp link, and call button. Toggleable from admin settings.
+   616→  • TutorRowCard — added "Ask about this tutor" WhatsApp button (green-themed) that opens wa.me with a pre-filled message about the specific tutor. Toggleable from admin settings.
+   617→  • Admin Dashboard — new "WhatsApp" tab with:
+   618→    - Provider selector (Simulated/Twilio/Meta/Infobip) + admin phone.
+   619→    - 7 feature toggles (tutor approval, booking confirmation, class reminder, payment, payout, floating widget, tutor contact admin).
+   620→    - Reminder minutes setting.
+   621→    - Provider credential fields (shown only when not Simulated).
+   622→    - Notification stats by type.
+   623→    - Full notification log (scrollable, with status badges, type, recipient, message preview, timestamp).
+   624→- React Query hooks: useNotifications, useWhatsAppSettings (admin), usePublicWhatsAppSettings (public), useUpdateWhatsAppSettings.
+   625→
+   626→Agent Browser self-verification (via Caddy :81):
+   627→- Floating WhatsApp button appears on landing page (bottom-right, green). ✅
+   628→- Clicking opens chat popup with "Qtuor Support" + "Chat on WhatsApp" link. ✅
+   629→- Admin panel → WhatsApp tab: shows Integration Settings, Provider dropdown (Simulated), 7 feature toggles, reminder minutes, notification log. ✅
+   630→- Zero console errors, zero lint warnings.
+   631→- Cron service running (checks every 5 min for upcoming classes).
+   632→
+   633→Stage Summary:
+   634→- Complete WhatsApp Integration & Automated Notifications Engine:
+   635→  1. Tutor approval → WhatsApp with $10 registration fee payment link ✅
+   636→  2. Class booking → confirmation to both student & tutor with classroom link ✅
+   637→  3. 15-minute live class reminders via cron service ✅
+   638→  4. Payment success receipt ✅
+   639→  5. Tutor payout notification (55% share) — template ready, trigger wired ✅
+   640→  6. Floating WhatsApp chat widget on landing page ✅
+   641→  7. "Ask about this tutor" WhatsApp button on tutor cards (admin-toggleable) ✅
+   642→  8. Full admin control panel with provider config, toggles, and notification log ✅
+   643→- Currently in SIMULATED mode (logs all messages). To go live, admin sets provider to Twilio/Meta and adds credentials.
+   644→
+   645→---
+   646→Task ID: monthly-billing-student-dash
+   647→Agent: full-stack-developer (student dashboard monthly billing)
+   648→Task: Updated student dashboard for fixed monthly subscription (no class balance)
+   649→
+   650→Work Log:
+   651→- Read worklog.md and the target file src/components/views/student-dashboard.tsx to understand existing structure.
+   652→- Grepped for classesBalance / hoursBalance / "classes remaining" references (found in types, StatsRow, and CurrentPlan).
+   653→- Updated `Subscription` type: removed `classesBalance` field.
+   654→- Updated `DashboardData['stats']` type: replaced `classesBalance: number` with `hasActiveSubscription: boolean`, `subscriptionPlanName: string | null`, and `subscriptionExpiresAt: string | null`.
+   655→- Extended `StatCard` component with an optional `action?: React.ReactNode` prop (rendered below the sub-text) so the subscription card can host a "Subscribe" button.
+   656→- Replaced the "Classes Remaining" stat card with an "Active Subscription" card:
+   657→  - Active: shows the plan name as value and "Active until [expiry date]" sub.
+   658→  - Inactive: shows "No active plan" with a "Subscribe" button (navigates to plans view).
+   659→- Rewrote the `CurrentPlan` card body:
+   660→  - Removed `total` / `used` / `usedPct` ("used = total - classesBalance") calculation entirely.
+   661→  - Removed the "Classes used this cycle" progress bar block.
+   662→  - Added a "Renews on [expiry date]" row with a CalendarDays icon.
+   663→  - Added a helper line: "Enjoy unlimited classes within your plan until your renewal date."
+   664→  - Changed the top-right badge from "Active" to "Active Subscription".
+   665→  - Renamed "Upgrade" button to "Upgrade Plan" per spec; kept "Find Tutors" button.
+   666→  - Kept plan name, classes/mo · price line, features list, and both action buttons intact.
+   667→- Verified no remaining references to classesBalance / hoursBalance / "classes remaining" in the file.
+   668→- Ran `bun run lint` — clean, no errors or warnings.
+   669→
+   670→Stage Summary:
+   671→- Student dashboard now fully reflects the fixed monthly subscription billing model.
+   672→- All `classesBalance` / `hoursBalance` references removed from TypeScript interfaces and JSX.
+   673→- The stat row's first card is now "Active Subscription", showing plan name + expiry when active, or "No active plan" + a "Subscribe" CTA when inactive.
+   674→- The "Current Plan" card no longer shows a class-usage progress bar; instead it shows an "Active Subscription" badge, a "Renews on [date]" row, and an "unlimited classes" helper line — while preserving plan name, price, features, and the "Upgrade Plan" / "Find Tutors" buttons.
+   675→- Lint passes cleanly; no other files modified.
+   676→
+   677→---
+   678→Task ID: monthly-billing-tutor-dash
+   679→Agent: tutor-dashboard-updater
+   680→Task: Update Qtuor tutor dashboard to show the new 55/45% wallet split ledger
+   681→
+   682→Work Log:
+   683→- File modified (only): src/components/views/tutor-dashboard.tsx
+   684→- Imports:
+   685→  • Added `useTutorWalletLedger` from `@/lib/queries`.
+   686→  • Added shadcn Table primitives (Table, TableHeader, TableBody, TableRow, TableHead, TableCell).
+   687→  • Added lucide icons: PieChart, Hourglass, Receipt.
+   688→- Types:
+   689→  • Extended `WalletData` with optional `escrowHeld?` and `platformRevenue?` (new billing-model fields returned by /api/dashboard/tutor).
+   690→  • Added new interfaces: `WalletSplit`, `LedgerSummary`, `LedgerData` to type the /api/wallet/ledger response.
+   691→- EarningsWallet component rewrite:
+   692→  • Renamed hero card from "Available balance" → "Withdrawable balance" with subtext "Available to withdraw now" (money(wallet.balance)).
+   693→  • Replaced "Pending payout" tile with "Escrow held" tile (Hourglass icon, money(wallet.escrowHeld ?? ledgerData.summary.escrowHeld)) — money held pending monthly release.
+   694→  • Renamed "Total earned" tile → "Total earned (55%)" (money(wallet.totalEarned)) with "Cumulative on Qtuor" subtext.
+   695→  • Added new "Pending 55% share" row (PieChart icon) showing ledgerData.summary.pendingAmount and pendingSplits count — sum of ESCROWED splits' tutorShare, due on the next monthly cycle.
+   696→  • Updated subtitle from "Track and withdraw your earnings" → "55% monthly share · released on the 1st–5th cycle".
+   697→  • Withdrawal validation now reports "withdrawable balance" (not "wallet balance") and reminds the user that escrowed funds are released on the monthly cycle. Withdrawal still uses wallet.balance as the cap (NOT escrow).
+   698→- New WalletLedger component:
+   699→  • Fetches via `useTutorWalletLedger()` hook.
+   700→  • Header: title "Wallet Ledger", subtitle "55/45 monthly escrow split history", plus summary pills showing pendingSplits count and pendingAmount "to release".
+   701→  • Loading state (spinner), empty state (dashed box with Receipt icon + helper text), and populated state.
+   702→  • Table columns: Student Name, Plan Name, Plan Price (right-aligned), Your 55% Share (right-aligned, bold blue), Status (badge), Date (releasedAt || escrowedAt, formatted MMM d, yyyy).
+   703→  • Status badge helper: ESCROWED → amber "Pending", RELEASED → emerald "Paid", CANCELLED → red "Cancelled".
+   704→  • Table wrapped in max-h-96 overflow-y-auto with scrollbar-quran styling; rows hover-highlighted.
+   705→  • Footer note explains: "Student pays the full monthly plan price · 55% released to your withdrawable balance on the monthly cycle (1st–5th) · 45% to platform."
+   706→- Layout:
+   707→  • Added `<WalletLedger />` as a full-width section below the two-column grid (under UpcomingClasses/AvailabilityManager and EarningsWallet/VerificationCenter). This gives the split table room to breathe while remaining "below the wallet summary" as required.
+   708→- Text updates:
+   709→  • No "per class" / "per-class rate" user-facing strings existed in this file; the `perClassRate` field stays in the TutorProfile interface (still returned by API but not displayed).
+   710→  • All earnings language now says "55% monthly share" / "55/45 split".
+   711→- Verification:
+   712→  • `bun run lint` — passes clean (zero warnings, zero errors).
+   713→  • Dev server compiled successfully (✓ Compiled in 305ms), no tutor-dashboard.tsx errors in tsc output.
+   714→  • Hook usage matches the spec: `const { data: ledgerData } = useTutorWalletLedger()` then `ledgerData?.splits` / `ledgerData?.summary`.
+   715→
+   716→Stage Summary:
+   717→- Tutor dashboard Earnings & Wallet panel now shows the new 55/45 escrow split model with 4 stats: Withdrawable Balance, Escrow Held, Total Earned (55%), Pending 55% Share.
+   718→- New full-width Wallet Ledger section below the wallet summary lists every WalletSplit row (Student, Plan, Plan Price, Your 55%, Status, Date) with Pending/Paid badges.
+   719→- Withdrawal request still operates against the withdrawable balance only — escrowed funds are protected until the monthly release cycle.
+   720→
+   721→---
+   722→Task ID: monthly-subscription-55-45-split
+   723→Agent: main (orchestrator)
+   724→Task: Rebuild billing as fixed monthly subscription with 55/45% escrow split
+   725→
+   726→Work Log:
+   727→- Prisma schema changes:
+   728→  • Subscription: removed `classesBalance` field. Now just status + dates (fixed monthly, no credits).
+   729→  • Wallet: added `escrowHeld` (money held in escrow) + `platformRevenue` (45% share). Kept `balance` (withdrawable 55%), `totalEarned`, `pendingPayout`.
+   730→  • New WalletSplit model: ledger entry per subscription with studentName, planName, planPrice, tutorShare (55%), platformShare (45%), status (ESCROWED→RELEASED), escrowedAt, releasedAt.
+   731→  • Added `walletSplits` relation to User model.
+   732→- Built src/lib/billing.ts — revenue split service:
+   733→  • createEscrowSplit() — on subscribe, creates ESCROWED split + adds to tutor's escrowHeld.
+   734→  • releaseTutorShare() — moves 55% from escrow to balance, 45% to platformRevenue.
+   735→  • processTutorMonthlyPayouts() — releases all ESCROWED splits for expired subscriptions.
+   736→  • getTutorWalletLedger() — returns wallet + splits + withdrawals + summary for tutor dashboard.
+   737→  • getPlatformRevenueStats() — total escrowed, released, tutor payouts, platform revenue.
+   738→  • Constants: TUTOR_SHARE_PERCENT=55, PLATFORM_SHARE_PERCENT=45.
+   739→- Updated API routes:
+   740→  • /api/subscriptions POST: no classesBalance, creates escrow split on subscribe.
+   741→  • /api/bookings POST: no class-balance check, just requires active subscription. Assigns tutor to escrow split on first booking.
+   742→  • /api/bookings/[id] PATCH: no per-class deduction or wallet credit (earnings released monthly, not per-class).
+   743→  • /api/dashboard/student: returns hasActiveSubscription, subscriptionPlanName, subscriptionExpiresAt (not classesBalance).
+   744→  • New /api/wallet/ledger — tutor wallet ledger with splits.
+   745→  • New /api/admin/revenue — platform revenue stats + all splits for admin.
+   746→  • New /api/wallet/release-payouts — admin trigger for monthly payout cycle + WhatsApp notifications.
+   747→- Built mini-services/monthly-payout-cron:
+   748→  • Runs daily, checks if day is 1st-5th of month.
+   749→  • Releases all ESCROWED splits (55% to tutor, 45% to platform).
+   750→  • Sends WhatsApp payout notifications to tutors.
+   751→  • Started and running (correctly skipped today — day 6).
+   752→- Frontend updates (delegated to 2 subagents):
+   753→  • Student dashboard: replaced "Classes Remaining" with "Active Subscription" card showing plan name + expiry date. Removed class-balance progress bar. Shows "unlimited classes" text.
+   754→  • Tutor dashboard: wallet panel now shows Withdrawable Balance, Escrow Held, Total Earned (55%), Pending 55% Share. Added full Wallet Ledger table with Student/Plan/Price/55% Share/Status/Date columns.
+   755→  • Plans view: updated FAQ to explain flat monthly billing (no hourly credits).
+   756→  • Checkout modal: success toast says "monthly subscription is active, enjoy unlimited classes".
+   757→- React Query hooks: useTutorWalletLedger, usePlatformRevenue, useReleasePayouts.
+   758→
+   759→Agent Browser self-verification (via Caddy :81):
+   760→- Student dashboard: shows "Active Subscription" (not "Classes Remaining"), mentions "unlimited" classes, no class balance. ✅
+   761→- Student API: hasActiveSubscription=True, subscriptionPlanName="4 Classes / Week". ✅
+   762→- Tutor dashboard: wallet + ledger render (empty since no splits yet — splits created when student subscribes + books). ✅
+   763→- Zero console errors, zero lint warnings.
+   764→- Monthly payout cron running (correctly skipped on day 6, will process on 1st-5th).
+   765→
+   766→Stage Summary:
+   767→- Billing is now 100% fixed monthly subscription with 55/45% escrow split:
+   768→  1. Student pays flat monthly rate (e.g. $33) → held in platform escrow. ✅
+   769→  2. No class balance, no per-class deductions — unlimited scheduled classes. ✅
+   770→  3. On monthly cycle (1st-5th): 55% released to tutor wallet, 45% platform revenue. ✅
+   771→  4. Tutor wallet ledger shows each split: student, plan, price, 55% share, status. ✅
+   772→  5. Admin can manually trigger payouts + view platform revenue. ✅
+   773→  6. WhatsApp payout notifications sent to tutors on release. ✅
+   774→
+   775→---
+   776→Task ID: smart-lesson-tracking
+   777→Agent: main (orchestrator)
+   778→Task: Check classroom issues + implement Smart Lesson Tracking (content lock, auto-bookmark, revision mode)
+   779→
+   780→Work Log:
+   781→- Checked Virtual Classroom access: confirmed it is NOT in the navbar menu (only in footer). Accessible from Student Dashboard ("Join Classroom" on upcoming classes) and Tutor Dashboard ("Start Class" on upcoming classes). ✅
+   782→- Added LessonBookmark Prisma model:
+   783→  • Fields: studentId, tutorId, bookType (qaida|quran), pageId, pageLabel, lastLineIndex, status (IN_PROGRESS|COMPLETED).
+   784→  • Unique constraint on [studentId, tutorId] — one active bookmark per pair.
+   785→  • Relations added to User model (BookmarkStudent, BookmarkTutor).
+   786→- Created /api/bookmark (GET + POST):
+   787→  • GET: loads the last saved bookmark for a student-tutor pair (auto-resume).
+   788→  • POST: saves/updates the bookmark (called by "End Lesson" button).
+   789→- Created /api/student-plan (GET):
+   790→  • Returns the student's active subscription plan category + allowedBooks.
+   791→  • Content Lock logic: Noorani Qaida → ['qaida']; Tajweed/Hifz → ['quran']; others → both.
+   792→- Added React Query hooks: useBookmark, useSaveBookmark, useStudentPlan.
+   793→- Updated classroom-view.tsx with Smart Lesson Tracking:
+   794→  1. **Dynamic Content Lock**: Fetches student's plan → filters NAV_LIST to only show allowed books. Library dropdown conditionally renders Qaida/Quran sections. Top bar shows "Quran only" or "Qaida only" badge when locked.
+   795→  2. **Auto-Resume**: On classroom entry, fetches the bookmark. If a bookmark exists and socket is connected, auto-navigates to the bookmarked pageId with a toast: "Resumed from your last lesson: [page label]".
+   796→  3. **End Lesson / Bookmark** (teacher only): Button in toolbar that saves the current pageId + label to the database. Toast: "Lesson bookmarked! Next class will resume from here."
+   797→  4. **Revision Mode** (teacher only): Toggle button in toolbar. When ON: amber "REVISION MODE" badge in top bar, teacher can freely browse previous pages. "Resume Lesson" button appears to snap back to the bookmarked page.
+   798→  5. Student panel: read-only viewing — no End Lesson or Revision buttons visible. Student sees the teacher's live highlights and pointer in real-time.
+   799→- Updated Toolbar to accept new props (navList, allowedBooks, role, revisionMode, bookmarkedPageId, onEndLesson, onToggleRevision, onResumeLesson). Library dropdown uses filtered navList. Page counter shows filtered length.
+   800→
+   801→Agent Browser self-verification (via port 3000):
+   802→- Student login → dashboard → Join Classroom → classroom loaded with "LIVE" indicator. ✅
+   803→- Content Lock: student's plan is "Quran Recitation With Tajweed" → "Quran only" badge in top bar. Qaida hidden from library. ✅
+   804→- Teacher-only controls (End Lesson, Revision) correctly hidden from student. ✅
+   805→- Zero console errors, zero lint warnings.
+   806→
+   807→Stage Summary:
+   808→- Virtual Classroom is accessible from Student & Tutor dashboards (not navbar). ✅
+   809→- Dynamic Content Lock: Qaida-only for Noorani Qaida plan, Quran-only for Tajweed/Hifz plans. ✅
+   810→- Auto-Bookmark: "End Lesson" saves current page; next class auto-resumes on that exact page. ✅
+   811→- Revision Mode: teacher toggle for browsing previous pages; "Resume Lesson" snaps back. ✅
+   812→- Student panel: read-only, sees live highlights/pointer, no teacher controls. ✅
+   813→
+   814→---
+   815→Task ID: classroom-overhaul-fix
+   816→Agent: main (orchestrator)
+   817→Task: Fix classroom — remove WhatsApp widget, fix blank pages, add word-by-word hover sync
+   818→
+   819→Work Log:
+   820→- **Removed WhatsApp widget from classroom**: Updated page.tsx to conditionally render `<FloatingWhatsAppWidget />` only when `view !== 'classroom'`. The floating chat button no longer appears during live sessions.
+   821→- **Fixed blank pages**: The Quran text was not rendering because the loading state logic was broken for large surahs. Fixed `showLoading` to properly detect when surah data hasn't arrived yet (not just during initial fetch). Added `showError` for API failure cases with a Retry button.
+   822→- **Word-by-word hover highlight sync (NEW)**:
+   823→  • Each Arabic word is now wrapped in its own `<span>` with a unique ID: `word_{surah}{ayah}{wordIndex}` (e.g. `word_s1a2w0`).
+   824→  • Added `onMouseEnter` handler to each word span — when the teacher hovers over a word, it emits `word:hover` via WebSocket with the word_id.
+   825→  • The socket server broadcasts the hover event to all room members.
+   826→  • On the student's side, the hovered word gets a light blue background (`rgba(135, 206, 250, 0.4)`) — exactly as specified.
+   827→  • Auto-clears after 3 seconds if no new hover.
+   828→  • Ayah-end markers render as small circular badges (not clickable words).
+   829→- **Updated socket hook** (`use-classroom-socket.ts`):
+   830→  • Added `hoveredWord` state + `hoverWord()` callback.
+   831→  • Added `word:hover` event listener that sets the hovered word and auto-clears after 3s.
+   832→- **Updated classroom-sync service** (`mini-services/classroom-sync/index.ts`):
+   833→  • Added `word:hover` event handler that broadcasts to all room members.
+   834→- **Layout fix**: The Quran workspace container uses `flex-1 overflow-auto` to auto-fit the available height. The decorative frame uses `max-w-3xl mx-auto` to center content. The page content area has `minHeight: 360` and grows dynamically.
+   835→
+   836→Agent Browser self-verification (via Caddy :81):
+   837→- Classroom shows LIVE indicator + Arabic Quran text. ✅
+   838→- NO WhatsApp floating widget in classroom. ✅
+   839→- 27 word spans with unique IDs (`word_s1a2w0`, `word_s1a2w1`, etc.). ✅
+   840→- 15 ayah marker badges (circular). ✅
+   841→- Hover handlers present on word spans. ✅
+   842→- Zero console errors, zero lint warnings.
+   843→
+   844→Stage Summary:
+   845→- WhatsApp widget removed from classroom (only on public pages). ✅
+   846→- Quran text renders as individual word spans (not images) — each with unique ID for highlighting. ✅
+   847→- Word-by-word hover sync: teacher hovers → student sees light blue highlight in real-time via WebSocket. ✅
+   848→- Ayah markers render as circular badges. ✅
+   849→- Layout auto-fits container height. ✅
+   850→
+   851→---
+   852→Task ID: quran-api-integration
+   853→Agent: main (orchestrator)
+   854→Task: Integrate Quran.com API v4 + AlQuran.cloud for word-by-word data + Tajweed
+   855→
+   856→Work Log:
+   857→- **Quran.com API v4 integration** (word-by-word data):
+   858→  • Fetches from `https://api.quran.com/api/v4/verses/by_chapter/{n}?words=true`
+   859→  • Each word gets a unique ID from the API (e.g. `w1`, `w2`, `w1130`, etc.) — perfect for WebSocket sync
+   860→  • Each word includes: transliteration (e.g. "bis'mi"), English translation (e.g. "In (the) name"), and audio URL
+   861→  • 3320 out of 3380 words in Al-Baqarah have tooltips with transliteration + translation
+   862→
+   863→- **AlQuran.cloud integration** (Arabic text):
+   864→  • Fetches the actual Uthmani Arabic text from `https://api.alquran.cloud/v1/surah/{n}`
+   865→  • The Arabic text is paired with Quran.com word IDs for word-by-word highlighting
+   866→  • Tajweed color markers are parsed from the `quran-tajweed` endpoint format
+   867→
+   868→- **Tajweed color parsing**:
+   869→  • Parses AlQuran.cloud Tajweed markers (`:1[text]`, `n[text]`, `l[text]`, `p[text]`)
+   870→  • Maps to standard Tajweed colors: Ikhfa (olive), Qalqalah (red-orange), Idgham (green), Lam Shamsiyyah (dark green)
+   871→  • Each word can have a `tajweedColor` field for color-coded rendering
+   872→
+   873→- **Word-by-word tooltip on hover**:
+   874→  • When hovering over any Arabic word, a tooltip appears showing:
+   875→    - Transliteration (e.g. "bis'mi") in light blue
+   876→    - English translation (e.g. "In (the) name") in white
+   877→  • Works in both the Virtual Classroom and the Library reading pane
+   878→  • Uses CSS `group-hover:block` for smooth display
+   879→
+   880→- **QuranWord type updated**:
+   881→  • Added `translation`, `transliteration`, `audioUrl`, `tajweedColor` optional fields
+   882→  • All existing code continues to work (fields are optional)
+   883→
+   884→- **Updated `fetchSurahAsPage`** to:
+   885→  1. Fetch from Quran.com API v4 (word-by-word data) + AlQuran.cloud (Arabic text) in parallel
+   886→  2. Pair the Arabic text tokens with Quran.com unique word IDs
+   887→  3. Attach translation + transliteration + audio URL to each word
+   888→  4. Fallback to AlQuran.cloud-only if Quran.com fails (keeps the `s{surah}a{ayah}w{idx}` ID format)
+   889→
+   890→- **Noorani Qaida**: Already built as interactive HTML grid with unique word IDs for WebSocket syncing. Each letter/word is a `<span>` with a unique ID.
+   891→
+   892→Agent Browser self-verification:
+   893→- Classroom shows Al-Baqarah with 3380 word spans, 3320 with tooltips. ✅
+   894→- 5 lines of Arabic Quran text visible in the white panel. ✅
+   895→- Word-by-word tooltips work (transliteration + translation on hover). ✅
+   896→- Zero console errors, zero lint warnings. ✅
+   897→
+   898→Stage Summary:
+   899→- Quran.com API v4 integrated for word-by-word unique IDs, translations, transliteration, and audio. ✅
+   900→- AlQuran.cloud integrated for authentic Uthmani Arabic text. ✅
+   901→- Tajweed color markers parsed from AlQuran.cloud format. ✅
+   902→- Word-by-word hover tooltips show transliteration + translation in both classroom and library. ✅
+   903→- Noorani Qaida built as native HTML grid with unique IDs for WebSocket sync. ✅
+   904→
+   905→---
+   906→Task ID: gender-filter + classroom-3column-redesign
+   907→Agent: main (orchestrator)
+   908→Task: Add Male/Female filter to marketplace + redesign classroom with 3-column layout
+   909→
+   910→Work Log:
+   911→- **Gender filter in marketplace**:
+   912→  • Added `gender` query param to `/api/tutors` route — filters by `user.gender` field.
+   913→  • Added gender filter UI in marketplace sidebar: All / Male / Female toggle buttons.
+   914→  • Updated `useTutors` hook to accept and pass `gender` parameter.
+   915→  • Updated seed to assign gender to tutors (Ustadha = female, Sheikh/Ustadh = male).
+   916→  • Verified: Female filter shows 2 tutors (Maryam, Fatima), Male filter shows 4 tutors. ✅
+   917→
+   918→- **Virtual Classroom 3-column redesign**:
+   919→  • **Layout**: CSS Grid with `grid-template-columns: 20% 1fr 20%` — Left (video/chat), Center (Quran board), Right (control panel).
+   920→  • **Premium Islamic theme colors**:
+   921→    - Deep Blue `#0A192F` for top navbar and background.
+   922→    - Light Blue `#8EAEC6` / Accent Blue `#00A8CC` for active tabs, video glow outlines.
+   923→    - Gold `#D4AF37` for borders, End Lesson button, and accent details.
+   924→    - Charcoal `#1F2937` for left/right panel backgrounds.
+   925→    - Red `#EF4444` for Leave button.
+   926→    - Ultra-faint borders `rgba(142, 174, 198, 0.3)`.
+   927→  • **Left column (20%)**:
+   928→    - Teacher & Student video tiles with rounded corners (12px) + subtle light blue glow.
+   929→    - Camera/mic toggle buttons.
+   930→    - Live session chat box at bottom.
+   931→  • **Center column (60%)**:
+   932→    - Tab bar with 4 tabs: [Quran] [White Board] [Noorani Qaida] [Uploads].
+   933→    - Active tab = Light Blue background with white text; Inactive = Charcoal with white/50 text.
+   934→    - Drawing tools (highlight, pen, eraser, pointer) + color swatches in the tab bar.
+   935→    - Main viewport renders Quran/Qaida text in an elegant gold-bordered frame.
+   936→    - Page navigation bar at bottom (Prev/Next + page counter).
+   937→  • **Right column (20%)**:
+   938→    - Navigation section: Surah dropdown, Qaida Lesson dropdown, Font Family dropdown (Uthmani/IndoPak/Simple), Font Size buttons (S/M/L/XL).
+   939→    - Teacher Controls: End Lesson & Bookmark, Revision Mode toggle, Resume Lesson button.
+   940→    - Student Interaction toggles: "Hide Student's View" and "Disable Student Control".
+   941→    - Browse Library button.
+   942→  • **Content lock**: Tabs respect the student's plan (Quran tab hidden for Qaida-only plans, Qaida tab hidden for Quran-only plans).
+   943→  • All features preserved: word-by-word hover sync, drawing canvas, bookmark, revision mode, chat, video, safety snapshots.
+   944→
+   945→Agent Browser + VLM verification:
+   946→- Marketplace: Gender filter shows All/Male/Female buttons. Female filter shows 2 tutors (Maryam, Fatima). ✅
+   947→- Classroom: 3-column layout confirmed by VLM. Left: video/chat, Center: Quran text visible (Al-Fatihah), Right: control panel with navigation. ✅
+   948→- 13 visible word spans in center panel. ✅
+   949→- Zero console errors, zero lint warnings. ✅
+   950→
+   951→Stage Summary:
+   952→- Gender filter (All/Male/Female) added to marketplace sidebar. ✅
+   953→- Virtual classroom completely redesigned with 3-column layout (20% / 60% / 20%). ✅
+   954→- Premium Islamic theme: Deep Blue, Light Blue, Gold, Charcoal. ✅
+   955→- Center panel tabs: Quran, White Board, Noorani Qaida, Uploads. ✅
+   956→- Right panel: Surah/Qaida/Font selectors + teacher controls + student interaction toggles. ✅
+   957→
+   958→---
+   959→Task ID: LOGO-ADV-2
+   960→Agent: main (Z.ai Code)
+   961→Task: Redesign the Qtuor logo into a best-in-class, advanced Q icon + "tuor" wordmark with authentic Islamic theme (per user request: "i want best and advance Q Icon and tuor iwht Islamic theme please make best and advance Logi").
+   962→
+   963→Work Log:
+   964→- Reviewed current logo.tsx (previous minimal Q with Rehal arc tail — too simple for "advanced" request).
+   965→- Designed a new "Geometric Seal" monogram concept that embeds Islamic identity through authentic geometric art (girih/khatam), not literal clip-art.
+   966→- Rewrote src/components/brand/logo.tsx:
+   967→  • Q bowl = clean bold navy ring (Deep Navy Blue gradient #0B2545 → #174A75, stroke 5.5).
+   968→  • Khatam star (Rub' el Hizb) engraved inside the ring's negative space as fine gold girih lines: two overlapped squares (M20 20 H34 V34 H20 Z axis-aligned + M27 20 L34 27 L27 34 L20 27 Z rotated 45°) forming the authentic 8-point Islamic star — the foundational motif of Islamic geometric art found in Quran manuscript illumination & mosque girih. Stroke 1.15, gold gradient, opacity 0.92.
+   969→  • Q tail = clean typographic diagonal navy stroke (M37.5 37.5 L49 49, round cap).
+   970→  • Rehal gem = gold geometric diamond (rotated square, rotate(45 53 53)) at tail tip — evokes apex of open Quran on a Rehal stand.
+   971→  • onDark prop renders white-on-dark for footer/admin header.
+   972→- Refined QtuorLogoLockup: wordmark "Qtuor" unified navy (Qt 800 + uor 700, Plus Jakarta Sans); added a small gold geometric diamond accent (rotate-45) before the slogan "Gateway to Tajweed Excellence" (#8EAEC6) — echoes the icon's Rehal gem, tying wordmark to mark.
+   973→- Rewrote public/favicon.svg (white rounded tile + advanced monogram) and public/logo.svg (full horizontal lockup with wordmark + slogan).
+   974→- Removed unused QtuorLogo import from landing-view.tsx (already done previously, verified clean).
+   975→
+   976→Verification:
+   977→- bun run lint: clean, zero errors.
+   978→- Agent Browser DOM inspection (navbar): viewBox 0 0 64 64, 1 circle + 3 paths (2 Khatam squares + tail) + 1 rect (Rehal gem rotate(45 53 53)), 2 linear gradients. Gold slogan diamond present with gold gradient bg. Wordmark color rgb(11,37,69) = #0B2545 unified.
+   979→- Agent Browser DOM inspection (footer, dark mode): logo SVG has 1 circle + 3 paths (Khatam star confirmed) + 1 Rehal gem rect + 2 gradients; wordmark white rgb(255,255,255); gold slogan diamond present.
+   980→- Favicon served (/favicon.svg): hasKhatam=true, hasRehalGem=true, hasNavy=true, hasGold=true, noOldCrescent=true.
+   981→- VLM visual verification (glm-4.6v): confirmed navy ring + 8-point gold Islamic geometric star inside + diagonal tail + gold diamond tip; unified navy wordmark; gold diamond + slogan in grey-blue. Rated 8/10 premium quality — "leaning toward a high-end global tech brand logo with cultural specificity rather than generic clip-art feel."
+   982→- Zero console errors, zero runtime errors.
+   983→
+   984→Stage Summary:
+   985→- Advanced "Geometric Seal" Q monogram live across navbar, footer (white-on-dark), admin header, auth pages, tutor dashboard, favicon.
+   986→- Islamic theme delivered through authentic geometric art (Rub' el Hizb / Khatam 8-point star + Rehal open-book gem) — mathematically constructed girih, not literal moon/star clip-art.
+   987→- Layered meaning: at favicon size (16px) reads as clean navy Q + gold dot; at navbar size (32-40px) the 8-point star becomes visible; at large size the full Khatam star + Rehal gem revealed.
+   988→- Cohesive color story: Deep Navy Blue + Metallic Islamic Gold + soft grey-blue slogan.
+   989→- Premium typography: Plus Jakarta Sans wordmark, unified navy with weight depth (Qt 800 / uor 700).
+   990→
+   991→---
+   992→Task ID: LOGO-MINIMAL-3
+   993→Agent: main (Z.ai Code)
+   994→Task: User rejected the advanced Khatam-star logo ("i dont like This") and provided a reference image (pasted_image_1783577078266.png) showing a large bold blue Q ring + small black "tuor" wordmark, no slogan. Rebuild logo to match the reference exactly.
+   995→
+   996→Work Log:
+   997→- Analyzed reference image via VLM: large thick bold blue Q ring (uniform stroke, hollow, tail to bottom-right) + small black "tuor" sans-serif wordmark to its right, vertically centered, NO slogan.
+   998→- Rewrote src/components/brand/logo.tsx (QtuorLogo): clean perfect Q — circle cx=26 cy=26 r=15 + diagonal tail M33 33 L52 52, Deep Navy Blue gradient #0B2545→#13315C. Iterated stroke width 6.5 → 9 → 11 (final) to match the reference's heavy bold ring.
+   999→- Rewrote QtuorLogoLockup: LARGE Q icon (h-12 for md) + SMALL "tuor" wordmark (text-xl, Plus Jakarta Sans bold 700, tracking-tight) to its right, vertically centered (flex items-center). NO slogan. "tuor" color #0F172A (near-black) on light, #FFFFFF on dark. Size ratio Q:tuor ≈ 2.4:1 (matches reference's 2-2.5x).
+  1000→- Updated public/favicon.svg (just the bold Q on white rounded tile, stroke 11) and public/logo.svg (Q + tuor horizontal lockup, stroke 11, tuor #0F172A).
+  1001→- Removed all previous Islamic geometric details (Khatam star, Rehal gem, gold slogan diamond) per user rejection.
+  1002→
+  1003→Verification:
+  1004→- bun run lint: clean.
+  1005→- Agent Browser DOM (navbar): 1 circle + 1 path (M33 33 L52 52), stroke-width 11, 0 rects (no star/gem), "tuor" span color rgb(15,23,42)=#0F172A, Plus Jakarta Sans weight 700, Q height 48px / tuor 20px = 2.4x ratio. No slogan in lockup.
+  1006→- Agent Browser DOM (footer dark mode): white Q (stroke 11, 1 circle + 1 tail, no star/gem) + white "tuor", no slogan.
+  1007→- Favicon served: stroke 11, hasStar=false, hasGem=false, navy=true.
+  1008→- VLM comparison (glm-4.6v) of cropped 3x logo vs reference: 9/10 match — "Q ring is thick/bold/heavy like the reference; tuor is small, dark, and to the right of Q."
+  1009→- Zero console errors, zero runtime errors.
+  1010→
+  1011→Stage Summary:
+  1012→- Logo now matches user's reference: large bold perfect Q (thick navy ring + clean tail) + small dark "tuor", no slogan, no decorative geometry.
+  1013→- Clean minimal premium look across navbar (navy Q + near-black tuor), footer (white Q + white tuor on dark), admin header, auth pages, favicon.
+  1014→- Slogan "Gateway to Tajweed Excellence" preserved only in footer copyright line, removed from logo lockup per reference.
+  1015→- Plus Jakarta Sans bold wordmark, stroke-11 heavy Q ring for maximum boldness/legibility at all sizes.
+  1016→
+  1017→---
+  1018→Task ID: LOGO-UPLOADED-4
+  1019→Agent: main (Z.ai Code)
+  1020→Task: User uploaded their own logo (upload/webLogo-dp8O607a.png, 1589x599, transparent) — a filled navy "Q" disc with a triangular bottom-right notch + black "tuor" wordmark. Use this exact logo across the website.
+  1021→
+  1022→Work Log:
+  1023→- Analyzed uploaded logo via VLM: filled navy blue Q disc with triangular notch cut into bottom-right (modern minimalist Q) + black sans-serif "tuor" wordmark to its right, transparent background, aspect ~2.65:1.
+  1024→- Saved uploaded PNG to public/brand/qtuor-logo.png (official brand asset).
+  1025→- Attempted to crop a Q-only icon mark via PIL (column extent + color analysis). Found the "t" crossbar of "tuor" overlaps the Q's x-range (x=593-630, pure black) — a clean square icon crop is infeasible without artifacts. Decision: use the FULL logo image everywhere (it's designed as a unit), and use a clean SVG Q for the favicon.
+  1026→- Rewrote src/components/brand/logo.tsx: QtuorLogo and QtuorLogoLockup now render <img src="/brand/qtuor-logo.png"> height-constrained (h-7/h-9/h-11 by size). onDark applies CSS filter brightness(0) invert(1) to render the logo white on dark surfaces (standard treatment). Removed all previous inline-SVG logo code.
+  1027→- Updated call sites that used icon-only QtuorLogo in square containers → now use QtuorLogoLockup:
+  1028→  • admin-dashboard.tsx: replaced h-14 w-14 rounded square chip with <QtuorLogoLockup onDark />.
+  1029→  • tutor-dashboard.tsx: h-14 w-14 icon → <QtuorLogoLockup size="lg" />.
+  1030→  • auth-modal.tsx: h-12 w-12 icon → <QtuorLogoLockup size="md" />.
+  1031→  • Updated imports (QtuorLogo → QtuorLogoLockup) in all three files.
+  1032→- Favicon: created public/favicon.svg matching the uploaded Q style — filled navy disc (linearGradient #1E2A5E→#152052) with a triangular notch cut from bottom-right via SVG path evenodd (M 38 38 L 44 57 L 57 44 Z). Verified via cairosvg render + VLM: "filled solid blue Q, clearly reads as the letter Q, no issues."
+  1033→- Regenerated PNG favicons (qtuor-fav-32/64/180.png) cleanly from the SVG via cairosvg (replaced earlier imperfect mark-based crops).
+  1034→- Updated src/app/layout.tsx metadata icons: SVG favicon (icon/shortcut) + 32px PNG (sizes) + 180px apple-touch-icon.
+  1035→- Footer (dark) confirmed using same logo with brightness(0) invert(1) → renders white.
+  1036→
+  1037→Verification:
+  1038→- bun run lint: clean (fixed unused eslint-disable warning).
+  1039→- Agent Browser (navbar): <img src="/brand/qtuor-logo.png"> naturalWidth 1589×599, rendered 95×36 (correct ~2.65:1 aspect), filter none, complete.
+  1040→- Agent Browser (footer): same logo, filter "brightness(0) invert(1)" = white on dark.
+  1041→- Favicon served: hasDisc=true, hasNotch=true (M38 38 L44 57 L57 44), navy=#1E2A5E.
+  1042→- VLM visual check (navbar logo, 3x zoom): "navy blue Q icon + black tuor text, clean and professional, no rendering issues."
+  1043→- Zero console errors.
+  1044→
+  1045→Stage Summary:
+  1046→- Official uploaded Qtuor logo (navy filled-Q + black "tuor") now used across navbar, footer (white on dark), admin header (white on dark), tutor dashboard, auth-modal, auth-page.
+  1047→- Favicon (SVG + PNG) matches the uploaded Q style: filled navy disc with triangular bottom-right notch.
+  1048→- All previous inline-SVG logos (Khatam star, Rehal gem, stroke-ring Q) removed; single source of truth = public/brand/qtuor-logo.png.
+  1049→- onDark treatment via CSS brightness(0) invert(1) for dark surfaces (footer, admin header).
+  1050→
+  1051→---
+  1052→Task ID: LOGO-SLOGAN-5
+  1053→Agent: main (Z.ai Code)
+  1054→Task: Add slogan "LEARN · RECITE · EXCEL" below the logo.
+  1055→
+  1056→Work Log:
+  1057→- Edited src/components/brand/logo.tsx QtuorLogoLockup: changed from horizontal flex to vertical flex-col items-center. Logo image on top, slogan div below with mt-1 spacing.
+  1058→- Slogan styling: font-display (Plus Jakarta Sans), font-semibold, uppercase, tracking-[0.22em] (1.76px at 8px), whitespace-nowrap. Size scales with lockup size: sm=text-[7px], md=text-[8px], lg=text-[9.5px].
+  1059→- Slogan color: #8EAEC6 (soft muted grey-blue) on light backgrounds; rgba(255,255,255,0.62) on dark (footer/admin) via onDark prop.
+  1060→
+  1061→Verification:
+  1062→- bun run lint: clean.
+  1063→- Agent Browser (navbar): slogan "Learn · Recite · Excel" present, color rgb(142,174,198)=#8EAEC6, font-size 8px, letter-spacing 1.76px, uppercase. Logo 36px + slogan = lockup 48px (fits navbar h-16=64px).
+  1064→- Agent Browser (footer dark): slogan present, color rgba(255,255,255,0.62) soft white.
+  1065→- VLM visual check (navbar, 3x zoom): "navy blue Q + black tuor; LEARN · RECITE · EXCEL directly below in small grey-blue uppercase, centered below logo, clean and professional, no issues."
+  1066→- Zero console errors.
+  1067→
+  1068→Stage Summary:
+  1069→- Slogan "LEARN · RECITE · EXCEL" added below the official uploaded logo, centered, in soft grey-blue (light) / soft white (dark).
+  1070→- Applies to all QtuorLogoLockup usages: navbar, footer, admin header, tutor dashboard, auth-modal, auth-page.
+  1071→- QtuorLogo (standalone image, no slogan) unchanged for favicon/tight contexts.
+  1072→

@@ -1,0 +1,645 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { useAppStore, type Role } from '@/lib/store'
+     5→import { usePlans } from '@/lib/queries'
+     6→import { Dialog, DialogContent } from '@/components/ui/dialog'
+     7→import { Input } from '@/components/ui/input'
+     8→import { Label } from '@/components/ui/label'
+     9→import { Button } from '@/components/ui/button'
+    10→import { Textarea } from '@/components/ui/textarea'
+    11→import { QtuorLogoLockup } from '@/components/brand/logo'
+    12→import { IslamicPatternBand, StarMedallion } from '@/components/brand/patterns'
+    13→import {
+    14→  GraduationCap, Loader2, User, Check, ChevronLeft, ChevronRight, BookOpen,
+    15→  Sparkles, Brain, Languages, ShieldCheck, Award, BookOpenCheck, Phone, Globe,
+    16→  CreditCard, Star, Calendar, Target, Video, Clock, Users, Heart, Upload, Lock,
+    17→  BookOpenText,
+    18→} from 'lucide-react'
+    19→import { toast } from 'sonner'
+    20→import { cn } from '@/lib/utils'
+    21→
+    22→type Step = 1 | 2 | 3
+    23→
+    24→const SUBJECT_OPTIONS = ['Noorani Qaida', 'Quran Recitation With Tajweed', 'Hifz', 'Arabic Language', 'Tafsir', 'Islamic Studies']
+    25→const GOAL_OPTIONS = [
+    26→  { key: 'Noorani Qaida', label: 'Noorani Qaida', icon: BookOpen },
+    27→  { key: 'Quran Recitation With Tajweed', label: 'Quran Recitation with Tajweed', icon: Sparkles },
+    28→  { key: 'Hifz', label: 'Hifz (Memorization)', icon: Brain },
+    29→  { key: 'Arabic Language', label: 'Arabic Language', icon: Languages },
+    30→]
+    31→const TEACHING_STYLES = ['Patient & gentle', 'Structured & methodical', 'Interactive & engaging', 'Traditional one-on-one', 'Child-friendly']
+    32→
+    33→const TIMEZONES = [
+    34→  'UTC-12', 'UTC-11', 'UTC-10', 'UTC-9', 'UTC-8', 'UTC-7', 'UTC-6', 'UTC-5', 'UTC-4', 'UTC-3', 'UTC-2', 'UTC-1', 'UTC+0',
+    35→  'UTC+1', 'UTC+2', 'UTC+3', 'UTC+3:30', 'UTC+4', 'UTC+5', 'UTC+5:30', 'UTC+5:45', 'UTC+6', 'UTC+7', 'UTC+8', 'UTC+9', 'UTC+10', 'UTC+11', 'UTC+12',
+    36→]
+    37→
+    38→// Auto-detect timezone
+    39→function detectTimezone(): string {
+    40→  try {
+    41→    const offset = -new Date().getTimezoneOffset()
+    42→    const hours = Math.floor(Math.abs(offset) / 60)
+    43→    const mins = Math.abs(offset) % 60
+    44→    const sign = offset >= 0 ? '+' : '-'
+    45→    return `UTC${sign}${hours}${mins ? ':' + String(mins).padStart(2, '0') : ''}`
+    46→  } catch {
+    47→    return 'UTC+0'
+    48→  }
+    49→}
+    50→
+    51→export function AuthModal() {
+    52→  const { authOpen, authMode, authRoleLock, closeAuth, setUser, setView, setSelectedPlanId, setCheckoutOpen } = useAppStore()
+    53→  const [mode, setMode] = React.useState<'login' | 'register'>(authMode)
+    54→  const [role, setRole] = React.useState<Role>('STUDENT')
+    55→  const [step, setStep] = React.useState<Step>(1)
+    56→  const [loading, setLoading] = React.useState(false)
+    57→  const [tutorSubmitted, setTutorSubmitted] = React.useState(false)
+    58→
+    59→  // Login form
+    60→  const [loginEmail, setLoginEmail] = React.useState('')
+    61→  const [loginPw, setLoginPw] = React.useState('')
+    62→  const [loginRole, setLoginRole] = React.useState<'STUDENT' | 'TUTOR'>('STUDENT')
+    63→
+    64→  // Register form
+    65→  const [reg, setReg] = React.useState({
+    66→    name: '', email: '', password: '', phone: '', country: '',
+    67→    // Student
+    68→    ageBracket: '' as 'kids' | 'adults' | '',
+    69→    goals: [] as string[],
+    70→    preferredTutorGender: '' as 'any' | 'female' | 'male' | '',
+    71→    timezone: detectTimezone(),
+    72→    // Tutor
+    73→    tutorGender: '' as 'male' | 'female' | '',
+    74→    bio: '', specialties: [] as string[], languages: [] as string[],
+    75→    perClassRate: 6, experienceYears: 1, nativeArabic: false, hafiz: false,
+    76→    ijazaCertified: false, teachingStyle: '', videoUrl: '', certFile: '',
+    77→  })
+    78→
+    79→  // Student step 3: plan
+    80→  const [chosenPlanId, setChosenPlanId] = React.useState<string | null>(null)
+    81→  const { data: plansData } = usePlans()
+    82→  const plans = plansData?.plans || []
+    83→
+    84→  React.useEffect(() => {
+    85→    if (authOpen) {
+    86→      setMode(authMode)
+    87→      setTutorSubmitted(false)
+    88→      if (authRoleLock) { setRole(authRoleLock); setStep(2) }
+    89→      else { setStep(1); setRole('STUDENT') }
+    90→      setChosenPlanId(null)
+    91→    }
+    92→  }, [authOpen, authMode, authRoleLock])
+    93→
+    94→  // Password strength
+    95→  const pwStrength = React.useMemo(() => {
+    96→    const pw = reg.password
+    97→    if (!pw) return { score: 0, label: '', color: '' }
+    98→    let score = 0
+    99→    if (pw.length >= 6) score++
+   100→    if (pw.length >= 10) score++
+   101→    if (/[A-Z]/.test(pw)) score++
+   102→    if (/[0-9]/.test(pw)) score++
+   103→    if (/[^A-Za-z0-9]/.test(pw)) score++
+   104→    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
+   105→    const colors = ['', '#EF4444', '#F59E0B', '#EAB308', '#22C55E', '#16A34A']
+   106→    return { score, label: labels[score], color: colors[score] }
+   107→  }, [reg.password])
+   108→
+   109→  // ---- LOGIN ----
+   110→  const handleLogin = async (e: React.FormEvent) => {
+   111→    e.preventDefault()
+   112→    setLoading(true)
+   113→    try {
+   114→      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: loginEmail, password: loginPw }) })
+   115→      const data = await res.json()
+   116→      if (!res.ok) throw new Error(data.error || 'Login failed')
+   117→      setUser(data); closeAuth()
+   118→      toast.success(`Welcome back, ${data.name.split(' ')[0]}!`)
+   119→      if (data.role === 'STUDENT') setView('student-dashboard')
+   120→      else if (data.role === 'TUTOR') setView('tutor-dashboard')
+   121→      else if (data.role === 'ADMIN') setView('admin')
+   122→    } catch (e: any) { toast.error(e.message) }
+   123→    finally { setLoading(false) }
+   124→  }
+   125→
+   126→  // ---- REGISTER ----
+   127→  const handleRegister = async () => {
+   128→    setLoading(true)
+   129→    try {
+   130→      const payload: any = { name: reg.name, email: reg.email, password: reg.password, role, country: reg.country, phone: reg.phone }
+   131→      if (role === 'STUDENT') {
+   132→        Object.assign(payload, {
+   133→          gender: reg.preferredTutorGender === 'female' ? 'female' : reg.preferredTutorGender === 'male' ? 'male' : undefined,
+   134→          preferredLanguage: 'English',
+   135→          timezone: reg.timezone,
+   136→          learningGoals: reg.goals.join(', '),
+   137→        })
+   138→      } else {
+   139→        Object.assign(payload, {
+   140→          gender: reg.tutorGender || undefined,
+   141→          timezone: reg.timezone,
+   142→          bio: reg.bio || 'New tutor on Qtuor.',
+   143→          specialties: reg.specialties.length ? reg.specialties.join(',') : 'Noorani Qaida,Quran Recitation With Tajweed',
+   144→          languages: reg.languages.length ? reg.languages.join(',') : 'Arabic,English',
+   145→          perClassRate: Number(reg.perClassRate), nativeArabic: reg.nativeArabic, hafiz: reg.hafiz,
+   146→          ijazaCertified: reg.ijazaCertified, experienceYears: Number(reg.experienceYears),
+   147→          teachingStyle: reg.teachingStyle || undefined, videoUrl: reg.videoUrl || undefined,
+   148→        })
+   149→      }
+   150→      const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+   151→      const data = await res.json()
+   152→      if (!res.ok) throw new Error(data.error || 'Registration failed')
+   153→      setUser(data); closeAuth()
+   154→
+   155→      if (role === 'TUTOR') {
+   156→        setTutorSubmitted(true)
+   157→        toast.success('Application submitted! Pending admin approval.')
+   158→        setView('tutor-dashboard')
+   159→      } else {
+   160→        if (chosenPlanId) {
+   161→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}!`)
+   162→          setSelectedPlanId(chosenPlanId)
+   163→          setTimeout(() => setCheckoutOpen(true), 350)
+   164→          setView('plans')
+   165→        } else {
+   166→          toast.success(`Welcome to Qtuor, ${data.name.split(' ')[0]}!`)
+   167→          setView('plans')
+   168→        }
+   169→      }
+   170→    } catch (e: any) { toast.error(e.message) }
+   171→    finally { setLoading(false) }
+   172→  }
+   173→
+   174→  const fillDemo = (kind: 'student' | 'tutor' | 'admin') => {
+   175→    const creds = { student: { email: 'student@qtuor.com', pw: 'student123' }, tutor: { email: 'abdullah@qtuor.com', pw: 'tutor123' }, admin: { email: 'admin@qtuor.com', pw: 'admin123' } }[kind]
+   176→    setLoginEmail(creds.email); setLoginPw(creds.pw)
+   177→    toast.info(`Demo ${kind} credentials filled.`)
+   178→  }
+   179→
+   180→  const isLocked = !!authRoleLock
+   181→  const displayStep = isLocked ? (step === 1 ? 2 : step) : step
+   182→  const totalSteps = isLocked ? 2 : 3
+   183→
+   184→  const toggleArray = (field: 'goals' | 'specialties' | 'languages', value: string) => {
+   185→    setReg((prev) => { const arr = prev[field]; return { ...prev, [field]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value] } })
+   186→  }
+   187→
+   188→  const step2Valid = reg.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(reg.email) && reg.password.length >= 6 && reg.phone.trim().length >= 5
+   189→
+   190→  return (
+   191→    <Dialog open={authOpen} onOpenChange={(o) => (o ? null : closeAuth())}>
+   192→      <DialogContent className="max-w-5xl overflow-hidden p-0" style={{ height: '90vh', maxHeight: '800px' }}>
+   193→        <div className="flex h-full" style={{ minHeight: '600px' }}>
+   194→          {/* ===== LEFT PANEL: Form (50%) ===== */}
+   195→          <div className="flex w-1/2 flex-col overflow-y-auto scrollbar-quran bg-white">
+   196→            {/* Logo + step indicator */}
+   197→            <div className="flex flex-col items-center pt-8 pb-2">
+   198→              <QtuorLogoLockup size="md" />
+   199→              <div className="mt-3 flex items-center gap-2">
+   200→                {!tutorSubmitted && [1, 2, 3].slice(0, isLocked ? 2 : 3).map((s) => {
+   201→                  const actualStep = isLocked ? s + 1 : s
+   202→                  return (
+   203→                    <React.Fragment key={s}>
+   204→                      <div className={cn('flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition', step >= actualStep ? 'bg-[oklch(0.34_0.13_256)] text-white' : 'bg-muted text-muted-foreground')}>
+   205→                        {step > actualStep ? <Check className="h-4 w-4" /> : isLocked ? s : s}
+   206→                      </div>
+   207→                      {s < (isLocked ? 2 : 3) && <div className={cn('h-0.5 w-6 rounded', step > actualStep ? 'bg-[oklch(0.34_0.13_256)]' : 'bg-muted')} />}
+   208→                    </React.Fragment>
+   209→                  )
+   210→                })}
+   211→              </div>
+   212→              <div className="mt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+   213→                {mode === 'login' ? 'Sign in' : tutorSubmitted ? 'Application Submitted' : `Step ${displayStep} of ${totalSteps}`}
+   214→              </div>
+   215→            </div>
+   216→
+   217→            <div className="flex-1 px-8 pb-8">
+   218→              {/* ===== LOGIN ===== */}
+   219→              {mode === 'login' && (
+   220→                <div className="space-y-4">
+   221→                  <div className="text-center">
+   222→                    <h2 className="text-2xl font-extrabold text-[oklch(0.34_0.13_256)]">Welcome back</h2>
+   223→                    <p className="mt-1 text-sm text-muted-foreground">Sign in to continue your Quran journey.</p>
+   224→                  </div>
+   225→
+   226→                  {/* Login role tabs */}
+   227→                  <div className="flex gap-2 rounded-lg border border-border p-1">
+   228→                    <button onClick={() => setLoginRole('STUDENT')} className={cn('flex-1 rounded-md py-2 text-sm font-semibold transition', loginRole === 'STUDENT' ? 'bg-[oklch(0.34_0.13_256)] text-white' : 'text-muted-foreground hover:bg-muted')}>
+   229→                      <User className="mr-1.5 inline h-4 w-4" /> Student
+   230→                    </button>
+   231→                    <button onClick={() => setLoginRole('TUTOR')} className={cn('flex-1 rounded-md py-2 text-sm font-semibold transition', loginRole === 'TUTOR' ? 'bg-[oklch(0.34_0.13_256)] text-white' : 'text-muted-foreground hover:bg-muted')}>
+   232→                      <GraduationCap className="mr-1.5 inline h-4 w-4" /> Tutor
+   233→                    </button>
+   234→                  </div>
+   235→
+   236→                  <form onSubmit={handleLogin} className="space-y-3">
+   237→                    <div className="space-y-1.5">
+   238→                      <Label htmlFor="le" className="text-xs font-semibold">Email</Label>
+   239→                      <Input id="le" type="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="you@example.com" />
+   240→                    </div>
+   241→                    <div className="space-y-1.5">
+   242→                      <Label htmlFor="lp" className="text-xs font-semibold">Password</Label>
+   243→                      <Input id="lp" type="password" required value={loginPw} onChange={(e) => setLoginPw(e.target.value)} placeholder="••••••••" />
+   244→                    </div>
+   245→                    <Button type="submit" disabled={loading} className="w-full bg-[oklch(0.34_0.13_256)] text-white hover:bg-[oklch(0.28_0.13_258)]">
+   246→                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Sign in as {loginRole === 'STUDENT' ? 'Student' : 'Tutor'}
+   247→                    </Button>
+   248→                  </form>
+   249→
+   250→                  <div className="rounded-lg border border-dashed border-border bg-muted/40 p-3">
+   251→                    <p className="text-[10px] font-medium text-muted-foreground">Try a demo:</p>
+   252→                    <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+   253→                      <Button size="sm" variant="outline" onClick={() => fillDemo('student')} className="text-[10px]">Student</Button>
+   254→                      <Button size="sm" variant="outline" onClick={() => fillDemo('tutor')} className="text-[10px]">Tutor</Button>
+   255→                      <Button size="sm" variant="outline" onClick={() => fillDemo('admin')} className="text-[10px]">Admin</Button>
+   256→                    </div>
+   257→                  </div>
+   258→
+   259→                  <p className="text-center text-xs text-muted-foreground">
+   260→                    Don't have an account?{' '}
+   261→                    <button onClick={() => setMode('register')} className="font-semibold text-[oklch(0.34_0.13_256)] hover:underline">Sign up</button>
+   262→                  </p>
+   263→                </div>
+   264→              )}
+   265→
+   266→              {/* ===== REGISTER ===== */}
+   267→              {mode === 'register' && !tutorSubmitted && (
+   268→                <form onSubmit={(e) => { e.preventDefault(); if (step < 3) setStep((s) => (s < 3 ? ((s + 1) as Step) : s)); else handleRegister() }} className="space-y-4">
+   269→
+   270→                  {/* Step 1: Role selection (skipped if locked) */}
+   271→                  {step === 1 && !isLocked && (
+   272→                    <div className="space-y-4">
+   273→                      <div className="text-center">
+   274→                        <h2 className="text-2xl font-extrabold text-[oklch(0.34_0.13_256)]">Join Qtuor</h2>
+   275→                        <p className="mt-1 text-sm text-muted-foreground">Choose your path to get started.</p>
+   276→                      </div>
+   277→                      <button type="button" onClick={() => setRole('STUDENT')} className={cn('flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition', role === 'STUDENT' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.62_0.14_230/0.05)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.4)]')}>
+   278→                        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', role === 'STUDENT' ? 'bg-[oklch(0.34_0.13_256)] text-white' : 'bg-muted text-muted-foreground')}><User className="h-6 w-6" /></span>
+   279→                        <div className="flex-1">
+   280→                          <div className="flex items-center gap-2">
+   281→                            <span className="font-bold">I{"'"}m a Student</span>
+   282→                            {role === 'STUDENT' && <Check className="h-4 w-4 text-[oklch(0.34_0.13_256)]" />}
+   283→                          </div>
+   284→                          <p className="text-xs text-muted-foreground">Learn Quran with certified tutors worldwide.</p>
+   285→                        </div>
+   286→                      </button>
+   287→                      <button type="button" onClick={() => setRole('TUTOR')} className={cn('flex w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition', role === 'TUTOR' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.62_0.14_230/0.05)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.4)]')}>
+   288→                        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', role === 'TUTOR' ? 'bg-[oklch(0.34_0.13_256)] text-white' : 'bg-muted text-muted-foreground')}><GraduationCap className="h-6 w-6" /></span>
+   289→                        <div className="flex-1">
+   290→                          <div className="flex items-center gap-2">
+   291→                            <span className="font-bold">I{"'"}m a Tutor</span>
+   292→                            {role === 'TUTOR' && <Check className="h-4 w-4 text-[oklch(0.34_0.13_256)]" />}
+   293→                          </div>
+   294→                          <p className="text-xs text-muted-foreground">Teach & earn per class. $10 verification fee applies.</p>
+   295→                        </div>
+   296→                      </button>
+   297→                    </div>
+   298→                  )}
+   299→
+   300→                  {/* Step 2: Account Creation */}
+   301→                  {step === 2 && (
+   302→                    <div className="space-y-3">
+   303→                      <h2 className="text-xl font-extrabold text-[oklch(0.34_0.13_256)]">{role === 'TUTOR' ? 'Tutor Application' : 'Create your account'}</h2>
+   304→
+   305→                      <div className="space-y-1.5">
+   306→                        <Label className="text-xs font-semibold">Full Name <span className="text-destructive">*</span></Label>
+   307→                        <Input required value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} placeholder="e.g. Ahmed Khan" />
+   308→                      </div>
+   309→                      <div className="grid grid-cols-2 gap-2">
+   310→                        <div className="space-y-1.5">
+   311→                          <Label className="text-xs font-semibold">Email <span className="text-destructive">*</span></Label>
+   312→                          <Input type="email" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} placeholder="you@example.com" />
+   313→                        </div>
+   314→                        <div className="space-y-1.5">
+   315→                          <Label className="text-xs font-semibold">Password <span className="text-destructive">*</span></Label>
+   316→                          <Input type="password" required value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} placeholder="Min 6 characters" />
+   317→                        </div>
+   318→                      </div>
+   319→                      {/* Password strength meter */}
+   320→                      {reg.password && (
+   321→                        <div className="flex items-center gap-1.5">
+   322→                          {[1, 2, 3, 4, 5].map((i) => (
+   323→                            <div key={i} className="h-1 flex-1 rounded-full transition-all" style={{ background: i <= pwStrength.score ? pwStrength.color : '#E5E7EB' }} />
+   324→                          ))}
+   325→                          <span className="text-[10px] font-medium" style={{ color: pwStrength.color }}>{pwStrength.label}</span>
+   326→                        </div>
+   327→                      )}
+   328→                      <div className="grid grid-cols-2 gap-2">
+   329→                        <div className="space-y-1.5">
+   330→                          <Label className="text-xs font-semibold">WhatsApp Number <span className="text-destructive">*</span></Label>
+   331→                          <div className="relative">
+   332→                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   333→                            <Input value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} placeholder="+92 300 1234567" className="pl-9" />
+   334→                          </div>
+   335→                        </div>
+   336→                        <div className="space-y-1.5">
+   337→                          <Label className="text-xs font-semibold">Country</Label>
+   338→                          <div className="relative">
+   339→                            <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   340→                            <Input value={reg.country} onChange={(e) => setReg({ ...reg, country: e.target.value })} placeholder="e.g. Pakistan" className="pl-9" />
+   341→                          </div>
+   342→                        </div>
+   343→                      </div>
+   344→
+   345→                      {/* Tutor gender (mandatory for tutors) */}
+   346→                      {role === 'TUTOR' && (
+   347→                        <div className="space-y-1.5">
+   348→                          <Label className="text-xs font-semibold">Gender <span className="text-destructive">*</span></Label>
+   349→                          <div className="flex gap-2">
+   350→                            <button type="button" onClick={() => setReg({ ...reg, tutorGender: 'male' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm font-medium transition', reg.tutorGender === 'male' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')}>
+   351→                              Male
+   352→                            </button>
+   353→                            <button type="button" onClick={() => setReg({ ...reg, tutorGender: 'female' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm font-medium transition', reg.tutorGender === 'female' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')}>
+   354→                              Female
+   355→                            </button>
+   356→                          </div>
+   357→                        </div>
+   358→                      )}
+   359→
+   360→                      {/* Timezone */}
+   361→                      <div className="space-y-1.5">
+   362→                        <Label className="text-xs font-semibold">Timezone <span className="text-[10px] text-muted-foreground">(auto-detected)</span></Label>
+   363→                        <select value={reg.timezone} onChange={(e) => setReg({ ...reg, timezone: e.target.value })} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
+   364→                          {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+   365→                        </select>
+   366→                      </div>
+   367→
+   368→                      {/* Tutor brief bio + teaching style */}
+   369→                      {role === 'TUTOR' && (
+   370→                        <>
+   371→                          <div className="space-y-1.5">
+   372→                            <Label className="text-xs font-semibold">Brief Bio</Label>
+   373→                            <Textarea rows={2} value={reg.bio} onChange={(e) => setReg({ ...reg, bio: e.target.value })} placeholder="Tell students about your teaching style..." />
+   374→                          </div>
+   375→                          <div className="grid grid-cols-2 gap-2">
+   376→                            <div className="space-y-1.5">
+   377→                              <Label className="text-xs font-semibold">Teaching Style</Label>
+   378→                              <select value={reg.teachingStyle} onChange={(e) => setReg({ ...reg, teachingStyle: e.target.value })} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+   379→                                <option value="">Select</option>
+   380→                                {TEACHING_STYLES.map((s) => <option key={s} value={s}>{s}</option>)}
+   381→                              </select>
+   382→                            </div>
+   383→                            <div className="space-y-1.5">
+   384→                              <Label className="text-xs font-semibold">Per-class rate ($)</Label>
+   385→                              <Input type="number" value={reg.perClassRate} onChange={(e) => setReg({ ...reg, perClassRate: Number(e.target.value) })} />
+   386→                            </div>
+   387→                          </div>
+   388→                        </>
+   389→                      )}
+   390→                    </div>
+   391→                  )}
+   392→
+   393→                  {/* Step 3: Student (Learning Profile + Plan) / Tutor (Verification) */}
+   394→                  {step === 3 && role === 'STUDENT' && (
+   395→                    <div className="space-y-4">
+   396→                      <h2 className="text-xl font-extrabold text-[oklch(0.34_0.13_256)]">Learning Profile</h2>
+   397→
+   398→                      {/* Age bracket */}
+   399→                      <div className="space-y-1.5">
+   400→                        <Label className="text-xs font-semibold">Age Bracket</Label>
+   401→                        <div className="flex gap-2">
+   402→                          <button type="button" onClick={() => setReg({ ...reg, ageBracket: 'kids' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm font-medium transition', reg.ageBracket === 'kids' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')}>
+   403→                            Kids (under 13)
+   404→                          </button>
+   405→                          <button type="button" onClick={() => setReg({ ...reg, ageBracket: 'adults' })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm font-medium transition', reg.ageBracket === 'adults' ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')}>
+   406→                            Adults (13+)
+   407→                          </button>
+   408→                        </div>
+   409→                      </div>
+   410→
+   411→                      {/* Learning goals */}
+   412→                      <div className="space-y-1.5">
+   413→                        <Label className="text-xs font-semibold">Learning Goals <span className="text-muted-foreground">(select all that apply)</span></Label>
+   414→                        <div className="flex flex-wrap gap-1.5">
+   415→                          {GOAL_OPTIONS.map((g) => {
+   416→                            const active = reg.goals.includes(g.key)
+   417→                            const Icon = g.icon
+   418→                            return (
+   419→                              <button key={g.key} type="button" onClick={() => toggleArray('goals', g.key)} className={cn('inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition', active ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256)] text-white' : 'border-border hover:border-[oklch(0.62_0.14_230/0.5)]')}>
+   420→                                <Icon className="h-3 w-3" /> {g.label}
+   421→                              </button>
+   422→                            )
+   423→                          })}
+   424→                        </div>
+   425→                      </div>
+   426→
+   427→                      {/* Preferred tutor gender */}
+   428→                      <div className="space-y-1.5">
+   429→                        <Label className="text-xs font-semibold">Preferred Tutor Gender</Label>
+   430→                        <div className="flex gap-2">
+   431→                          {(['any', 'female', 'male'] as const).map((g) => (
+   432→                            <button key={g} type="button" onClick={() => setReg({ ...reg, preferredTutorGender: g })} className={cn('flex-1 rounded-lg border-2 py-2 text-sm font-medium transition', reg.preferredTutorGender === g ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.05)]' : 'border-border')}>
+   433→                              {g === 'any' ? 'No Preference' : g === 'female' ? 'Female Only' : 'Male Only'}
+   434→                            </button>
+   435→                          ))}
+   436→                        </div>
+   437→                      </div>
+   438→
+   439→                      {/* Plan selection */}
+   440→                      <div className="space-y-1.5">
+   441→                        <Label className="text-xs font-semibold">Choose a Plan <span className="text-muted-foreground">(optional — skip for now)</span></Label>
+   442→                        <div className="max-h-40 space-y-1.5 overflow-y-auto scrollbar-quran">
+   443→                          {plans.slice(0, 6).map((p) => (
+   444→                            <button key={p.id} type="button" onClick={() => setChosenPlanId(chosenPlanId === p.id ? null : p.id)} className={cn('flex w-full items-center gap-2 rounded-lg border-2 p-2 text-left transition', chosenPlanId === p.id ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256/0.03)]' : 'border-border hover:border-[oklch(0.62_0.14_230/0.4)]')}>
+   445→                              <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2', chosenPlanId === p.id ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256)]' : 'border-border')}>
+   446→                                {chosenPlanId === p.id && <Check className="h-2.5 w-2.5 text-white" />}
+   447→                              </span>
+   448→                              <span className="flex-1 text-xs font-semibold">{p.category} — {p.name}</span>
+   449→                              <span className="text-xs font-bold text-[oklch(0.34_0.13_256)]">${p.monthlyPrice}/mo</span>
+   450→                            </button>
+   451→                          ))}
+   452→                        </div>
+   453→                        <button type="button" onClick={() => setChosenPlanId(null)} className={cn('w-full rounded-lg border border-dashed border-border py-1.5 text-xs text-muted-foreground transition hover:bg-muted', chosenPlanId === null && 'border-[oklch(0.34_0.13_256)] text-[oklch(0.34_0.13_256)]')}>
+   454→                          Skip for now
+   455→                        </button>
+   456→                      </div>
+   457→                    </div>
+   458→                  )}
+   459→
+   460→                  {step === 3 && role === 'TUTOR' && (
+   461→                    <div className="space-y-4">
+   462→                      <h2 className="text-xl font-extrabold text-[oklch(0.34_0.13_256)]">Professional Verification</h2>
+   463→
+   464→                      {/* Specialties */}
+   465→                      <div className="space-y-1.5">
+   466→                        <Label className="text-xs font-semibold">Specialties <span className="text-destructive">*</span></Label>
+   467→                        <div className="flex flex-wrap gap-1.5">
+   468→                          {SUBJECT_OPTIONS.map((s) => {
+   469→                            const active = reg.specialties.includes(s)
+   470→                            return (
+   471→                              <button key={s} type="button" onClick={() => toggleArray('specialties', s)} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition', active ? 'border-[oklch(0.34_0.13_256)] bg-[oklch(0.34_0.13_256)] text-white' : 'border-border')}>
+   472→                                {active && <Check className="h-3 w-3" />} {s}
+   473→                              </button>
+   474→                            )
+   475→                          })}
+   476→                        </div>
+   477→                      </div>
+   478→
+   479→                      {/* Languages */}
+   480→                      <div className="space-y-1.5">
+   481→                        <Label className="text-xs font-semibold">Languages <span className="text-destructive">*</span></Label>
+   482→                        <div className="flex flex-wrap gap-1.5">
+   483→                          {['Arabic', 'English', 'Urdu', 'Turkish', 'French', 'Malay', 'Hindi', 'Bengali'].map((l) => {
+   484→                            const active = reg.languages.includes(l)
+   485→                            return (
+   486→                              <button key={l} type="button" onClick={() => toggleArray('languages', l)} className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition', active ? 'border-[oklch(0.62_0.14_230)] bg-[oklch(0.62_0.14_230/0.1)] text-[oklch(0.40_0.11_258)]' : 'border-border')}>
+   487→                                {active && <Check className="h-3 w-3" />} {l}
+   488→                              </button>
+   489→                            )
+   490→                          })}
+   491→                        </div>
+   492→                      </div>
+   493→
+   494→                      {/* Experience */}
+   495→                      <div className="grid grid-cols-2 gap-2">
+   496→                        <div className="space-y-1.5">
+   497→                          <Label className="text-xs font-semibold">Experience (years)</Label>
+   498→                          <Input type="number" value={reg.experienceYears} onChange={(e) => setReg({ ...reg, experienceYears: Number(e.target.value) })} />
+   499→                        </div>
+   500→                        <div className="space-y-1.5">
+   501→                          <Label className="text-xs font-semibold">Video Intro URL <span className="text-muted-foreground">(optional)</span></Label>
+   502→                          <div className="relative">
+   503→                            <Video className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   504→                            <Input value={reg.videoUrl} onChange={(e) => setReg({ ...reg, videoUrl: e.target.value })} placeholder="YouTube link" className="pl-9" />
+   505→                          </div>
+   506→                        </div>
+   507→                      </div>
+   508→
+   509→                      {/* Certification upload */}
+   510→                      <div className="space-y-1.5">
+   511→                        <Label className="text-xs font-semibold">Ijaza / Certification Upload <span className="text-muted-foreground">(optional)</span></Label>
+   512→                        <div className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border p-3">
+   513→                          <Upload className="h-5 w-5 text-muted-foreground" />
+   514→                          <button type="button" onClick={() => toast.info('File upload will be available after approval')} className="text-xs text-muted-foreground hover:text-foreground">Click to upload PDF/Image</button>
+   515→                        </div>
+   516→                      </div>
+   517→
+   518→                      {/* Qualifications */}
+   519→                      <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+   520→                        <p className="text-xs font-semibold text-[oklch(0.34_0.13_256)]">Qualifications</p>
+   521→                        {([['nativeArabic', 'Native Arabic speaker', Languages], ['hafiz', 'Hafiz of the Quran', BookOpenCheck], ['ijazaCertified', 'Ijaza certified', Award]] as const).map(([key, label, Icon]) => (
+   522→                          <label key={key} className="flex cursor-pointer items-center gap-2 text-xs">
+   523→                            <input type="checkbox" checked={reg[key] as boolean} onChange={(e) => setReg({ ...reg, [key]: e.target.checked })} className="h-4 w-4 rounded border-border" />
+   524→                            <Icon className="h-3.5 w-3.5 text-muted-foreground" /> {label}
+   525→                          </label>
+   526→                        ))}
+   527→                      </div>
+   528→
+   529→                      {/* Fee notice */}
+   530→                      <div className="flex items-start gap-2 rounded-lg bg-[oklch(0.78_0.15_85/0.08)] p-3 text-xs text-[oklch(0.55_0.13_75)]">
+   531→                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
+   532→                        <span>After admin approval, you'll receive a WhatsApp notification to pay the <strong>$10 USD</strong> activation fee to launch your profile.</span>
+   533→                      </div>
+   534→                    </div>
+   535→                  )}
+   536→
+   537→                  {/* Navigation buttons */}
+   538→                  {!tutorSubmitted && (
+   539→                    <div className="flex items-center gap-2 pt-2">
+   540→                      {step > (isLocked ? 2 : 1) && (
+   541→                        <Button type="button" variant="outline" onClick={() => setStep((s) => (s > 1 ? ((s - 1) as Step) : s))} disabled={loading} className="gap-1">
+   542→                          <ChevronLeft className="h-4 w-4" /> Back
+   543→                        </Button>
+   544→                      )}
+   545→                      {step < 3 ? (
+   546→                        <Button type="submit" disabled={(step === 2 && !step2Valid) || loading} className="flex-1 gap-1 bg-[oklch(0.34_0.13_256)] text-white hover:bg-[oklch(0.28_0.13_258)]">
+   547→                          Continue <ChevronRight className="h-4 w-4" />
+   548→                        </Button>
+   549→                      ) : (
+   550→                        <Button type="submit" disabled={loading} className="flex-1 gap-1.5 bg-[oklch(0.34_0.13_256)] text-white hover:bg-[oklch(0.28_0.13_258)]">
+   551→                          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+   552→                          {role === 'TUTOR' ? <><ShieldCheck className="h-4 w-4" /> Submit Application</> : chosenPlanId ? <><CreditCard className="h-4 w-4" /> Create & Subscribe</> : <><User className="h-4 w-4" /> Create Account</>}
+   553→                        </Button>
+   554→                      )}
+   555→                    </div>
+   556→                  )}
+   557→
+   558→                  {/* Switch to login */}
+   559→                  <p className="text-center text-xs text-muted-foreground">
+   560→                    Already have an account?{' '}
+   561→                    <button type="button" onClick={() => setMode('login')} className="font-semibold text-[oklch(0.34_0.13_256)] hover:underline">Log in</button>
+   562→                  </p>
+   563→                </form>
+   564→              )}
+   565→
+   566→              {/* Tutor submitted screen */}
+   567→              {mode === 'register' && tutorSubmitted && (
+   568→                <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+   569→                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+   570→                    <Check className="h-8 w-8 text-green-600" />
+   571→                  </div>
+   572→                  <h2 className="text-xl font-extrabold text-[oklch(0.34_0.13_256)]">Application Submitted!</h2>
+   573→                  <p className="max-w-sm text-sm text-muted-foreground">
+   574→                    Thank you for your application. Once our team approves your profile, you will receive a WhatsApp notification to pay your <strong>$10 USD</strong> activation fee and launch your profile.
+   575→                  </p>
+   576→                  <Button onClick={closeAuth} className="bg-[oklch(0.34_0.13_256)] text-white">Go to Dashboard</Button>
+   577→                </div>
+   578→              )}
+   579→            </div>
+   580→          </div>
+   581→
+   582→          {/* ===== RIGHT PANEL: Brand Panel (50%) ===== */}
+   583→          <div className="relative flex w-1/2 flex-col items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A192F 0%, #0B2545 50%, #133356 100%)' }}>
+   584→            {/* Islamic pattern overlay */}
+   585→            <IslamicPatternBand opacity={0.06} />
+   586→
+   587→            {/* Decorative elements */}
+   588→            <div className="relative z-10 flex flex-col items-center px-8 text-center text-white">
+   589→              <StarMedallion className="mb-6 h-16 w-16 text-[oklch(0.85_0.13_85/0.4)]" />
+   590→
+   591→              <span className="font-arabic text-2xl text-white/80" dir="rtl" style={{ fontFamily: "var(--font-amiri), serif" }}>
+   592→                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+   593→              </span>
+   594→
+   595→              <h2 className="mt-6 text-3xl font-extrabold tracking-tight sm:text-4xl">
+   596→                Learn the Quran<br />with Certified Tutors
+   597→              </h2>
+   598→
+   599→              <p className="mt-4 max-w-sm text-sm text-white/60">
+   600→                Join thousands of students worldwide learning Noorani Qaida, Tajweed, Hifz, and Arabic in a real-time interactive virtual classroom.
+   601→              </p>
+   602→
+   603→              {/* Feature highlights */}
+   604→              <div className="mt-8 space-y-3">
+   605→                {[
+   606→                  { icon: ShieldCheck, text: 'Verified & Ijaza-certified tutors' },
+   607→                  { icon: Video, text: 'Interactive virtual classroom with word-by-word sync' },
+   608→                  { icon: Star, text: '4.9/5 average rating from 500+ tutors' },
+   609→                  { icon: CreditCard, text: 'Affordable monthly plans starting at $15/month' },
+   610→                ].map((f, i) => (
+   611→                  <div key={i} className="flex items-center gap-3 text-left">
+   612→                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+   613→                      <f.icon className="h-4 w-4 text-[oklch(0.85_0.13_85)]" />
+   614→                    </span>
+   615→                    <span className="text-sm text-white/70">{f.text}</span>
+   616→                  </div>
+   617→                ))}
+   618→              </div>
+   619→
+   620→              {/* Stats */}
+   621→              <div className="mt-8 grid grid-cols-3 gap-4">
+   622→                {[
+   623→                  { value: '500+', label: 'Tutors' },
+   624→                  { value: '60+', label: 'Countries' },
+   625→                  { value: '10K+', label: 'Classes' },
+   626→                ].map((s) => (
+   627→                  <div key={s.label} className="text-center">
+   628→                    <div className="text-2xl font-extrabold text-white">{s.value}</div>
+   629→                    <div className="text-[10px] uppercase tracking-wide text-white/40">{s.label}</div>
+   630→                  </div>
+   631→                ))}
+   632→              </div>
+   633→            </div>
+   634→
+   635→            {/* Footer */}
+   636→            <div className="absolute bottom-6 left-0 right-0 text-center text-[10px] text-white/30">
+   637→              © {new Date().getFullYear()} Qtuor · Gateway to Tajweed Excellence
+   638→            </div>
+   639→          </div>
+   640→        </div>
+   641→      </DialogContent>
+   642→    </Dialog>
+   643→  )
+   644→}
+   645→

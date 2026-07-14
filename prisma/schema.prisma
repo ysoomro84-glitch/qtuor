@@ -1,0 +1,407 @@
+// Qtuor - Global Online Quran Learning Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("STUDENT") // STUDENT | TUTOR | ADMIN
+  avatar    String?
+  country   String?
+  phone     String?
+  // Student-specific optional fields
+  age           Int?
+  gender        String? // male | female | other
+  preferredLanguage String? // preferred instruction language
+  timezone       String? // tutor's timezone for scheduling
+  learningGoals String? // what the student wants to achieve
+  guardianName  String? // for children
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tutorProfile   TutorProfile?
+  subscriptions  Subscription[]
+  studentBookings Booking[] @relation("StudentBookings")
+  tutorBookings   Booking[] @relation("TutorBookings")
+  reviewsGiven   Review[]   @relation("ReviewsGiven")
+  availabilities Availability[]
+  wallet         Wallet?
+  withdrawals    Withdrawal[]
+  walletSplits   WalletSplit[]
+  bookmarkStudent LessonBookmark[] @relation("BookmarkStudent")
+  bookmarkTutor   LessonBookmark[] @relation("BookmarkTutor")
+}
+
+model TutorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String
+  perClassRate    Float    // earnings per completed class (30-min session)
+  rating          Float    @default(5.0)
+  reviewCount     Int      @default(0)
+  studentCount    Int      @default(0)
+  lessonsCount    Int      @default(0)
+  verified        Boolean  @default(false)
+  nativeArabic    Boolean  @default(false)
+  hafiz           Boolean  @default(false)
+  ijazaCertified  Boolean  @default(false)
+  audioIntroText  String?
+  audioIntroUrl   String?
+  teachingStyle   String?  // teaching approach description
+  videoUrl        String?
+  specialties     String   // comma-separated: Noorani Qaida,Tajweed,Hifz,Arabic
+  languages       String   // comma-separated: Arabic,English,Urdu
+  experienceYears Int      @default(1)
+  status          String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  registrationFeePaid Boolean @default(false) // $10 registration fee
+  // Document uploads for admin vetting (URLs to uploaded files in /public/uploads/tutor-docs/)
+  idDocumentUrl   String?  // National ID card / Passport
+  certificateUrls String?  // JSON string array of certificate/degree URLs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reviews Review[] @relation("TutorReviews")
+  notificationsSent Notification[] @relation("NotificationsFromTutor")
+}
+
+model Plan {
+  id               String   @id @default(cuid())
+  name             String
+  category         String   @default("General") // Noorani Qaida | Tajweed | Hifz | General
+  classesPerMonth  Int      // number of classes included per month
+  monthlyPrice     Float    // billed monthly
+  description   String
+  features      String   // newline-separated features
+  popular       Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId       String
+  plan         Plan     @relation(fields: [planId], references: [id])
+  status       String   @default("ACTIVE") // ACTIVE | CANCELLED | EXPIRED
+  // Fixed monthly subscription — NO class balance or hourly credits.
+  // The student pays a flat monthly rate and gets scheduled classes.
+  // Teacher earnings = 55% of the monthly plan price, released on the monthly cycle.
+  startedAt    DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  splits       WalletSplit[]
+}
+
+model Booking {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      User     @relation("StudentBookings", fields: [studentId], references: [id])
+  tutorId      String
+  tutor        User     @relation("TutorBookings", fields: [tutorId], references: [id])
+  scheduledAt  DateTime
+  durationMins Int      @default(30)
+  status       String   @default("SCHEDULED") // SCHEDULED | COMPLETED | CANCELLED | IN_PROGRESS
+  isTrial      Boolean  @default(false)
+  topic        String?
+  notes        String?
+  meetingId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  tutorId   String
+  tutor     User     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0 = Sunday ... 6 = Saturday
+  slots     String   // JSON string: [["09:00","10:00"],["14:00","15:00"]]
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  tutorId   String
+  tutor     TutorProfile @relation("TutorReviews", fields: [tutorId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation("ReviewsGiven", fields: [studentId], references: [id])
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id             String   @id @default(cuid())
+  tutorId        String   @unique
+  tutor          User     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  balance        Float    @default(0)       // available for withdrawal (55% share released)
+  pendingPayout  Float    @default(0)       // pending payout requests
+  totalEarned    Float    @default(0)       // cumulative 55% earnings
+  escrowHeld     Float    @default(0)       // money held in escrow (not yet released)
+  platformRevenue Float   @default(0)       // 45% platform share (for reference)
+  splits         WalletSplit[]
+  updatedAt      DateTime @updatedAt
+}
+
+// ===== Revenue Split Ledger =====
+// Each entry represents the 55/45 split of a student's monthly subscription.
+// On subscribe: subscription amount is held in escrow (ESCROWED).
+// On monthly cycle (1st-5th): 55% is released to tutor wallet, 45% to platform.
+model WalletSplit {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  tutorId         String
+  tutor           User     @relation(fields: [tutorId], references: [id])
+  studentName     String
+  planName        String
+  planPrice       Float    // total monthly subscription amount (e.g. $100)
+  tutorShare      Float    // 55% of planPrice
+  platformShare   Float    // 45% of planPrice
+  status          String   @default("ESCROWED") // ESCROWED | RELEASED | CANCELLED
+  escrowedAt      DateTime @default(now())
+  releasedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  wallet          Wallet?  @relation(fields: [tutorId], references: [tutorId], onDelete: Cascade)
+}
+
+model Withdrawal {
+  id        String   @id @default(cuid())
+  tutorId   String
+  tutor     User     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  amount    Float
+  status    String   @default("PENDING") // PENDING | APPROVED | PAID | REJECTED
+  method    String   @default("BANK") // BANK | PAYPAL | JAZZCASH | EASYPAISA | WISE
+  // Local payout account details (entered by tutor at withdrawal request time)
+  accountLabel  String? // e.g. "JazzCash", "EasyPaisa", "Bank Al Habib"
+  accountNumber String? // bank account number or mobile wallet number
+  iban          String? // IBAN for bank transfers
+  bankName      String? // bank name
+  mobileNumber  String? // mobile number for JazzCash/EasyPaisa
+  createdAt DateTime @default(now())
+}
+
+model LessonProgress {
+  id           String   @id @default(cuid())
+  studentId    String
+  tutorId      String?
+  subject      String   // Noorani Qaida | Tajweed | Hifz | Arabic
+  lessonTitle  String
+  completed    Boolean  @default(false)
+  progressPct  Int      @default(0)
+  surahName    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ClassroomSession {
+  id          String   @id @default(cuid())
+  bookingId   String?
+  whiteboardState String? // JSON of strokes & highlights
+  chatLog     String?     // JSON of chat messages
+  recordingUrl String?
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+}
+
+// ===== Smart Lesson Tracking — Auto-Bookmark & Progress =====
+// Tracks where each student-tutor pair left off so the next class
+// auto-resumes on the exact same page/line ("Jahan Stop Hua Wahan Se Shuru").
+model LessonBookmark {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       User     @relation("BookmarkStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  tutorId       String
+  tutor         User     @relation("BookmarkTutor", fields: [tutorId], references: [id], onDelete: Cascade)
+  bookType      String   // "qaida" | "quran"
+  pageId        Int      // the LibraryPage.id (e.g. 1001-1017 for Qaida, 10001-10114 for Quran surahs)
+  pageLabel     String?  // human-readable label (e.g. "Lesson 3: Harakat" or "Surah Al-Fatihah")
+  lastLineIndex Int      @default(0) // index of the last line/word interacted with
+  status        String   @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([studentId, tutorId]) // one active bookmark per student-tutor pair
+}
+
+// ===== WhatsApp Integration & Automated Notifications =====
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // TUTOR_APPROVED | BOOKING_CONFIRMATION | CLASS_REMINDER | PAYMENT_SUCCESS | PAYMENT_FAILED | TUTOR_PAYOUT | REGISTRATION_FEE
+  channel   String   @default("WHATSAPP") // WHATSAPP | SMS | EMAIL
+  recipientName  String
+  recipientPhone String?
+  recipientUserId String?
+  recipientTutorId String?
+  message   String   // the full message body sent
+  status    String   @default("SENT") // SENT | FAILED | PENDING | SIMULATED
+  meta      String?  // JSON metadata (bookingId, planId, amount, etc.)
+  createdAt DateTime @default(now())
+
+  tutor     TutorProfile? @relation("NotificationsFromTutor", fields: [recipientTutorId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppSettings {
+  id              String   @id @default("singleton")
+  enabled         Boolean  @default(true)
+  adminPhone      String   @default("+1234567890") // admin/support WhatsApp number
+  provider        String   @default("SIMULATED") // SIMULATED | TWILIO | META_CLOUD_API | INFOBIP | BAILEYS
+  // Provider credentials (stored encrypted in production)
+  accountSid      String?
+  authToken       String?
+  fromNumber      String?
+  // Baileys (Link-Device) connection state — mirrors the whatsapp-gateway mini-service
+  baileysConnected     Boolean @default(false)
+  baileysConnectedPhone String? // e.g. "+92 xxxxxxxxxx"
+  baileysConnectedAt   DateTime?
+  // Feature toggles
+  notifyTutorApproved     Boolean @default(true)
+  notifyBookingConfirmation Boolean @default(true)
+  notifyClassReminder     Boolean @default(true)
+  notifyPaymentSuccess    Boolean @default(true)
+  notifyTutorPayout       Boolean @default(true)
+  reminderMinutesBefore   Int     @default(15) // minutes before class to send reminder
+  showFloatingWidget      Boolean @default(true)
+  allowTutorContactAdmin  Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ===== WhatsApp Message Templates (Link-Device engine) =====
+// Admin-customizable templates with dynamic variables like {StudentName}, {Amount},
+// {ClassTime}, {TutorName}. Used by the baileys gateway + automation triggers.
+model WhatsAppTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique // TUTOR_WELCOME | PAYMENT_SUCCESS | CLASS_REMINDER | BOOKING_STUDENT | BOOKING_TUTOR | TUTOR_PAYOUT | TUTOR_APPROVED
+  label     String   // human-readable label
+  template  String   // message body with {Variables}
+  enabled   Boolean  @default(true)
+  variables String?  // comma-separated list of supported variables e.g. "{TutorName},{Amount}"
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// ===== MODULE: Automated Blog Engine =====
+// Articles are auto-generated by the blog-cron service (LLM) or written manually
+// by the admin. Status DRAFT | PUBLISHED | ARCHIVED.
+model BlogPost {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  excerpt       String   // short summary shown on the card
+  content       String   // full HTML body
+  category      String   @default("Tajweed Tips") // Tajweed Tips | Parent Guides | Quran Learning | Arabic Grammar | Hifz | Islamic Education
+  tags          String?  // comma-separated
+  featuredImage String?  // URL or /subjects/*.png
+  readingTime   Int      @default(5) // minutes
+  author        String   @default("Qtuor Editorial")
+  source        String   @default("AUTO") // AUTO (cron/LLM) | MANUAL (admin)
+  status        String   @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+  publishedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ===== MODULE: Master Admin — Payment Gateways & Bank Accounts =====
+// Admin-configured payment processors (Stripe / PayPal) with sandbox toggle,
+// plus local bank accounts for manual wire transfers.
+model PaymentGateway {
+  id          String   @id @default(cuid())
+  provider    String   // STRIPE | PAYPAL
+  displayName String   @default("Stripe")
+  isActive    Boolean  @default(false)
+  sandbox     Boolean  @default(true)
+  // Credentials (stored; in production these would be encrypted at rest)
+  publishableKey String?
+  secretKey      String?
+  webhookSecret  String?
+  clientId       String? // PayPal client id
+  clientSecret   String? // PayPal secret
+  payoutEmail    String? // PayPal payouts recipient / Stripe Connect account
+  notes          String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  bankName      String
+  accountHolder String
+  iban          String?
+  accountNumber String?
+  swiftCode     String?
+  branchCode    String?
+  country       String?
+  currency      String   @default("USD")
+  isDefault     Boolean  @default(false)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ===== MODULE: Student Receivables Ledger =====
+// Every incoming student subscription payment is logged here for the admin
+// financial audit screen. Payment method, amount, status, invoice id.
+model StudentPayment {
+  id            String   @id @default(cuid())
+  studentId     String
+  studentName   String
+  studentEmail  String
+  planName      String
+  amount        Float    // total monthly subscription amount
+  paymentMethod String   @default("CARD") // CARD | PAYPAL | BANK_TRANSFER | STRIPE
+  invoiceId     String?  // gateway invoice / charge id
+  status        String   @default("SUCCESS") // SUCCESS | FAILED | PENDING | REFUNDED
+  receiptUrl    String?  // uploaded bank-transfer receipt (for local bank transfers pending approval)
+  paidAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
+
+// ===== MODULE: Tutor Onboarding Legal Agreement =====
+// Compliance log — each tutor must accept the Terms of Service & Instructor
+// Agreement before their application can be submitted. Stores timestamp + IP
+// + user agent + agreement version for audit/security.
+model TutorLegalSignature {
+  id               String   @id @default(cuid())
+  userId           String
+  userEmail        String
+  userName         String
+  ipAddress        String?
+  userAgent        String?
+  agreementVersion String   @default("v1.0")
+  acceptedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+}
+
+// ===== MODULE: Payout Release Log (Teacher Payables) =====
+// Each "Release Payment" action by the admin creates an entry here, recording
+// the tutor, amount, method, and the bank/paypal destination it was sent to.
+model PayoutRelease {
+  id          String   @id @default(cuid())
+  tutorId     String
+  tutorName   String
+  amount      Float
+  method      String   @default("BANK_TRANSFER") // BANK_TRANSFER | PAYPAL | STRIPE
+  destination String?  // masked bank iban / paypal email
+  status      String   @default("CLEARED") // CLEARED | PENDING | FAILED
+  releasedBy  String?  // admin user id
+  releasedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+

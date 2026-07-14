@@ -1,0 +1,912 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { Card } from '@/components/ui/card'
+     5→import { Button } from '@/components/ui/button'
+     6→import { Badge } from '@/components/ui/badge'
+     7→import { Input } from '@/components/ui/input'
+     8→import { Textarea } from '@/components/ui/textarea'
+     9→import { Label } from '@/components/ui/label'
+    10→import { Checkbox } from '@/components/ui/checkbox'
+    11→import { Switch } from '@/components/ui/switch'
+    12→import {
+    13→  Table,
+    14→  TableBody,
+    15→  TableCell,
+    16→  TableHead,
+    17→  TableHeader,
+    18→  TableRow,
+    19→} from '@/components/ui/table'
+    20→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    21→import {
+    22→  Dialog,
+    23→  DialogContent,
+    24→  DialogDescription,
+    25→  DialogFooter,
+    26→  DialogHeader,
+    27→  DialogTitle,
+    28→  DialogTrigger,
+    29→} from '@/components/ui/dialog'
+    30→import { QtuorLogo } from '@/components/brand/logo'
+    31→import { StarRating } from '@/components/brand/badges'
+    32→import { StarMedallion, IslamicPatternBand } from '@/components/brand/patterns'
+    33→import { Avatar, countryFlag } from '@/components/shared/avatar'
+    34→import { useAppStore } from '@/lib/store'
+    35→import { useAdminDashboard, useUpdateTutorStatus, useCreatePlan } from '@/lib/queries'
+    36→import { toast } from 'sonner'
+    37→import { cn } from '@/lib/utils'
+    38→import { format } from 'date-fns'
+    39→import {
+    40→  ShieldCheck,
+    41→  ShieldAlert,
+    42→  Users,
+    43→  GraduationCap,
+    44→  Clock3,
+    45→  CalendarCheck,
+    46→  DollarSign,
+    47→  Banknote,
+    48→  CheckCircle2,
+    49→  XCircle,
+    50→  Ban,
+    51→  RotateCcw,
+    52→  Plus,
+    53→  Star,
+    54→  Sparkles,
+    55→  LockKeyhole,
+    56→  AlertTriangle,
+    57→} from 'lucide-react'
+    58→
+    59→/* ============================================================
+    60→ * Types — mirror shape returned by /api/dashboard/admin
+    61→ * ============================================================ */
+    62→type TutorStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+    63→
+    64→interface AdminTutor {
+    65→  id: string
+    66→  name: string
+    67→  email: string
+    68→  country: string | null
+    69→  createdAt: string
+    70→  status: TutorStatus
+    71→  verified: boolean
+    72→  rating: number
+    73→  hourlyRate: number
+    74→  walletBalance: number
+    75→  profile: {
+    76→    bio: string | null
+    77→    specialties: string[]
+    78→    languages: string[]
+    79→    nativeArabic: boolean
+    80→    hafiz: boolean
+    81→    ijazaCertified: boolean
+    82→    experienceYears: number
+    83→  } | null
+    84→}
+    85→
+    86→interface AdminPlan {
+    87→  id: string
+    88→  name: string
+    89→  hoursPerWeek: number
+    90→  monthlyPrice: number
+    91→  description: string | null
+    92→  features: string[]
+    93→  popular: boolean
+    94→  active: boolean
+    95→}
+    96→
+    97→interface AdminWithdrawal {
+    98→  id: string
+    99→  amount: number
+   100→  status: string
+   101→  method: string | null
+   102→  createdAt?: string
+   103→  tutor: { id: string; name: string; email: string }
+   104→}
+   105→
+   106→interface AdminStats {
+   107→  totalStudents: number
+   108→  totalTutors: number
+   109→  approvedTutors: number
+   110→  pendingTutors: number
+   111→  totalBookings: number
+   112→  totalRevenue: number
+   113→}
+   114→
+   115→interface AdminDashboardData {
+   116→  tutors: AdminTutor[]
+   117→  plans: AdminPlan[]
+   118→  pendingWithdrawals: AdminWithdrawal[]
+   119→  stats: AdminStats
+   120→}
+   121→
+   122→/* ============================================================
+   123→ * Auth guard
+   124→ * ============================================================ */
+   125→function AdminAuthGuard() {
+   126→  const user = useAppStore((s) => s.user)
+   127→  const openAuth = useAppStore((s) => s.openAuth)
+   128→
+   129→  if (!user) {
+   130→    return (
+   131→      <section className="mx-auto max-w-md px-4 py-20">
+   132→        <Card className="relative overflow-hidden p-8 text-center">
+   133→          <IslamicPatternBand opacity={0.06} />
+   134→          <div className="relative flex flex-col items-center gap-4">
+   135→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   136→              <LockKeyhole className="h-7 w-7" />
+   137→            </div>
+   138→            <h2 className="text-2xl font-bold text-foreground">Admin sign-in required</h2>
+   139→            <p className="text-sm text-muted-foreground">
+   140→              Please sign in with an administrator account to access the Control Center.
+   141→            </p>
+   142→            <Button
+   143→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   144→              onClick={() => openAuth('login')}
+   145→            >
+   146→              Sign in to continue
+   147→            </Button>
+   148→            <p className="mt-1 text-xs text-muted-foreground">
+   149→              Demo admin: <span className="font-mono font-semibold text-foreground">admin@qtuor.com / admin123</span>
+   150→            </p>
+   151→          </div>
+   152→        </Card>
+   153→      </section>
+   154→    )
+   155→  }
+   156→
+   157→  if (user.role !== 'ADMIN') {
+   158→    return (
+   159→      <section className="mx-auto max-w-md px-4 py-20">
+   160→        <Card className="relative overflow-hidden p-8 text-center">
+   161→          <IslamicPatternBand opacity={0.06} />
+   162→          <div className="relative flex flex-col items-center gap-4">
+   163→            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]">
+   164→              <ShieldAlert className="h-7 w-7" />
+   165→            </div>
+   166→            <h2 className="text-2xl font-bold text-foreground">Admin access required</h2>
+   167→            <p className="text-sm text-muted-foreground">
+   168→              You are signed in as <span className="font-semibold text-foreground">{user.email}</span> ({user.role.toLowerCase()}).
+   169→              The Control Center is restricted to administrators.
+   170→            </p>
+   171→            <div className="w-full rounded-lg border border-dashed border-[oklch(0.62_0.14_230/0.4)] bg-[oklch(0.62_0.14_230/0.05)] p-3 text-xs text-muted-foreground">
+   172→              <div className="mb-1 flex items-center gap-1.5 font-semibold text-[oklch(0.40_0.11_258)]">
+   173→                <Sparkles className="h-3.5 w-3.5" /> Demo admin credentials
+   174→              </div>
+   175→              <div className="font-mono">
+   176→                admin@qtuor.com / admin123
+   177→              </div>
+   178→            </div>
+   179→            <Button
+   180→              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+   181→              onClick={() => openAuth('login')}
+   182→            >
+   183→              Switch to admin account
+   184→            </Button>
+   185→          </div>
+   186→        </Card>
+   187→      </section>
+   188→    )
+   189→  }
+   190→
+   191→  return null
+   192→}
+   193→
+   194→/* ============================================================
+   195→ * Stat cards
+   196→ * ============================================================ */
+   197→function StatCard({
+   198→  label,
+   199→  value,
+   200→  sub,
+   201→  icon,
+   202→  accent = 'primary',
+   203→}: {
+   204→  label: string
+   205→  value: React.ReactNode
+   206→  sub?: string
+   207→  icon: React.ReactNode
+   208→  accent?: 'primary' | 'amber' | 'gold' | 'green'
+   209→}) {
+   210→  const accents: Record<string, string> = {
+   211→    primary: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]',
+   212→    amber: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)]',
+   213→    gold: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]',
+   214→    green: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)]',
+   215→  }
+   216→  return (
+   217→    <Card className="relative overflow-hidden p-4 sm:p-5">
+   218→      <div className="flex items-start justify-between gap-3">
+   219→        <div className="min-w-0">
+   220→          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+   221→            {label}
+   222→          </p>
+   223→          <p className="mt-1 text-2xl font-extrabold text-foreground sm:text-[1.6rem]">{value}</p>
+   224→          {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+   225→        </div>
+   226→        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accents[accent])}>
+   227→          {icon}
+   228→        </div>
+   229→      </div>
+   230→    </Card>
+   231→  )
+   232→}
+   233→
+   234→/* ============================================================
+   235→ * Status badge
+   236→ * ============================================================ */
+   237→function StatusBadge({ status }: { status: TutorStatus }) {
+   238→  const map: Record<TutorStatus, string> = {
+   239→    PENDING: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)] border-[oklch(0.75_0.13_70/0.35)]',
+   240→    APPROVED: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]',
+   241→    REJECTED: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)] border-[oklch(0.58_0.24_27/0.3)]',
+   242→  }
+   243→  return (
+   244→    <span className={cn('inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold', map[status])}>
+   245→      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+   246→      {status.charAt(0) + status.slice(1).toLowerCase()}
+   247→    </span>
+   248→  )
+   249→}
+   250→
+   251→/* ============================================================
+   252→ * Tutor vetting tab
+   253→ * ============================================================ */
+   254→function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
+   255→  const [filter, setFilter] = React.useState<'ALL' | TutorStatus>('ALL')
+   256→  const updateTutor = useUpdateTutorStatus()
+   257→
+   258→  const filtered = React.useMemo(() => {
+   259→    if (filter === 'ALL') return tutors
+   260→    return tutors.filter((t) => t.status === filter)
+   261→  }, [filter, tutors])
+   262→
+   263→  const counts = React.useMemo(
+   264→    () => ({
+   265→      ALL: tutors.length,
+   266→      PENDING: tutors.filter((t) => t.status === 'PENDING').length,
+   267→      APPROVED: tutors.filter((t) => t.status === 'APPROVED').length,
+   268→      REJECTED: tutors.filter((t) => t.status === 'REJECTED').length,
+   269→    }),
+   270→    [tutors]
+   271→  )
+   272→
+   273→  const handle = (id: string, status: TutorStatus, label: string) => {
+   274→    updateTutor.mutate(
+   275→      { id, status },
+   276→      {
+   277→        onSuccess: () => toast.success(`Tutor ${label.toLowerCase()}`),
+   278→        onError: (e: Error) => toast.error(e.message || 'Failed to update tutor'),
+   279→      }
+   280→    )
+   281→  }
+   282→
+   283→  return (
+   284→    <div className="space-y-4">
+   285→      {/* Filter pills */}
+   286→      <div className="flex flex-wrap items-center gap-2">
+   287→        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map((f) => (
+   288→          <button
+   289→            key={f}
+   290→            onClick={() => setFilter(f)}
+   291→            className={cn(
+   292→              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+   293→              filter === f
+   294→                ? 'border-transparent bg-primary text-primary-foreground shadow-sm'
+   295→                : 'border-border bg-background text-muted-foreground hover:bg-muted/60'
+   296→            )}
+   297→          >
+   298→            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+   299→            <span
+   300→              className={cn(
+   301→                'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+   302→                filter === f ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+   303→              )}
+   304→            >
+   305→              {counts[f]}
+   306→            </span>
+   307→          </button>
+   308→        ))}
+   309→      </div>
+   310→
+   311→      <Card className="p-0">
+   312→        <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   313→          <Table>
+   314→            <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   315→              <TableRow className="hover:bg-transparent">
+   316→                <TableHead className="pl-4">Tutor</TableHead>
+   317→                <TableHead>Country</TableHead>
+   318→                <TableHead>Specialties</TableHead>
+   319→                <TableHead>Rating</TableHead>
+   320→                <TableHead>Hourly</TableHead>
+   321→                <TableHead>Status</TableHead>
+   322→                <TableHead>Wallet</TableHead>
+   323→                <TableHead className="pr-4 text-right">Actions</TableHead>
+   324→              </TableRow>
+   325→            </TableHeader>
+   326→            <TableBody>
+   327→              {filtered.length === 0 ? (
+   328→                <TableRow>
+   329→                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+   330→                    No tutors match this filter.
+   331→                  </TableCell>
+   332→                </TableRow>
+   333→              ) : (
+   334→                filtered.map((t) => (
+   335→                  <TableRow key={t.id} className="group">
+   336→                    <TableCell className="pl-4">
+   337→                      <div className="flex items-center gap-3 py-1">
+   338→                        <Avatar name={t.name} size={40} country={t.country} />
+   339→                        <div className="min-w-0">
+   340→                          <div className="flex items-center gap-1.5">
+   341→                            <span className="truncate font-semibold text-foreground">{t.name}</span>
+   342→                            {t.verified && (
+   343→                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[oklch(0.62_0.14_230)]" />
+   344→                            )}
+   345→                          </div>
+   346→                          <div className="truncate text-xs text-muted-foreground">{t.email}</div>
+   347→                        </div>
+   348→                      </div>
+   349→                    </TableCell>
+   350→                    <TableCell>
+   351→                      <span className="text-sm">{countryFlag(t.country)} {t.country || '—'}</span>
+   352→                    </TableCell>
+   353→                    <TableCell>
+   354→                      <div className="flex max-w-[220px] flex-wrap gap-1">
+   355→                        {(t.profile?.specialties || []).slice(0, 3).map((s) => (
+   356→                          <Badge
+   357→                            key={s}
+   358→                            variant="outline"
+   359→                            className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]"
+   360→                          >
+   361→                            {s}
+   362→                          </Badge>
+   363→                        ))}
+   364→                        {(t.profile?.specialties || []).length > 3 && (
+   365→                          <span className="text-xs text-muted-foreground">+{(t.profile?.specialties || []).length - 3}</span>
+   366→                        )}
+   367→                      </div>
+   368→                    </TableCell>
+   369→                    <TableCell>
+   370→                      {t.rating > 0 ? <StarRating rating={t.rating} size={13} /> : <span className="text-xs text-muted-foreground">New</span>}
+   371→                    </TableCell>
+   372→                    <TableCell>
+   373→                      <span className="font-semibold text-foreground">${t.hourlyRate}</span>
+   374→                      <span className="text-xs text-muted-foreground">/hr</span>
+   375→                    </TableCell>
+   376→                    <TableCell><StatusBadge status={t.status} /></TableCell>
+   377→                    <TableCell>
+   378→                      <span className="font-mono text-sm font-semibold text-foreground">${t.walletBalance.toFixed(2)}</span>
+   379→                    </TableCell>
+   380→                    <TableCell className="pr-4">
+   381→                      <div className="flex items-center justify-end gap-1.5">
+   382→                        {t.status === 'PENDING' && (
+   383→                          <>
+   384→                            <Button
+   385→                              size="sm"
+   386→                              className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   387→                              disabled={updateTutor.isPending}
+   388→                              onClick={() => handle(t.id, 'APPROVED', 'approved')}
+   389→                            >
+   390→                              <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+   391→                            </Button>
+   392→                            <Button
+   393→                              size="sm"
+   394→                              variant="outline"
+   395→                              className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   396→                              disabled={updateTutor.isPending}
+   397→                              onClick={() => handle(t.id, 'REJECTED', 'rejected')}
+   398→                            >
+   399→                              <XCircle className="h-3.5 w-3.5" /> Reject
+   400→                            </Button>
+   401→                          </>
+   402→                        )}
+   403→                        {t.status === 'APPROVED' && (
+   404→                          <Button
+   405→                            size="sm"
+   406→                            variant="outline"
+   407→                            className="h-7 gap-1 border-[oklch(0.75_0.13_70/0.4)] text-[oklch(0.50_0.12_70)] hover:bg-[oklch(0.75_0.13_70/0.08)]"
+   408→                            disabled={updateTutor.isPending}
+   409→                            onClick={() => handle(t.id, 'REJECTED', 'suspended')}
+   410→                          >
+   411→                            <Ban className="h-3.5 w-3.5" /> Suspend
+   412→                          </Button>
+   413→                        )}
+   414→                        {t.status === 'REJECTED' && (
+   415→                          <Button
+   416→                            size="sm"
+   417→                            className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   418→                            disabled={updateTutor.isPending}
+   419→                            onClick={() => handle(t.id, 'APPROVED', 're-approved')}
+   420→                          >
+   421→                            <RotateCcw className="h-3.5 w-3.5" /> Re-approve
+   422→                          </Button>
+   423→                        )}
+   424→                      </div>
+   425→                    </TableCell>
+   426→                  </TableRow>
+   427→                ))
+   428→              )}
+   429→            </TableBody>
+   430→          </Table>
+   431→        </div>
+   432→      </Card>
+   433→    </div>
+   434→  )
+   435→}
+   436→
+   437→/* ============================================================
+   438→ * Plans tab
+   439→ * ============================================================ */
+   440→function PlansTab({ plans }: { plans: AdminPlan[] }) {
+   441→  const [open, setOpen] = React.useState(false)
+   442→  const createPlan = useCreatePlan()
+   443→
+   444→  const [form, setForm] = React.useState({
+   445→    name: '',
+   446→    hoursPerWeek: '4',
+   447→    monthlyPrice: '49',
+   448→    description: '',
+   449→    features: '',
+   450→    popular: false,
+   451→  })
+   452→
+   453→  const reset = () =>
+   454→    setForm({ name: '', hoursPerWeek: '4', monthlyPrice: '49', description: '', features: '', popular: false })
+   455→
+   456→  const submit = (e: React.FormEvent) => {
+   457→    e.preventDefault()
+   458→    if (!form.name.trim() || !form.hoursPerWeek || !form.monthlyPrice) {
+   459→      toast.error('Please fill in name, hours per week and monthly price.')
+   460→      return
+   461→    }
+   462→    createPlan.mutate(
+   463→      {
+   464→        name: form.name.trim(),
+   465→        hoursPerWeek: Number(form.hoursPerWeek),
+   466→        monthlyPrice: Number(form.monthlyPrice),
+   467→        description: form.description.trim(),
+   468→        features: form.features.trim(),
+   469→        popular: form.popular,
+   470→      },
+   471→      {
+   472→        onSuccess: () => {
+   473→          toast.success('Plan created successfully')
+   474→          reset()
+   475→          setOpen(false)
+   476→        },
+   477→        onError: (e: Error) => toast.error(e.message || 'Failed to create plan'),
+   478→      }
+   479→    )
+   480→  }
+   481→
+   482→  return (
+   483→    <div className="space-y-5">
+   484→      <div className="flex flex-wrap items-center justify-between gap-3">
+   485→        <div>
+   486→          <h3 className="text-lg font-bold text-foreground">Subscription Plans</h3>
+   487→          <p className="text-sm text-muted-foreground">Manage the plans available to students worldwide.</p>
+   488→        </div>
+   489→        <Dialog open={open} onOpenChange={setOpen}>
+   490→          <DialogTrigger asChild>
+   491→            <Button className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
+   492→              <Plus className="h-4 w-4" /> Create New Plan
+   493→            </Button>
+   494→          </DialogTrigger>
+   495→          <DialogContent className="sm:max-w-[520px]">
+   496→            <DialogHeader>
+   497→              <DialogTitle className="flex items-center gap-2">
+   498→                <StarMedallion className="h-5 w-5 text-[oklch(0.62_0.14_230)]" />
+   499→                Create Subscription Plan
+   500→              </DialogTitle>
+   501→              <DialogDescription>Define a new plan for students to subscribe to.</DialogDescription>
+   502→            </DialogHeader>
+   503→            <form onSubmit={submit} className="space-y-4">
+   504→              <div className="grid grid-cols-2 gap-3">
+   505→                <div className="col-span-2 space-y-1.5">
+   506→                  <Label htmlFor="plan-name">Plan name</Label>
+   507→                  <Input
+   508→                    id="plan-name"
+   509→                    placeholder="e.g. Hafiz Mentor"
+   510→                    value={form.name}
+   511→                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+   512→                  />
+   513→                </div>
+   514→                <div className="space-y-1.5">
+   515→                  <Label htmlFor="plan-hours">Hours / week</Label>
+   516→                  <Input
+   517→                    id="plan-hours"
+   518→                    type="number"
+   519→                    min={1}
+   520→                    value={form.hoursPerWeek}
+   521→                    onChange={(e) => setForm((s) => ({ ...s, hoursPerWeek: e.target.value }))}
+   522→                  />
+   523→                </div>
+   524→                <div className="space-y-1.5">
+   525→                  <Label htmlFor="plan-price">Monthly price ($)</Label>
+   526→                  <Input
+   527→                    id="plan-price"
+   528→                    type="number"
+   529→                    min={0}
+   530→                    step="0.01"
+   531→                    value={form.monthlyPrice}
+   532→                    onChange={(e) => setForm((s) => ({ ...s, monthlyPrice: e.target.value }))}
+   533→                  />
+   534→                </div>
+   535→                <div className="col-span-2 space-y-1.5">
+   536→                  <Label htmlFor="plan-desc">Description</Label>
+   537→                  <Textarea
+   538→                    id="plan-desc"
+   539→                    rows={2}
+   540→                    placeholder="Short marketing description"
+   541→                    value={form.description}
+   542→                    onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+   543→                  />
+   544→                </div>
+   545→                <div className="col-span-2 space-y-1.5">
+   546→                  <Label htmlFor="plan-features">Features (one per line)</Label>
+   547→                  <Textarea
+   548→                    id="plan-features"
+   549→                    rows={5}
+   550→                    placeholder={'Weekly 1-on-1 sessions\nRecitation correction\nProgress tracking'}
+   551→                    value={form.features}
+   552→                    onChange={(e) => setForm((s) => ({ ...s, features: e.target.value }))}
+   553→                  />
+   554→                </div>
+   555→                <div className="col-span-2 flex items-center gap-2">
+   556→                  <Checkbox
+   557→                    id="plan-popular"
+   558→                    checked={form.popular}
+   559→                    onCheckedChange={(v) => setForm((s) => ({ ...s, popular: !!v }))}
+   560→                  />
+   561→                  <Label htmlFor="plan-popular" className="cursor-pointer text-sm font-medium">
+   562→                    Mark as <span className="text-[oklch(0.55_0.13_75)]">Most Popular</span> (highlighted on Plans page)
+   563→                  </Label>
+   564→                </div>
+   565→              </div>
+   566→              <DialogFooter>
+   567→                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+   568→                  Cancel
+   569→                </Button>
+   570→                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={createPlan.isPending}>
+   571→                  {createPlan.isPending ? 'Creating…' : 'Create plan'}
+   572→                </Button>
+   573→              </DialogFooter>
+   574→            </form>
+   575→          </DialogContent>
+   576→        </Dialog>
+   577→      </div>
+   578→
+   579→      {plans.length === 0 ? (
+   580→        <Card className="p-10 text-center text-sm text-muted-foreground">
+   581→          No subscription plans yet. Create your first plan.
+   582→        </Card>
+   583→      ) : (
+   584→        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   585→          {plans.map((p) => (
+   586→            <Card
+   587→              key={p.id}
+   588→              className={cn(
+   589→                'relative flex flex-col overflow-hidden p-5 transition-all hover:shadow-lg hover:shadow-primary/5',
+   590→                p.popular && 'ring-2 ring-[oklch(0.78_0.15_85/0.6)]'
+   591→              )}
+   592→            >
+   593→              {p.popular && (
+   594→                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[oklch(0.78_0.15_85)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow">
+   595→                  <Star className="h-3 w-3" /> Popular
+   596→                </span>
+   597→              )}
+   598→              <div className="mb-3 flex items-center gap-2">
+   599→                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   600→                  <StarMedallion className="h-5 w-5" />
+   601→                </div>
+   602→                <div>
+   603→                  <h4 className="font-bold leading-tight text-foreground">{p.name}</h4>
+   604→                  <p className="text-[11px] text-muted-foreground">{p.hoursPerWeek} hrs / week</p>
+   605→                </div>
+   606→              </div>
+   607→
+   608→              <div className="mb-3 flex items-end gap-1">
+   609→                <span className="text-3xl font-extrabold text-gradient-blue">${p.monthlyPrice}</span>
+   610→                <span className="mb-1 text-xs text-muted-foreground">/ month</span>
+   611→              </div>
+   612→
+   613→              {p.description && (
+   614→                <p className="mb-3 text-xs text-muted-foreground">{p.description}</p>
+   615→              )}
+   616→
+   617→              <ul className="mb-4 flex-1 space-y-1.5">
+   618→                {p.features.map((f, i) => (
+   619→                  <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
+   620→                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.55_0.13_150)]" />
+   621→                    <span>{f}</span>
+   622→                  </li>
+   623→                ))}
+   624→              </ul>
+   625→
+   626→              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+   627→                <div className="flex items-center gap-2">
+   628→                  <Switch
+   629→                    checked={p.active}
+   630→                    // Active state is read-only in this demo (no toggle API)
+   631→                    onCheckedChange={(v) =>
+   632→                      toast.info(
+   633→                        v ? 'Plan activation requires a backend update endpoint' : 'Plan deactivation requires a backend update endpoint'
+   634→                      )
+   635→                    }
+   636→                    aria-label="Plan active status"
+   637→                  />
+   638→                  <span className={cn('text-xs font-medium', p.active ? 'text-[oklch(0.45_0.12_150)]' : 'text-muted-foreground')}>
+   639→                    {p.active ? 'Active' : 'Inactive'}
+   640→                  </span>
+   641→                </div>
+   642→                <Badge
+   643→                  variant="outline"
+   644→                  className={cn(
+   645→                    p.active
+   646→                      ? 'border-[oklch(0.70_0.12_150/0.3)] bg-[oklch(0.70_0.12_150/0.08)] text-[oklch(0.45_0.12_150)]'
+   647→                      : 'border-border text-muted-foreground'
+   648→                  )}
+   649→                >
+   650→                  {p.active ? 'Live' : 'Hidden'}
+   651→                </Badge>
+   652→              </div>
+   653→            </Card>
+   654→          ))}
+   655→        </div>
+   656→      )}
+   657→    </div>
+   658→  )
+   659→}
+   660→
+   661→/* ============================================================
+   662→ * Withdrawals tab
+   663→ * ============================================================ */
+   664→function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
+   665→  if (withdrawals.length === 0) {
+   666→    return (
+   667→      <Card className="p-12 text-center">
+   668→        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+   669→          <Banknote className="h-6 w-6" />
+   670→        </div>
+   671→        <h4 className="text-lg font-bold text-foreground">No pending payouts</h4>
+   672→        <p className="mt-1 text-sm text-muted-foreground">
+   673→          All tutor withdrawal requests have been processed.
+   674→        </p>
+   675→      </Card>
+   676→    )
+   677→  }
+   678→
+   679→  return (
+   680→    <Card className="p-0">
+   681→      <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-quran">
+   682→        <Table>
+   683→          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+   684→            <TableRow className="hover:bg-transparent">
+   685→              <TableHead className="pl-4">Tutor</TableHead>
+   686→              <TableHead>Amount</TableHead>
+   687→              <TableHead>Method</TableHead>
+   688→              <TableHead>Requested</TableHead>
+   689→              <TableHead>Status</TableHead>
+   690→              <TableHead className="pr-4 text-right">Actions</TableHead>
+   691→            </TableRow>
+   692→          </TableHeader>
+   693→          <TableBody>
+   694→            {withdrawals.map((w) => (
+   695→              <TableRow key={w.id}>
+   696→                <TableCell className="pl-4">
+   697→                  <div className="flex items-center gap-3 py-1">
+   698→                    <Avatar name={w.tutor.name} size={36} />
+   699→                    <div className="min-w-0">
+   700→                      <div className="truncate font-semibold text-foreground">{w.tutor.name}</div>
+   701→                      <div className="truncate text-xs text-muted-foreground">{w.tutor.email}</div>
+   702→                    </div>
+   703→                  </div>
+   704→                </TableCell>
+   705→                <TableCell>
+   706→                  <span className="font-mono text-sm font-bold text-foreground">${Number(w.amount).toFixed(2)}</span>
+   707→                </TableCell>
+   708→                <TableCell>
+   709→                  <Badge variant="outline" className="border-border capitalize text-muted-foreground">
+   710→                    {w.method ? w.method.toLowerCase() : 'bank'}
+   711→                  </Badge>
+   712→                </TableCell>
+   713→                <TableCell>
+   714→                  <span className="text-xs text-muted-foreground">
+   715→                    {w.createdAt ? format(new Date(w.createdAt), 'MMM d, yyyy') : '—'}
+   716→                  </span>
+   717→                </TableCell>
+   718→                <TableCell>
+   719→                  <span className="inline-flex items-center gap-1 rounded-md border border-[oklch(0.75_0.13_70/0.35)] bg-[oklch(0.75_0.13_70/0.18)] px-2 py-0.5 text-xs font-semibold text-[oklch(0.50_0.12_70)]">
+   720→                    <Clock3 className="h-3 w-3" /> Pending
+   721→                  </span>
+   722→                </TableCell>
+   723→                <TableCell className="pr-4">
+   724→                  <div className="flex items-center justify-end gap-1.5">
+   725→                    <Button
+   726→                      size="sm"
+   727→                      className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+   728→                      onClick={() => toast.success(`Payout approved for ${w.tutor.name} ($${Number(w.amount).toFixed(2)})`)}
+   729→                    >
+   730→                      <CheckCircle2 className="h-3.5 w-3.5" /> Approve Payout
+   731→                    </Button>
+   732→                    <Button
+   733→                      size="sm"
+   734→                      variant="outline"
+   735→                      className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+   736→                      onClick={() => toast.error(`Payout rejected for ${w.tutor.name}`)}
+   737→                    >
+   738→                      <XCircle className="h-3.5 w-3.5" /> Reject
+   739→                    </Button>
+   740→                  </div>
+   741→                </TableCell>
+   742→              </TableRow>
+   743→            ))}
+   744→          </TableBody>
+   745→        </Table>
+   746→      </div>
+   747→    </Card>
+   748→  )
+   749→}
+   750→
+   751→/* ============================================================
+   752→ * Main view
+   753→ * ============================================================ */
+   754→export function AdminDashboard() {
+   755→  const user = useAppStore((s) => s.user)
+   756→  const { data, isLoading, isError, error } = useAdminDashboard()
+   757→
+   758→  // Auth gate renders before anything else
+   759→  if (!user || user.role !== 'ADMIN') {
+   760→    return <AdminAuthGuard />
+   761→  }
+   762→
+   763→  return (
+   764→    <div className="relative">
+   765→      {/* ===== Header with decorative Islamic pattern band ===== */}
+   766→      <header className="relative overflow-hidden border-b border-border/60 bg-primary text-primary-foreground">
+   767→        <IslamicPatternBand opacity={0.18} />
+   768→        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
+   769→          <div className="flex flex-wrap items-center justify-between gap-4">
+   770→            <div className="flex items-center gap-4">
+   771→              <div className="hidden h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur sm:flex">
+   772→                <QtuorLogo className="h-9 w-9" />
+   773→              </div>
+   774→              <div>
+   775→                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/80 ring-1 ring-white/15">
+   776→                  <Sparkles className="h-3 w-3" /> Admin Console
+   777→                </div>
+   778→                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+   779→                  Admin Control Center
+   780→                </h1>
+   781→                <p className="mt-1 text-sm text-white/70">
+   782→                  Vetting, plans, and payouts — all in one place.
+   783→                </p>
+   784→              </div>
+   785→            </div>
+   786→            <div className="hidden items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm ring-1 ring-white/15 md:flex">
+   787→              <StarMedallion className="h-5 w-5 text-[oklch(0.78_0.15_85)]" />
+   788→              <span className="text-white/80">Signed in as</span>
+   789→              <span className="font-semibold text-white">{user.name}</span>
+   790→            </div>
+   791→          </div>
+   792→        </div>
+   793→      </header>
+   794→
+   795→      {/* ===== Body ===== */}
+   796→      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+   797→        {/* ===== Stats overview ===== */}
+   798→        {isLoading ? (
+   799→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   800→            {Array.from({ length: 6 }).map((_, i) => (
+   801→              <Card key={i} className="h-[104px] animate-pulse bg-muted/40" />
+   802→            ))}
+   803→          </div>
+   804→        ) : isError ? (
+   805→          <Card className="flex items-center gap-3 border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.05)] p-4">
+   806→            <AlertTriangle className="h-5 w-5 text-[oklch(0.50_0.20_27)]" />
+   807→            <div className="text-sm text-foreground">
+   808→              <span className="font-semibold">Couldn't load dashboard data.</span>{' '}
+   809→              <span className="text-muted-foreground">{(error as Error)?.message || 'Please try again shortly.'}</span>
+   810→            </div>
+   811→          </Card>
+   812→        ) : (
+   813→          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+   814→            <StatCard
+   815→              label="Total Students"
+   816→              value={data?.stats.totalStudents ?? 0}
+   817→              icon={<Users className="h-5 w-5" />}
+   818→              accent="primary"
+   819→            />
+   820→            <StatCard
+   821→              label="Total Tutors"
+   822→              value={data?.stats.totalTutors ?? 0}
+   823→              sub={`approved ${data?.stats.approvedTutors ?? 0}`}
+   824→              icon={<GraduationCap className="h-5 w-5" />}
+   825→              accent="primary"
+   826→            />
+   827→            <StatCard
+   828→              label="Pending Tutors"
+   829→              value={data?.stats.pendingTutors ?? 0}
+   830→              sub="awaiting review"
+   831→              icon={<Clock3 className="h-5 w-5" />}
+   832→              accent="amber"
+   833→            />
+   834→            <StatCard
+   835→              label="Total Bookings"
+   836→              value={data?.stats.totalBookings ?? 0}
+   837→              icon={<CalendarCheck className="h-5 w-5" />}
+   838→              accent="primary"
+   839→            />
+   840→            <StatCard
+   841→              label="Total Revenue"
+   842→              value={`$${(data?.stats.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+   843→              sub="lifetime"
+   844→              icon={<DollarSign className="h-5 w-5" />}
+   845→              accent="gold"
+   846→            />
+   847→            <StatCard
+   848→              label="Pending Payouts"
+   849→              value={data?.pendingWithdrawals.length ?? 0}
+   850→              sub="withdrawal requests"
+   851→              icon={<Banknote className="h-5 w-5" />}
+   852→              accent="amber"
+   853→            />
+   854→          </div>
+   855→        )}
+   856→
+   857→        {/* ===== Tabs ===== */}
+   858→        <Tabs defaultValue="tutors" className="w-full">
+   859→          <div className="overflow-x-auto">
+   860→            <TabsList className="h-auto w-fit rounded-xl bg-muted/60 p-1">
+   861→              <TabsTrigger value="tutors" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   862→                <ShieldCheck className="h-4 w-4" /> Tutor Vetting
+   863→              </TabsTrigger>
+   864→              <TabsTrigger value="plans" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   865→                <Sparkles className="h-4 w-4" /> Subscription Plans
+   866→              </TabsTrigger>
+   867→              <TabsTrigger value="withdrawals" className="gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold">
+   868→                <Banknote className="h-4 w-4" /> Withdrawals
+   869→                {(data?.pendingWithdrawals.length ?? 0) > 0 && (
+   870→                  <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[oklch(0.75_0.13_70)] px-1 text-[10px] font-bold text-white">
+   871→                    {data?.pendingWithdrawals.length}
+   872→                  </span>
+   873→                )}
+   874→              </TabsTrigger>
+   875→            </TabsList>
+   876→          </div>
+   877→
+   878→          <TabsContent value="tutors" className="mt-5">
+   879→            {isLoading ? (
+   880→              <Card className="h-[400px] animate-pulse bg-muted/40" />
+   881→            ) : (
+   882→              <TutorVettingTab tutors={data?.tutors ?? []} />
+   883→            )}
+   884→          </TabsContent>
+   885→
+   886→          <TabsContent value="plans" className="mt-5">
+   887→            {isLoading ? (
+   888→              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   889→                {Array.from({ length: 3 }).map((_, i) => (
+   890→                  <Card key={i} className="h-[260px] animate-pulse bg-muted/40" />
+   891→                ))}
+   892→              </div>
+   893→            ) : (
+   894→              <PlansTab plans={data?.plans ?? []} />
+   895→            )}
+   896→          </TabsContent>
+   897→
+   898→          <TabsContent value="withdrawals" className="mt-5">
+   899→            {isLoading ? (
+   900→              <Card className="h-[300px] animate-pulse bg-muted/40" />
+   901→            ) : (
+   902→              <WithdrawalsTab withdrawals={data?.pendingWithdrawals ?? []} />
+   903→            )}
+   904→          </TabsContent>
+   905→        </Tabs>
+   906→      </div>
+   907→    </div>
+   908→  )
+   909→}
+   910→
+   911→export default AdminDashboard
+   912→

@@ -1,0 +1,11 @@
+<svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qtuor">
+  <defs>
+    <linearGradient id="qtu-navy" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B2545"/>
+      <stop offset="1" stop-color="#13315C"/>
+    </linearGradient>
+  </defs>
+  <circle cx="40" cy="40" r="15" fill="none" stroke="url(#qtu-navy)" stroke-width="11"/>
+  <path d="M47 47 L66 66" fill="none" stroke="url(#qtu-navy)" stroke-width="11" stroke-linecap="round"/>
+  <text x="76" y="49" font-family="'Plus Jakarta Sans','Montserrat',Arial,sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5" fill="#0F172A">tuor</text>
+</svg>
