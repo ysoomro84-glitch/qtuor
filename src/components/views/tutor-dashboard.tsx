@@ -582,7 +582,7 @@ function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
       {/* 55% Commission Transparency Disclaimer */}
       <p className="mt-3 text-center text-xs text-muted-foreground">
         <HandCoins className="mr-1 inline h-3.5 w-3.5" />
-        Your wallet balance shows your <span className="font-semibold text-emerald-600">55% share</span> after the platform commission (45%).
+        Your wallet balance shows your <span className="font-semibold text-[oklch(0.50_0.14_230)]">55% share</span> after the platform commission (45%).
       </p>
     </div>
   )
@@ -698,7 +698,7 @@ function UpcomingClasses({
                   <Button
                     size="sm"
                     onClick={() => onStart(b)}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
                   >
                     <Video className="h-4 w-4" /> {relative === 'Today' ? 'Join' : 'Start Class'}
                   </Button>
@@ -1637,11 +1637,8 @@ function TutorSidebar({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-border/60 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-          <GraduationCap className="h-4.5 w-4.5" />
-        </div>
-        <span className="text-base font-bold text-foreground">NOOR ACADEMY</span>
+      <div className="flex h-16 items-center gap-2 border-b border-border/60 px-5">
+        <QtuorLogoLockup size="sm" />
       </div>
       {/* Nav Items */}
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -1686,7 +1683,7 @@ function TutorMobileNav({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
             <button
               key={item.label}
               onClick={() => onNavigate(item.view)}
-              className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-emerald-600"
+              className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-[oklch(0.62_0.14_230)]"
             >
               <Icon className="h-5 w-5" />
               {item.label}
@@ -1703,13 +1700,10 @@ function TutorMobileNav({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
 // ============================================================
 function DashboardTopBar({ userName, onLogout }: { userName: string; onLogout: () => void }) {
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60 bg-white/95">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60" style={{ background: 'rgba(255, 255, 255, 0.92)' }}>
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-            <GraduationCap className="h-4.5 w-4.5" />
-          </div>
-          <span className="text-base font-bold text-foreground">Tutor Portal</span>
+          <QtuorLogoLockup size="sm" />
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm font-medium sm:inline">{userName}</span>
@@ -1760,7 +1754,7 @@ export function TutorDashboard() {
         </p>
         <Button
           onClick={() => window.location.reload()}
-          className="mt-4 bg-emerald-600 text-white hover:bg-emerald-700"
+          className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
         >
           Reload
         </Button>
@@ -1778,7 +1772,7 @@ export function TutorDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar - visible on all screens */}
       <DashboardTopBar userName={user.name} onLogout={handleLogout} />
 

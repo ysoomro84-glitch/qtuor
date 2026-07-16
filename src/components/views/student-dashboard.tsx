@@ -49,8 +49,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar } from '@/components/shared/avatar'
-import { BismillahHeader, StarMedallion } from '@/components/brand/patterns'
+import { BismillahHeader, StarMedallion, IslamicPatternBand } from '@/components/brand/patterns'
 import { QtuorLogoLockup } from '@/components/brand/logo'
+
+// Brand color tokens (matching Qtuor globals.css)
+const BRAND = {
+  deepNavy: 'oklch(0.34 0.13 256)',
+  brightBlue: 'oklch(0.62 0.14 230)',
+  gold: 'oklch(0.78 0.15 80)',
+  lightBlue: 'oklch(0.93 0.04 240)',
+  mutedBg: 'oklch(0.96 0.012 240)',
+}
 
 // ---------------- Types ----------------
 type Tutor = { id: string; name: string; avatar?: string | null; country?: string | null }
@@ -148,23 +157,24 @@ function AuthGate() {
   const openAuth = useAppStore((s) => s.openAuth)
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md items-center justify-center px-4 py-12">
-      <Card className="w-full overflow-hidden border-emerald-200 p-0 shadow-lg">
-        <div className="relative h-24 bg-gradient-to-br from-emerald-600 to-teal-600">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+      <Card className="w-full overflow-hidden border-primary/10 p-0 shadow-lg">
+        <div className="pattern-islamic relative h-24 bg-primary">
+          <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)]" />
+          <div className="pattern-stars absolute inset-0 opacity-40" />
           <div className="absolute -bottom-7 left-1/2 -translate-x-1/2">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
-              <StarMedallion className="h-8 w-8 text-emerald-600" />
+              <StarMedallion className="h-8 w-8 text-primary" />
             </div>
           </div>
         </div>
         <CardContent className="px-6 pb-6 pt-10 text-center">
-          <h2 className="text-xl font-bold text-emerald-700">Sign in to view your dashboard</h2>
+          <h2 className="text-xl font-bold text-primary">Sign in to view your dashboard</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
             Track your classes, lesson progress, and subscription — all in one blessed place.
           </p>
           <Button
             onClick={() => openAuth('login')}
-            className="mt-5 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+            className="mt-5 w-full bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
             size="lg"
           >
             <LogIn className="h-4 w-4" />
@@ -215,11 +225,8 @@ function Sidebar({ activeView, onNavigate }: { activeView: string; onNavigate: (
   return (
     <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-border/60 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-          <GraduationCap className="h-4.5 w-4.5" />
-        </div>
-        <span className="text-base font-bold text-foreground">NOOR ACADEMY</span>
+      <div className="flex h-16 items-center gap-2 border-b border-border/60 px-5">
+        <QtuorLogoLockup size="sm" />
       </div>
       {/* Nav Items */}
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -233,7 +240,7 @@ function Sidebar({ activeView, onNavigate }: { activeView: string; onNavigate: (
               className={cn(
                 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-[oklch(0.62_0.14_230/0.10)] text-[oklch(0.40_0.11_258)]'
                   : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
               )}
             >
@@ -273,7 +280,7 @@ function MobileNav({ activeView, onNavigate }: { activeView: string; onNavigate:
               onClick={() => onNavigate(item.view)}
               className={cn(
                 'flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium transition-colors',
-                isActive ? 'text-emerald-600' : 'text-muted-foreground'
+                isActive ? 'text-[oklch(0.62_0.14_230)]' : 'text-muted-foreground'
               )}
             >
               <Icon className="h-5 w-5" />
@@ -328,19 +335,21 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
 
   if (!nextClass) {
     return (
-      <Card className="overflow-hidden border-0 p-0">
-        <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 p-6 sm:p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <CalendarDays className="h-8 w-8" />
+      <Card className="overflow-hidden border-0 p-0 shadow-md">
+        <div className="relative bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] p-6 sm:p-8">
+          <div className="pattern-stars absolute inset-0 opacity-30" />
+          <IslamicPatternBand opacity={0.04} />
+          <div className="relative flex flex-col items-center gap-4 text-center text-white">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
+              <CalendarDays className="h-8 w-8 text-white/80" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">No upcoming classes</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Find a verified tutor and book your next session.</p>
+              <h2 className="text-lg font-bold">No upcoming classes</h2>
+              <p className="mt-1 text-sm text-white/70">Find a verified tutor and book your next session.</p>
             </div>
             <Button
               onClick={() => setView('marketplace')}
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              className="bg-white text-primary hover:bg-white/90"
             >
               <Search className="h-4 w-4" />
               Find a Tutor
@@ -359,17 +368,14 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <Card className="overflow-hidden border-0 p-0 shadow-lg">
+      <Card className="overflow-hidden border-0 p-0 shadow-md">
         <div className={cn(
           'relative p-6 sm:p-8',
-          isClassActive
-            ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
-            : isWithin10Min
-              ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
-              : 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white'
+          'bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] text-white'
         )}>
           {/* Background pattern */}
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+          <div className="pattern-stars absolute inset-0 opacity-30" />
+          <IslamicPatternBand opacity={0.04} />
 
           {/* LIVE badge */}
           <div className="relative flex items-center justify-between">
@@ -379,12 +385,12 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
                   <span className="h-1.5 w-1.5 rounded-full bg-white" /> LIVE
                 </span>
               )}
-              <span className="text-sm font-semibold uppercase tracking-wider text-white/80">
+              <span className="text-sm font-semibold uppercase tracking-wider text-white/70">
                 Next Class
               </span>
             </div>
-            <Badge className="bg-white/20 text-white border-white/30 text-xs">
-              {nextClass.isTrial ? 'Trial Class' : 'Regular Class'}
+            <Badge className="bg-[oklch(0.78_0.15_85)] text-[oklch(0.30_0.05_85)] border-transparent">
+              {nextClass.isTrial ? 'Trial' : 'Regular'}
             </Badge>
           </div>
 
@@ -449,8 +455,8 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
               className={cn(
                 'w-full text-base font-bold py-6 transition-all',
                 isClassActive || isWithin10Min
-                  ? 'bg-white text-emerald-700 hover:bg-white/90 shadow-xl animate-pulse'
-                  : 'bg-white/20 text-white hover:bg-white/30 border border-white/30'
+                  ? 'bg-[oklch(0.78_0.15_85)] text-[oklch(0.30_0.05_85)] hover:bg-[oklch(0.75_0.15_80)] shadow-xl animate-pulse'
+                  : 'bg-white/15 text-white hover:bg-white/25 border border-white/30'
               )}
               onClick={() => {
                 setActiveBookingId(nextClass.id)
@@ -468,7 +474,7 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
 }
 
 // ============================================================
-// Stat cards (compact for sidebar-free layout)
+// Stat cards
 // ============================================================
 function StatCard({
   index,
@@ -489,10 +495,10 @@ function StatCard({
 }) {
   const accentBg =
     accent === 'accent'
-      ? 'bg-emerald-50 text-emerald-600'
+      ? 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]'
       : accent === 'gold'
-        ? 'bg-amber-50 text-amber-600'
-        : 'bg-teal-50 text-teal-600'
+        ? 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]'
+        : 'bg-[oklch(0.34_0.13_256/0.10)] text-primary'
   return (
     <motion.div
       custom={index}
@@ -526,15 +532,15 @@ function CompletionRing({ pct }: { pct: number }) {
   return (
     <div className="relative h-10 w-10">
       <svg viewBox="0 0 44 44" className="h-10 w-10 -rotate-90">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="#d4edda" strokeWidth="4" />
+        <circle cx="22" cy="22" r={r} fill="none" stroke="oklch(0.34 0.13 256 / 0.12)" strokeWidth="4" />
         <circle
           cx="22" cy="22" r={r}
-          fill="none" stroke="#059669" strokeWidth="4" strokeLinecap="round"
+          fill="none" stroke="oklch(0.62 0.14 230)" strokeWidth="4" strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={offset}
           className="transition-[stroke-dashoffset] duration-700"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-emerald-700">
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary">
         {pct}%
       </span>
     </div>
@@ -567,7 +573,7 @@ function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
         accent="accent"
         action={
           !hasActive ? (
-            <Button size="sm" className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setView('plans')}>
+            <Button size="sm" className="w-full bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]" onClick={() => setView('plans')}>
               <Crown className="h-3.5 w-3.5" /> Subscribe
             </Button>
           ) : null
@@ -592,7 +598,7 @@ function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
       <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible">
         <Card className="h-full p-4 transition-shadow hover:shadow-md border-border/60">
           <div className="flex items-start justify-between">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[oklch(0.34_0.13_256/0.10)] text-primary">
               <TrendingUp className="h-4.5 w-4.5" />
             </div>
             <CompletionRing pct={stats.completionRate} />
@@ -635,8 +641,8 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
     <Card className="p-5 sm:p-6 border-border/60">
       <SectionHeader eyebrow="Your schedule" title="Upcoming Classes" icon={CalendarDays} />
       {upcoming.length === 0 ? (
-        <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 p-8 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+        <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-primary/15 bg-[oklch(0.62_0.14_230/0.04)] p-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
             <Search className="h-6 w-6" />
           </div>
           <h3 className="mt-3 text-base font-semibold text-foreground">No upcoming classes</h3>
@@ -645,7 +651,7 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
           </p>
           <Button
             onClick={() => setView('marketplace')}
-            className="mt-4 bg-emerald-600 text-white hover:bg-emerald-700"
+            className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
           >
             <Search className="h-4 w-4" />
             Find a Tutor
@@ -658,7 +664,7 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
             return (
               <div
                 key={b.id}
-                className="group flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 sm:flex-row sm:items-center sm:justify-between"
+                className="group flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-[oklch(0.62_0.14_230/0.4)] hover:bg-[oklch(0.62_0.14_230/0.03)] sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar name={b.tutor.name} src={b.tutor.avatar} country={b.tutor.country} size={44} />
@@ -666,11 +672,11 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-semibold text-foreground">{b.tutor.name}</span>
                       {b.isTrial && (
-                        <Badge className="bg-amber-50 text-amber-700 border-amber-200">Trial</Badge>
+                        <Badge className="bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)] border-[oklch(0.78_0.15_85/0.4)]">Trial</Badge>
                       )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="font-medium text-emerald-600">{day}</span>
+                      <span className="font-medium text-[oklch(0.50_0.14_230)]">{day}</span>
                       <span>·</span>
                       <span>{time}</span>
                       <span>·</span>
@@ -696,7 +702,7 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
                     onClick={() => {
                       setActiveBookingId(b.id)
                       setView('classroom')
@@ -726,41 +732,41 @@ function QuickActions() {
       <div className="mt-4 space-y-3">
         <Button
           variant="outline"
-          className="w-full justify-start gap-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 py-5"
+          className="w-full justify-start gap-3 border-[oklch(0.62_0.14_230/0.3)] text-[oklch(0.40_0.11_258)] hover:bg-[oklch(0.62_0.14_230/0.06)] py-5"
           onClick={() => setView('marketplace')}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)]">
             <Search className="h-4 w-4" />
           </div>
           <div className="text-left">
             <div className="text-sm font-semibold">Find a Quran Tutor</div>
-            <div className="text-xs text-emerald-600/70">Browse verified tutors by subject</div>
+            <div className="text-xs text-muted-foreground">Browse verified tutors by subject</div>
           </div>
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start gap-3 border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800 py-5"
+          className="w-full justify-start gap-3 border-primary/20 text-primary hover:bg-primary/5 py-5"
           onClick={() => setView('plans')}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.34_0.13_256/0.10)]">
             <ClipboardList className="h-4 w-4" />
           </div>
           <div className="text-left">
             <div className="text-sm font-semibold">View Subscription Plans</div>
-            <div className="text-xs text-teal-600/70">Manage or upgrade your plan</div>
+            <div className="text-xs text-muted-foreground">Manage or upgrade your plan</div>
           </div>
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start gap-3 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 py-5"
+          className="w-full justify-start gap-3 border-[oklch(0.78_0.15_85/0.4)] text-[oklch(0.55_0.13_75)] hover:bg-[oklch(0.78_0.15_85/0.08)] py-5"
           onClick={() => setView('library')}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.78_0.15_85/0.18)]">
             <BookOpen className="h-4 w-4" />
           </div>
           <div className="text-left">
             <div className="text-sm font-semibold">Open Quran Library</div>
-            <div className="text-xs text-amber-600/70">Read Noorani Qaida & Quran</div>
+            <div className="text-xs text-muted-foreground">Read Noorani Qaida & Quran</div>
           </div>
         </Button>
       </div>
@@ -802,7 +808,7 @@ function LessonProgressTracker({ progress }: { progress: ProgressItem[] }) {
               <div key={g.subject} className="rounded-xl border border-border/60 bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
                       <Icon className="h-4.5 w-4.5" />
                     </div>
                     <div>
@@ -812,11 +818,11 @@ function LessonProgressTracker({ progress }: { progress: ProgressItem[] }) {
                       </div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-emerald-600">{g.avg}%</span>
+                  <span className="text-sm font-bold text-primary">{g.avg}%</span>
                 </div>
                 <Progress
                   value={g.avg}
-                  className="mt-3 h-1.5 bg-emerald-100 [&>[data-slot=progress-indicator]]:bg-emerald-600"
+                  className="mt-3 h-1.5 bg-[oklch(0.34_0.13_256/0.10)] [&>[data-slot=progress-indicator]]:bg-[oklch(0.62_0.14_230)]"
                 />
                 <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto scrollbar-quran pr-1">
                   {g.items.map((item) => (
@@ -826,9 +832,9 @@ function LessonProgressTracker({ progress }: { progress: ProgressItem[] }) {
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         {item.completed ? (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-500" />
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-[oklch(0.55_0.13_75)]" />
                         ) : (
-                          <div className="h-4 w-4 shrink-0 rounded-full border-2 border-emerald-400" />
+                          <div className="h-4 w-4 shrink-0 rounded-full border-2 border-[oklch(0.62_0.14_230/0.5)]" />
                         )}
                         <div className="min-w-0">
                           <div className="truncate text-foreground">{item.lessonTitle}</div>
@@ -837,7 +843,7 @@ function LessonProgressTracker({ progress }: { progress: ProgressItem[] }) {
                           )}
                         </div>
                       </div>
-                      <span className={cn('shrink-0 text-xs font-semibold', item.completed ? 'text-amber-500' : 'text-emerald-600')}>
+                      <span className={cn('shrink-0 text-xs font-semibold', item.completed ? 'text-[oklch(0.55_0.13_75)]' : 'text-[oklch(0.50_0.14_230)]')}>
                         {item.completed ? (
                           <span className="inline-flex items-center gap-1"><Check className="h-3 w-3" /> Done</span>
                         ) : (
@@ -865,16 +871,16 @@ function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
   if (!subscription) {
     return (
       <Card className="overflow-hidden border-0 p-0">
-        <div className="relative bg-gradient-to-br from-emerald-700 to-teal-700 p-6 text-white">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+        <div className="relative bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] p-6 text-white">
+          <div className="pattern-stars absolute inset-0 opacity-30" />
           <div className="relative">
             <div className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-amber-300" />
+              <Crown className="h-5 w-5 text-[oklch(0.78_0.15_85)]" />
               <span className="text-xs font-semibold uppercase tracking-wider text-white/80">No active plan</span>
             </div>
             <h3 className="mt-2 text-lg font-bold">Start your Quran journey today</h3>
             <p className="mt-1 text-sm text-white/80">Choose a subscription plan and unlock monthly classes with verified tutors.</p>
-            <Button onClick={() => setView('plans')} className="mt-4 w-full bg-white text-emerald-700 hover:bg-white/90">
+            <Button onClick={() => setView('plans')} className="mt-4 w-full bg-white text-primary hover:bg-white/90">
               <Crown className="h-4 w-4" /> Choose a Plan
             </Button>
           </div>
@@ -887,8 +893,8 @@ function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
 
   return (
     <Card className="overflow-hidden p-0 border-border/60">
-      <div className="relative bg-gradient-to-br from-emerald-700 to-teal-700 p-5 text-white">
-        <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+      <div className="relative bg-gradient-to-br from-[oklch(0.34_0.13_256)] to-[oklch(0.55_0.12_250)] p-5 text-white">
+        <div className="pattern-stars absolute inset-0 opacity-25" />
         <div className="relative flex items-start justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-white/70">Current Plan</div>
@@ -897,13 +903,13 @@ function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
               {subscription.plan.classesPerMonth} classes/mo · ${subscription.plan.monthlyPrice}/mo
             </div>
           </div>
-          <Badge className="bg-amber-400 text-amber-900 border-transparent">Active</Badge>
+          <Badge className="bg-[oklch(0.78_0.15_85)] text-[oklch(0.30_0.05_85)] border-transparent">Active</Badge>
         </div>
       </div>
       <div className="space-y-4 p-5">
         <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
           <div className="flex min-w-0 items-center gap-2 text-sm">
-            <CalendarDays className="h-4 w-4 shrink-0 text-emerald-600" />
+            <CalendarDays className="h-4 w-4 shrink-0 text-[oklch(0.50_0.14_230)]" />
             <span className="text-muted-foreground">Renews on</span>
             <span className="font-semibold text-foreground">{expires}</span>
           </div>
@@ -912,17 +918,17 @@ function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
           <ul className="space-y-1.5">
             {subscription.plan.features.slice(0, 5).map((f, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.50_0.14_230)]" />
                 <span>{f}</span>
               </li>
             ))}
           </ul>
         )}
         <div className="grid grid-cols-2 gap-2 pt-1">
-          <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => setView('plans')}>
+          <Button variant="outline" size="sm" className="border-primary/20 text-primary hover:bg-[oklch(0.62_0.14_230/0.08)]" onClick={() => setView('plans')}>
             <Crown className="h-4 w-4" /> Upgrade
           </Button>
-          <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setView('marketplace')}>
+          <Button size="sm" className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]" onClick={() => setView('marketplace')}>
             <Search className="h-4 w-4" /> Find Tutors
           </Button>
         </div>
@@ -955,7 +961,7 @@ function BookingHistory({ bookings }: { bookings: Booking[] }) {
                   <div className="truncate text-sm font-medium text-foreground">{b.tutor.name}</div>
                   <div className="text-xs text-muted-foreground">{format(d, 'MMM d, yyyy')} · {b.durationMins}m</div>
                 </div>
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[oklch(0.55_0.13_75)]" />
               </li>
             )
           })}
@@ -971,11 +977,11 @@ function BookingHistory({ bookings }: { bookings: Booking[] }) {
 function SectionHeader({ eyebrow, title, icon: Icon }: { eyebrow: string; title: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.50_0.14_230)]">
         <Icon className="h-4 w-4" />
       </div>
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600">{eyebrow}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[oklch(0.50_0.14_230)]">{eyebrow}</div>
         <h3 className="text-base font-bold leading-tight text-foreground">{title}</h3>
       </div>
     </div>
@@ -1010,13 +1016,10 @@ function LoadingState() {
 // ============================================================
 function DashboardTopBar({ userName, onLogout }: { userName: string; onLogout: () => void }) {
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60 bg-white/95">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60" style={{ background: 'rgba(255, 255, 255, 0.92)' }}>
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-            <GraduationCap className="h-4.5 w-4.5" />
-          </div>
-          <span className="text-base font-bold text-foreground">NOOR ACADEMY</span>
+          <QtuorLogoLockup size="sm" />
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm font-medium sm:inline">{userName}</span>
@@ -1068,7 +1071,7 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar - visible on all screens */}
       <DashboardTopBar userName={user.name} onLogout={handleLogout} />
 
@@ -1081,11 +1084,12 @@ export function StudentDashboard() {
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             {/* Welcome Header */}
             <div className="mb-6">
+              <BismillahHeader className="mb-2 justify-start text-primary/70" />
               <h1 className="text-2xl font-bold text-foreground">
-                Assalam-o-Alaikum, <span className="text-emerald-600">{firstName(user.name)}</span> 👋
+                Assalamu alaikum, <span className="text-gradient-blue">{firstName(user.name)}</span> 🌙
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                May your journey of learning the Quran be filled with light.
+                May your journey of learning the Quran be filled with light. Here&apos;s a snapshot of your progress.
               </p>
             </div>
 
