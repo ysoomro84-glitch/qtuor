@@ -7,8 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Check, CreditCard, Loader2, Lock, ShieldCheck, Landmark, Copy, Upload, FileText, X } from 'lucide-react'
+import { Check, CreditCard, Loader2, Lock, ShieldCheck, Landmark, Copy, Upload, FileText, X, ArrowRightLeft } from 'lucide-react'
 import { toast } from 'sonner'
+import { convertFromUSD, formatPrice, formatPriceWithCode, DEFAULT_CURRENCY, CURRENCIES } from '@/lib/currency'
+import { CurrencySwitcher } from '@/components/shared/currency-switcher'
 
 interface Plan {
   id: string
@@ -48,6 +50,15 @@ export function CheckoutModal({ plan: planProp }: { plan: Plan | null }) {
   const [receiptUrl, setReceiptUrl] = React.useState('')
   const [receiptName, setReceiptName] = React.useState('')
   const [uploading, setUploading] = React.useState(false)
+
+  // Currency state — synced with localStorage from plans page
+  const [checkoutCurrency, setCheckoutCurrency] = React.useState<string>(DEFAULT_CURRENCY)
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('qtuor-currency')
+      if (saved && CURRENCIES.find((c) => c.code === saved)) setCheckoutCurrency(saved)
+    } catch {}
+  }, [checkoutOpen])
 
   const { data: bankData, isLoading: bankLoading } = usePublicBankDetails()
   const localBankMut = useLocalBankSubscribe()
@@ -175,7 +186,7 @@ export function CheckoutModal({ plan: planProp }: { plan: Plan | null }) {
             <CreditCard className="h-5 w-5 text-primary" /> Subscribe to {plan.category ? `${plan.category} — ` : ''}{plan.name}
           </DialogTitle>
           <DialogDescription>
-            {plan.classesPerMonth} classes/month · ${plan.monthlyPrice}/month · billed monthly
+            {plan.classesPerMonth} classes/month · {formatPrice(convertFromUSD(plan.monthlyPrice, checkoutCurrency), checkoutCurrency)}/month · billed monthly
           </DialogDescription>
         </DialogHeader>
 
@@ -187,9 +198,25 @@ export function CheckoutModal({ plan: planProp }: { plan: Plan | null }) {
                 <div className="text-xs text-muted-foreground">{plan.classesPerMonth} classes / month</div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-primary">${plan.monthlyPrice}</div>
+                <div className="text-2xl font-bold text-primary">{formatPrice(convertFromUSD(plan.monthlyPrice, checkoutCurrency), checkoutCurrency)}</div>
                 <div className="text-xs text-muted-foreground">/month</div>
+                {checkoutCurrency !== 'USD' && (
+                  <div className="text-[10px] text-muted-foreground/70">≈ ${plan.monthlyPrice} USD</div>
+                )}
               </div>
+            </div>
+            {/* Currency switcher inline */}
+            <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+              <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Pay in</span>
+              <CurrencySwitcher
+                value={checkoutCurrency}
+                onChange={(code) => {
+                  setCheckoutCurrency(code)
+                  try { localStorage.setItem('qtuor-currency', code) } catch {}
+                }}
+                className="scale-90 origin-left"
+              />
             </div>
             <ul className="mt-2 space-y-1">
               {plan.features.slice(0, 3).map((f) => (
@@ -266,7 +293,7 @@ export function CheckoutModal({ plan: planProp }: { plan: Plan | null }) {
 
             <Button type="submit" disabled={loading} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              Pay ${plan.monthlyPrice} & Subscribe
+              Pay {formatPrice(convertFromUSD(plan.monthlyPrice, checkoutCurrency), checkoutCurrency)} & Subscribe
             </Button>
           </form>
         ) : (
@@ -305,7 +332,7 @@ export function CheckoutModal({ plan: planProp }: { plan: Plan | null }) {
             <div className="space-y-1.5">
               <Label htmlFor="receipt">Upload Payment Receipt *</Label>
               <p className="text-[10px] text-muted-foreground">
-                Transfer ${plan.monthlyPrice} to the account above, then upload your receipt (image or PDF, max 10 MB).
+                Transfer {formatPrice(convertFromUSD(plan.monthlyPrice, checkoutCurrency), checkoutCurrency)} to the account above, then upload your receipt (image or PDF, max 10 MB).
               </p>
               {receiptUrl ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border border-[oklch(0.55_0.13_150/0.4)] bg-[oklch(0.55_0.13_150/0.08)] p-2.5">

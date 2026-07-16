@@ -6,13 +6,15 @@ import { usePlans, useSubscription } from '@/lib/queries'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check, Star, Sparkles, ShieldCheck, Headphones, HelpCircle, BookOpen, Brain, BookOpenText } from 'lucide-react'
+import { Check, Star, Sparkles, ShieldCheck, Headphones, HelpCircle, BookOpen, Brain, BookOpenText, ArrowRightLeft } from 'lucide-react'
 import { IslamicPatternBand, StarMedallion } from '@/components/brand/patterns'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion'
+import { CurrencySwitcher } from '@/components/shared/currency-switcher'
+import { convertFromUSD, formatPrice, DEFAULT_CURRENCY, CURRENCIES } from '@/lib/currency'
 
 const FAQS = [
   { q: 'How does the free trial work?', a: 'Every new student gets one free 30-minute trial class with any verified tutor. No credit card required. Pick a tutor, book your trial, and experience the interactive classroom firsthand.' },
@@ -37,6 +39,19 @@ export function PlansView() {
   const { data: subData } = useSubscription()
   const plans = plansData?.plans || []
   const activeSub = subData?.subscription
+
+  // Currency state — persisted to localStorage
+  const [currency, setCurrency] = React.useState<string>(DEFAULT_CURRENCY)
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('qtuor-currency')
+      if (saved && CURRENCIES.find((c) => c.code === saved)) setCurrency(saved)
+    } catch {}
+  }, [])
+  const handleCurrencyChange = (code: string) => {
+    setCurrency(code)
+    try { localStorage.setItem('qtuor-currency', code) } catch {}
+  }
 
   const handleChoose = (planId: string) => {
     if (!user) {
@@ -81,6 +96,13 @@ export function PlansView() {
           <p className="mt-4 text-lg text-muted-foreground">
             3 subjects · 4 class frequencies · Cancel anytime. Every plan includes a free 30-min trial.
           </p>
+
+          {/* Currency switcher */}
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">View prices in</span>
+            <CurrencySwitcher value={currency} onChange={handleCurrencyChange} />
+          </div>
           {activeSub && (
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] px-4 py-2 text-sm">
               <Check className="h-4 w-4 text-[oklch(0.62_0.14_230)]" />
@@ -126,6 +148,9 @@ export function PlansView() {
                 {catPlans.map((plan) => {
                   const isCurrent = activeSub?.plan?.id === plan.id
                   const perClass = (plan.monthlyPrice / plan.classesPerMonth).toFixed(2)
+                  const convertedPrice = convertFromUSD(plan.monthlyPrice, currency)
+                  const convertedPerClass = convertFromUSD(plan.monthlyPrice / plan.classesPerMonth, currency)
+                  const isUSD = currency === 'USD'
                   return (
                     <Card
                       key={plan.id}
@@ -150,11 +175,18 @@ export function PlansView() {
                         <div className="mt-0.5 text-xs text-muted-foreground">{plan.classesPerMonth} classes / month</div>
 
                         <div className="mt-3 flex items-baseline gap-1">
-                          <span className="text-3xl font-extrabold" style={{ color: meta.color }}>${plan.monthlyPrice}</span>
+                          <span className="text-3xl font-extrabold" style={{ color: meta.color }}>
+                            {formatPrice(convertedPrice, currency)}
+                          </span>
                           <span className="text-xs text-muted-foreground">/month</span>
                         </div>
+                        {!isUSD && (
+                          <div className="mt-0.5 text-[11px] text-muted-foreground/70">
+                            ≈ ${plan.monthlyPrice} USD
+                          </div>
+                        )}
                         <div className="mt-0.5 text-[11px] text-muted-foreground">
-                          ≈ ${perClass} per class
+                          ≈ {formatPrice(convertedPerClass, currency)} per class
                         </div>
 
                         <Button
