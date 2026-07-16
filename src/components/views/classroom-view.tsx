@@ -48,7 +48,7 @@ const COLORS = {
 export function ClassroomView() {
   const { user, activeBookingId, setView } = useAppStore()
   const isTutor = user?.role === 'TUTOR'
-  const { data: bookingsData } = useBookings(isTutor ? 'tutor' : 'student')
+  const { data: bookingsData, isLoading: bookingsLoading } = useBookings(isTutor ? 'tutor' : 'student')
   const allBookings = bookingsData?.bookings || []
   const booking = allBookings.find((b) => b.id === activeBookingId) || allBookings.find((b) => b.status === 'SCHEDULED' && new Date(b.scheduledAt) > new Date()) || null
 
@@ -220,7 +220,21 @@ export function ClassroomView() {
   React.useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()) }, [])
 
   if (!user) return <div className="flex min-h-[60vh] items-center justify-center"><Button onClick={() => setView('landing')}>Go home</Button></div>
-  if (!booking) return <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4"><p className="text-muted-foreground">No active class.</p><Button onClick={() => setView('marketplace')}>Find a tutor</Button></div>
+  if (bookingsLoading) return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <Loader2 className="h-8 w-8 animate-spin text-[oklch(0.62_0.14_230)]" />
+      <p className="text-muted-foreground">Loading classroom...</p>
+    </div>
+  )
+  if (!booking) return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <p className="text-muted-foreground">No active class found.</p>
+      <p className="text-sm text-muted-foreground/70">Book a class from the dashboard or find a tutor to get started.</p>
+      <Button onClick={() => setView('student-dashboard')} className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]">
+        Back to Dashboard
+      </Button>
+    </div>
+  )
 
   const leave = () => { disableCamera(); setView(role === 'teacher' ? 'tutor-dashboard' : 'student-dashboard') }
 

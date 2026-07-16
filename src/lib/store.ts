@@ -103,6 +103,7 @@ export const useAppStore = create<AppState>()(
         view: state.view,
         category: state.category,
         search: state.search,
+        activeBookingId: state.activeBookingId,
       }),
     }
   )
