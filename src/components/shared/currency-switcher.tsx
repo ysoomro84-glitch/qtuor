@@ -34,7 +34,7 @@ export function CurrencySwitcher({ value, onChange, className }: CurrencySwitche
   }
 
   return (
-    <div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown}>
+    <div ref={containerRef} className={cn('relative z-50', className)} onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -58,11 +58,21 @@ export function CurrencySwitcher({ value, onChange, className }: CurrencySwitche
 
       {open && (
         <div
-          className="absolute left-0 z-50 mt-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-border bg-card shadow-xl animate-in fade-in-0 zoom-in-95 duration-150"
+          className="fixed z-[9999] mt-1 rounded-xl border border-border bg-card shadow-2xl"
+          style={{
+            top: containerRef.current
+              ? containerRef.current.getBoundingClientRect().bottom + 4
+              : undefined,
+            left: containerRef.current
+              ? Math.min(containerRef.current.getBoundingClientRect().left, window.innerWidth - 320)
+              : undefined,
+            width: '300px',
+            maxHeight: '380px',
+          }}
           role="listbox"
           aria-label="Select currency"
         >
-          {/* Popular currencies section */}
+          {/* Popular currencies */}
           <div className="px-2 pt-2 pb-1">
             <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Popular
@@ -82,12 +92,12 @@ export function CurrencySwitcher({ value, onChange, className }: CurrencySwitche
 
           <div className="mx-2 border-t border-border" />
 
-          {/* All currencies section */}
+          {/* Other currencies */}
           <div className="px-2 pt-1 pb-2">
             <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              All currencies
+              More currencies
             </div>
-            {CURRENCIES.map((c) => (
+            {CURRENCIES.slice(6).map((c) => (
               <CurrencyOption
                 key={c.code}
                 currency={c}
@@ -101,7 +111,7 @@ export function CurrencySwitcher({ value, onChange, className }: CurrencySwitche
           </div>
 
           {/* Disclaimer */}
-          <div className="border-t border-border bg-muted/30 px-3 py-2 text-[10px] text-muted-foreground">
+          <div className="sticky bottom-0 border-t border-border bg-muted/30 px-3 py-2 text-[10px] text-muted-foreground backdrop-blur-sm">
             Exchange rates are approximate. Final amount may vary at time of payment.
           </div>
         </div>
@@ -126,19 +136,19 @@ function CurrencyOption({
       aria-selected={isSelected}
       onClick={onSelect}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+        'flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors',
         isSelected
           ? 'bg-primary/10 text-primary font-semibold'
           : 'text-foreground hover:bg-muted/60'
       )}
     >
-      <span className="text-base leading-none">{currency.flag}</span>
-      <span className="flex-1">
+      <span className="text-lg leading-none">{currency.flag}</span>
+      <span className="flex-1 min-w-0">
         <span className="font-medium">{currency.code}</span>
-        <span className="ml-1.5 text-xs text-muted-foreground">{currency.name}</span>
+        <span className="ml-1.5 text-xs text-muted-foreground truncate">{currency.name}</span>
       </span>
-      <span className="text-xs font-medium text-muted-foreground">{currency.symbol}</span>
-      {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+      <span className="text-xs font-medium text-muted-foreground shrink-0">{currency.symbol}</span>
+      {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
     </button>
   )
 }
