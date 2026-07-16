@@ -32,9 +32,12 @@ import {
   Home,
   LogOut,
   ChevronLeft,
+  MessageCircle,
+  CreditCard,
+  Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, type ViewKey } from '@/lib/store'
 import {
   useTutorDashboard,
   useSaveAvailability,
@@ -539,41 +542,48 @@ function StatCard({
 
 function StatsRow({ stats }: { stats: DashboardData['stats'] }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        index={0}
-        icon={<Wallet className="h-5 w-5" />}
-        label="Wallet Balance"
-        value={money(stats.balance)}
-        sub="Available to withdraw"
-        accent="blue"
-      />
-      <StatCard
-        index={1}
-        icon={<TrendingUp className="h-5 w-5" />}
-        label="Total Earned"
-        value={money(stats.totalEarned)}
-        sub="Lifetime on Qtuor"
-        accent="gold"
-      />
-      <StatCard
-        index={2}
-        icon={<Users className="h-5 w-5" />}
-        label="Unique Students"
-        value={stats.uniqueStudents}
-        sub={`${stats.totalLessons} lessons taught`}
-        accent="muted"
-      />
-      <StatCard
-        index={3}
-        icon={<Star className="h-5 w-5" />}
-        label="Rating"
-        value={stats.rating ? stats.rating.toFixed(1) : '—'}
-        sub={
-          stats.reviewCount > 0 ? `${stats.reviewCount} reviews` : 'No reviews yet'
-        }
-        accent="gold"
-      />
+    <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          index={0}
+          icon={<Users className="h-5 w-5" />}
+          label="Students"
+          value={stats.uniqueStudents}
+          sub={`${stats.totalLessons} lessons taught`}
+          accent="muted"
+        />
+        <StatCard
+          index={1}
+          icon={<Clock className="h-5 w-5" />}
+          label="Hours Taught"
+          value={Math.round(stats.totalLessons * 0.5)}
+          sub="Approx. based on 30-min classes"
+          accent="blue"
+        />
+        <StatCard
+          index={2}
+          icon={<Wallet className="h-5 w-5" />}
+          label="Your Wallet"
+          value={money(stats.balance)}
+          sub="Available to withdraw"
+          accent="blue"
+        />
+        <StatCard
+          index={3}
+          icon={<Star className="h-5 w-5" />}
+          label="Rating"
+          value={stats.rating ? `${stats.rating.toFixed(1)} / 5` : '—'}
+          sub={
+            stats.reviewCount > 0 ? `${stats.reviewCount} reviews` : 'No reviews yet'
+          }
+          accent="gold"
+        />
+      </div>
+      {/* 55% Commission Transparency Disclaimer */}
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        <HandCoins className="mr-1 inline h-3.5 w-3.5" />
+        Your wallet balance shows your <span className="font-semibold text-emerald-600">55% share</span> after the platform commission (45%).
+      </p>
     </div>
   )
 }
@@ -688,9 +698,9 @@ function UpcomingClasses({
                   <Button
                     size="sm"
                     onClick={() => onStart(b)}
-                    className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
                   >
-                    <Video className="h-4 w-4" /> Start Class
+                    <Video className="h-4 w-4" /> {relative === 'Today' ? 'Join' : 'Start Class'}
                   </Button>
                   <Button
                     size="sm"
@@ -1575,8 +1585,10 @@ function DashboardContent({ data, name }: { data: DashboardData; name: string })
           <StatusBanner profile={data.profile} />
         )}
 
-        {/* Welcome header */}
-        <WelcomeHeader name={name} approved={approved} />
+        {/* Welcome header with Islamic greeting */}
+        <div className="mb-2">
+          <WelcomeHeader name={name} approved={approved} />
+        </div>
 
         {/* Stats */}
         <StatsRow stats={data.stats} />
@@ -1610,22 +1622,94 @@ function DashboardContent({ data, name }: { data: DashboardData; name: string })
 // ---------------------------------------------------------------------------
 
 // ============================================================
+// Sidebar Navigation (Tutor)
+// ============================================================
+const TUTOR_SIDEBAR_ITEMS: { icon: React.ComponentType<{ className?: string }>; label: string; view: ViewKey }[] = [
+  { icon: Home, label: 'Home', view: 'tutor-dashboard' },
+  { icon: Users, label: 'Students', view: 'tutor-dashboard' },
+  { icon: Calendar, label: 'Calendar', view: 'tutor-dashboard' },
+  { icon: Briefcase, label: 'Jobs', view: 'marketplace' },
+  { icon: CreditCard, label: 'Earnings', view: 'tutor-dashboard' },
+  { icon: MessageCircle, label: 'Chat', view: 'tutor-dashboard' },
+]
+
+function TutorSidebar({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
+  return (
+    <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-2.5 border-b border-border/60 px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
+          <GraduationCap className="h-4.5 w-4.5" />
+        </div>
+        <span className="text-base font-bold text-foreground">NOOR ACADEMY</span>
+      </div>
+      {/* Nav Items */}
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {TUTOR_SIDEBAR_ITEMS.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.label}
+              onClick={() => onNavigate(item.view)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <Icon className="h-4.5 w-4.5" />
+              {item.label}
+            </button>
+          )
+        })}
+      </nav>
+      {/* Bottom */}
+      <div className="border-t border-border/60 px-3 py-4">
+        <button
+          onClick={() => onNavigate('landing')}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+        >
+          <ChevronLeft className="h-4.5 w-4.5" />
+          Back to Site
+        </button>
+      </div>
+    </aside>
+  )
+}
+
+// ============================================================
+// Mobile Bottom Nav (Tutor)
+// ============================================================
+function TutorMobileNav({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-white/95 backdrop-blur-md lg:hidden">
+      <div className="flex items-center justify-around py-1.5">
+        {TUTOR_SIDEBAR_ITEMS.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.label}
+              onClick={() => onNavigate(item.view)}
+              className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-emerald-600"
+            >
+              <Icon className="h-5 w-5" />
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+// ============================================================
 // Dashboard top bar (compact — replaces main site navbar)
 // ============================================================
-function DashboardTopBar({ userName, onLogout, onHome }: { userName: string; onLogout: () => void; onHome: () => void }) {
+function DashboardTopBar({ userName, onLogout }: { userName: string; onLogout: () => void }) {
   return (
-    <header
-      className="sticky top-0 z-50 w-full backdrop-blur-xl"
-      style={{
-        background: "rgba(255, 255, 255, 0.92)",
-        borderBottom: "1px solid rgba(142, 174, 198, 0.15)",
-      }}
-    >
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60 bg-white/95">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <button onClick={onHome} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground" aria-label="Back to home">
-            <ChevronLeft className="h-4 w-4" /> <QtuorLogoLockup />
-          </button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
+            <GraduationCap className="h-4.5 w-4.5" />
+          </div>
+          <span className="text-base font-bold text-foreground">Tutor Portal</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm font-medium sm:inline">{userName}</span>
@@ -1640,6 +1724,7 @@ function DashboardTopBar({ userName, onLogout, onHome }: { userName: string; onL
 
 export function TutorDashboard() {
   const user = useAppStore((s) => s.user)
+  const setView = useAppStore((s) => s.setView)
   const openAuth = useAppStore((s) => s.openAuth)
   const { data, isLoading, isError } = useTutorDashboard() as {
     data?: DashboardData
@@ -1675,7 +1760,7 @@ export function TutorDashboard() {
         </p>
         <Button
           onClick={() => window.location.reload()}
-          className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
+          className="mt-4 bg-emerald-600 text-white hover:bg-emerald-700"
         >
           Reload
         </Button>
@@ -1688,12 +1773,27 @@ export function TutorDashboard() {
     useAppStore.getState().logout()
   }
 
+  const navigateTo = (view: ViewKey) => {
+    setView(view)
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <DashboardTopBar userName={user.name} onLogout={handleLogout} onHome={() => useAppStore.getState().setView("landing")} />
-      <main className="flex-1">
-        <DashboardContent data={data} name={user.name} />
-      </main>
+    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
+      {/* Top bar - visible on all screens */}
+      <DashboardTopBar userName={user.name} onLogout={handleLogout} />
+
+      <div className="flex flex-1">
+        {/* Sidebar - desktop only */}
+        <TutorSidebar onNavigate={navigateTo} />
+
+        {/* Main content */}
+        <main className="flex-1 pb-20 lg:pb-8">
+          <DashboardContent data={data} name={user.name} />
+        </main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <TutorMobileNav onNavigate={navigateTo} />
     </div>
   )
 }
