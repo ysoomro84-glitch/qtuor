@@ -5,6 +5,9 @@ const DEMO_ACCOUNTS: Record<string, { password: string; id: string; name: string
   'student@qtuor.com': { password: 'student123', id: 'demo-student-1', name: 'Demo Student', role: 'STUDENT', country: 'Pakistan' },
   'abdullah@qtuor.com': { password: 'tutor123', id: 'demo-tutor-1', name: 'Sheikh Abdullah', role: 'TUTOR', country: 'Egypt' },
   'admin@qtuor.com': { password: 'admin123', id: 'demo-admin-1', name: 'Admin', role: 'ADMIN', country: 'Global' },
+  'noorani.demo@qtuor.com': { password: 'demo1234', id: 'demo-noorani-student', name: 'Fatima Noor', role: 'STUDENT', country: 'Pakistan' },
+  'quran.demo@qtuor.com': { password: 'demo1234', id: 'demo-quran-student', name: 'Ahmed Khan', role: 'STUDENT', country: 'United Kingdom' },
+  'tutor.demo@qtuor.com': { password: 'tutor123', id: 'demo-tutor-ahmad', name: 'Qari Ahmad Raza', role: 'TUTOR', country: 'Pakistan' },
 }
 
 export async function POST(req: NextRequest) {
