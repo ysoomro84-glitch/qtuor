@@ -22,7 +22,31 @@ export async function GET() {
       },
     })
   } catch (e) {
-    // DB unavailable — no active subscription in demo mode
+    // DB unavailable — return demo subscription for Vercel deployment
+    try {
+      const { getSession } = await import('@/lib/auth')
+      const session = await getSession()
+      const now = new Date()
+      const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      if (session?.email === 'noorani.demo@qtuor.com') {
+        return NextResponse.json({
+          subscription: {
+            id: 'demo-sub-nq', status: 'ACTIVE', startedAt: now.toISOString(), expiresAt: expires.toISOString(),
+            plan: { id: 'plan-nq-3', name: 'Qaida Learner', category: 'Noorani Qaida', classesPerMonth: 12, monthlyPrice: 39, features: ['3 classes / week (30 min each)', 'Interactive Noorani Qaida board', 'Certified Qaida tutor', 'Auto-bookmark & resume', 'Parent safety snapshots', 'Homework worksheets'] },
+          },
+        })
+      }
+      if (session?.email === 'quran.demo@qtuor.com') {
+        return NextResponse.json({
+          subscription: {
+            id: 'demo-sub-tw', status: 'ACTIVE', startedAt: now.toISOString(), expiresAt: expires.toISOString(),
+            plan: { id: 'plan-tw-3', name: 'Tajweed Builder', category: 'Quran Recitation With Tajweed', classesPerMonth: 12, monthlyPrice: 49, features: ['3 classes / week (30 min each)', 'Word-by-word Quran sync', 'Tajweed color highlighting', 'Ijaza-certified tutor', 'Auto-bookmark & resume', 'Weekly progress report'] },
+          },
+        })
+      }
+    } catch {}
+    // No active subscription in demo mode
     return NextResponse.json({ subscription: null })
   }
 }

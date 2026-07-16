@@ -11,16 +11,40 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const role = searchParams.get('role') || 'student'
 
-  const where = role === 'tutor' ? { tutorId: session.userId } : { studentId: session.userId }
-  const bookings = await (await _getDb()).booking.findMany({
-    where,
-    include: {
-      student: { select: { id: true, name: true, avatar: true, country: true } },
-      tutor: { select: { id: true, name: true, avatar: true, country: true } },
-    },
-    orderBy: { scheduledAt: 'asc' },
-  })
-  return NextResponse.json({ bookings })
+  try {
+    const where = role === 'tutor' ? { tutorId: session.userId } : { studentId: session.userId }
+    const bookings = await (await _getDb()).booking.findMany({
+      where,
+      include: {
+        student: { select: { id: true, name: true, avatar: true, country: true } },
+        tutor: { select: { id: true, name: true, avatar: true, country: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    })
+    return NextResponse.json({ bookings })
+  } catch (e: any) {
+    if (e?.message === 'DATABASE_UNAVAILABLE') {
+      // Demo fallback for Vercel
+      const demoTutor = { id: 'demo-tutor-ahmad', name: 'Qari Ahmad Raza', avatar: null, country: 'Pakistan' }
+      const soon = new Date(Date.now() + 2 * 60 * 1000).toISOString()
+      if (session.email === 'noorani.demo@qtuor.com' && role === 'student') {
+        return NextResponse.json({ bookings: [{ id: 'demo-booking-nq-1', scheduledAt: soon, durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)', meetingId: null, tutor: demoTutor }] })
+      }
+      if (session.email === 'quran.demo@qtuor.com' && role === 'student') {
+        return NextResponse.json({ bookings: [{ id: 'demo-booking-tw-1', scheduledAt: soon, durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus', meetingId: null, tutor: demoTutor }] })
+      }
+      if (session.email === 'tutor.demo@qtuor.com' && role === 'tutor') {
+        const demoStudentNQ = { id: 'demo-noorani-student', name: 'Fatima Noor', avatar: null, country: 'Pakistan' }
+        const demoStudentTW = { id: 'demo-quran-student', name: 'Ahmed Khan', avatar: null, country: 'United Kingdom' }
+        return NextResponse.json({ bookings: [
+          { id: 'demo-booking-nq-1', scheduledAt: soon, durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat', meetingId: null, student: demoStudentNQ },
+          { id: 'demo-booking-tw-1', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah', meetingId: null, student: demoStudentTW },
+        ] })
+      }
+      return NextResponse.json({ bookings: [] })
+    }
+    throw e
+  }
 }
 
 export async function POST(req: NextRequest) {

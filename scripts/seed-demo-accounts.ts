@@ -172,16 +172,15 @@ async function main() {
     },
   })
 
-  // Create a booking so the classroom can be launched
-  const tomorrow3pm = new Date()
-  tomorrow3pm.setDate(tomorrow3pm.getDate() + 1)
-  tomorrow3pm.setHours(15, 0, 0, 0)
+  // Create a booking so the classroom can be launched — scheduled for RIGHT NOW
+  const now1 = new Date()
+  now1.setMinutes(now1.getMinutes() + 2) // 2 minutes from now so it's "upcoming"
 
   const booking1 = await db.booking.create({
     data: {
       studentId: student1.id,
       tutorId: tutorUser.id,
-      scheduledAt: tomorrow3pm,
+      scheduledAt: now1,
       durationMins: 30,
       status: 'SCHEDULED',
       topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)',
@@ -217,7 +216,7 @@ async function main() {
 
   console.log('   ✅ noorani.demo@qtuor.com / demo1234')
   console.log(`   📖 Plan: ${planNQ.name} (${planNQ.category}) — $${planNQ.monthlyPrice}/mo`)
-  console.log(`   📅 Booking: Tomorrow 3:00 PM — Noorani Qaida Lesson 5\n`)
+  console.log(`   📅 Booking: RIGHT NOW — Noorani Qaida Lesson 5\n`)
 
   // ── 4. Demo Account 2: Quran Recitation Student ──────────────────
   console.log('🎓 Creating Demo Account 2: Quran (Tajweed)...')
@@ -249,16 +248,15 @@ async function main() {
     },
   })
 
-  // Create a booking for Quran class
-  const tomorrow5pm = new Date()
-  tomorrow5pm.setDate(tomorrow5pm.getDate() + 1)
-  tomorrow5pm.setHours(17, 0, 0, 0)
+  // Create a booking for Quran class — scheduled for RIGHT NOW
+  const now2 = new Date()
+  now2.setMinutes(now2.getMinutes() + 2) // 2 minutes from now
 
   const booking2 = await db.booking.create({
     data: {
       studentId: student2.id,
       tutorId: tutorUser.id,
-      scheduledAt: tomorrow5pm,
+      scheduledAt: now2,
       durationMins: 30,
       status: 'SCHEDULED',
       topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus',
@@ -294,7 +292,7 @@ async function main() {
 
   console.log('   ✅ quran.demo@qtuor.com / demo1234')
   console.log(`   📖 Plan: ${planTW.name} (${planTW.category}) — $${planTW.monthlyPrice}/mo`)
-  console.log(`   📅 Booking: Tomorrow 5:00 PM — Surah Al-Baqarah Tajweed\n`)
+  console.log(`   📅 Booking: RIGHT NOW — Surah Al-Baqarah Tajweed\n`)
 
   // ── 5. Summary ───────────────────────────────────────────────────
   console.log('═══════════════════════════════════════════════════')
