@@ -26,14 +26,10 @@ import {
   CalendarDays,
   Loader2,
   ShieldAlert,
-  Home,
   LogOut,
-  ChevronLeft,
-  MessageCircle,
   CreditCard,
   Calendar,
   Users,
-  GraduationCap,
   Zap,
   ClipboardList,
   FileText,
@@ -209,89 +205,7 @@ function WrongRole({ role }: { role: string }) {
   )
 }
 
-// ============================================================
-// Sidebar Navigation
-// ============================================================
-const SIDEBAR_ITEMS: { icon: React.ComponentType<{ className?: string }>; label: string; view: ViewKey }[] = [
-  { icon: Home, label: 'Home', view: 'student-dashboard' },
-  { icon: Users, label: 'Tutors', view: 'marketplace' },
-  { icon: Calendar, label: 'Schedule', view: 'student-dashboard' },
-  { icon: Video, label: 'Class', view: 'classroom' },
-  { icon: CreditCard, label: 'Plans', view: 'plans' },
-  { icon: MessageCircle, label: 'Chat', view: 'student-dashboard' },
-]
 
-function Sidebar({ activeView, onNavigate }: { activeView: string; onNavigate: (v: ViewKey) => void }) {
-  return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-border/60 px-5">
-        <QtuorLogoLockup size="sm" />
-      </div>
-      {/* Nav Items */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {SIDEBAR_ITEMS.map((item) => {
-          const isActive = item.view === activeView && item.view !== 'student-dashboard'
-          const Icon = item.icon
-          return (
-            <button
-              key={item.label}
-              onClick={() => onNavigate(item.view)}
-              className={cn(
-                'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-[oklch(0.62_0.14_230/0.10)] text-[oklch(0.40_0.11_258)]'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              )}
-            >
-              <Icon className="h-4.5 w-4.5" />
-              {item.label}
-            </button>
-          )
-        })}
-      </nav>
-      {/* Bottom section */}
-      <div className="border-t border-border/60 px-3 py-4">
-        <button
-          onClick={() => onNavigate('landing')}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-        >
-          <ChevronLeft className="h-4.5 w-4.5" />
-          Back to Site
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-// ============================================================
-// Mobile Bottom Nav
-// ============================================================
-function MobileNav({ activeView, onNavigate }: { activeView: string; onNavigate: (v: ViewKey) => void }) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-white/95 backdrop-blur-md lg:hidden">
-      <div className="flex items-center justify-around py-1.5">
-        {SIDEBAR_ITEMS.map((item) => {
-          const isActive = item.view === activeView && item.view !== 'student-dashboard'
-          const Icon = item.icon
-          return (
-            <button
-              key={item.label}
-              onClick={() => onNavigate(item.view)}
-              className={cn(
-                'flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium transition-colors',
-                isActive ? 'text-[oklch(0.62_0.14_230)]' : 'text-muted-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </button>
-          )
-        })}
-      </div>
-    </nav>
-  )
-}
 
 // ============================================================
 // LIVE CLASSROOM Hero Section
@@ -1075,12 +989,8 @@ export function StudentDashboard() {
       {/* Top bar - visible on all screens */}
       <DashboardTopBar userName={user.name} onLogout={handleLogout} />
 
-      <div className="flex flex-1">
-        {/* Sidebar - desktop only */}
-        <Sidebar activeView="student-dashboard" onNavigate={navigateTo} />
-
-        {/* Main content */}
-        <main className="flex-1 pb-20 lg:pb-8">
+      {/* Main content */}
+      <main className="flex-1">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
             {/* Welcome Header */}
             <div className="mb-6">
@@ -1119,10 +1029,6 @@ export function StudentDashboard() {
             </div>
           </div>
         </main>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <MobileNav activeView="student-dashboard" onNavigate={navigateTo} />
     </div>
   )
 }

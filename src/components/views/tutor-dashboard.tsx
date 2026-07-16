@@ -29,12 +29,8 @@ import {
   PieChart,
   Hourglass,
   Receipt,
-  Home,
   LogOut,
-  ChevronLeft,
-  MessageCircle,
   CreditCard,
-  Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore, type ViewKey } from '@/lib/store'
@@ -1621,79 +1617,7 @@ function DashboardContent({ data, name }: { data: DashboardData; name: string })
 // Default export — top-level Tutor Dashboard view
 // ---------------------------------------------------------------------------
 
-// ============================================================
-// Sidebar Navigation (Tutor)
-// ============================================================
-const TUTOR_SIDEBAR_ITEMS: { icon: React.ComponentType<{ className?: string }>; label: string; view: ViewKey }[] = [
-  { icon: Home, label: 'Home', view: 'tutor-dashboard' },
-  { icon: Users, label: 'Students', view: 'tutor-dashboard' },
-  { icon: Calendar, label: 'Calendar', view: 'tutor-dashboard' },
-  { icon: Briefcase, label: 'Jobs', view: 'marketplace' },
-  { icon: CreditCard, label: 'Earnings', view: 'tutor-dashboard' },
-  { icon: MessageCircle, label: 'Chat', view: 'tutor-dashboard' },
-]
 
-function TutorSidebar({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
-  return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-border/60 px-5">
-        <QtuorLogoLockup size="sm" />
-      </div>
-      {/* Nav Items */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {TUTOR_SIDEBAR_ITEMS.map((item) => {
-          const Icon = item.icon
-          return (
-            <button
-              key={item.label}
-              onClick={() => onNavigate(item.view)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              <Icon className="h-4.5 w-4.5" />
-              {item.label}
-            </button>
-          )
-        })}
-      </nav>
-      {/* Bottom */}
-      <div className="border-t border-border/60 px-3 py-4">
-        <button
-          onClick={() => onNavigate('landing')}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-        >
-          <ChevronLeft className="h-4.5 w-4.5" />
-          Back to Site
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-// ============================================================
-// Mobile Bottom Nav (Tutor)
-// ============================================================
-function TutorMobileNav({ onNavigate }: { onNavigate: (v: ViewKey) => void }) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-white/95 backdrop-blur-md lg:hidden">
-      <div className="flex items-center justify-around py-1.5">
-        {TUTOR_SIDEBAR_ITEMS.map((item) => {
-          const Icon = item.icon
-          return (
-            <button
-              key={item.label}
-              onClick={() => onNavigate(item.view)}
-              className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-[oklch(0.62_0.14_230)]"
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </button>
-          )
-        })}
-      </div>
-    </nav>
-  )
-}
 
 // ============================================================
 // Dashboard top bar (compact — replaces main site navbar)
@@ -1776,18 +1700,10 @@ export function TutorDashboard() {
       {/* Top bar - visible on all screens */}
       <DashboardTopBar userName={user.name} onLogout={handleLogout} />
 
-      <div className="flex flex-1">
-        {/* Sidebar - desktop only */}
-        <TutorSidebar onNavigate={navigateTo} />
-
-        {/* Main content */}
-        <main className="flex-1 pb-20 lg:pb-8">
+      {/* Main content */}
+      <main className="flex-1">
           <DashboardContent data={data} name={user.name} />
         </main>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <TutorMobileNav onNavigate={navigateTo} />
     </div>
   )
 }
