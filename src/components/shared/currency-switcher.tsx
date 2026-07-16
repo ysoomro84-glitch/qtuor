@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { CURRENCIES, CurrencyInfo, DEFAULT_CURRENCY } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { Check, ChevronDown, Globe } from 'lucide-react'
@@ -13,28 +14,126 @@ interface CurrencySwitcherProps {
 
 export function CurrencySwitcher({ value, onChange, className }: CurrencySwitcherProps) {
   const [open, setOpen] = React.useState(false)
+  const [dropup, setDropup] = React.useState(false)
+  const [portalStyle, setPortalStyle] = React.useState<React.CSSProperties>({})
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   const selected = CURRENCIES.find((c) => c.code === value) || CURRENCIES[0]
+
+  // Calculate dropdown position using portal
+  const updatePosition = React.useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const dropdownHeight = 400 // approximate max height
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    const shouldDropUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow
+
+    setDropup(shouldDropUp)
+    setPortalStyle({
+      position: 'fixed',
+      zIndex: 9999,
+      width: '300px',
+      maxHeight: `${Math.min(380, shouldDropUp ? spaceAbove - 8 : spaceBelow - 8)}px`,
+      ...(shouldDropUp
+        ? { bottom: window.innerHeight - rect.top + 4, left: Math.min(rect.left, window.innerWidth - 320) }
+        : { top: rect.bottom + 4, left: Math.min(rect.left, window.innerWidth - 320) }),
+    })
+  }, [])
 
   // Close on outside click
   React.useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false)
       }
     }
-    if (open) document.addEventListener('mousedown', handleClick)
+    if (open) {
+      document.addEventListener('mousedown', handleClick)
+      updatePosition()
+    }
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  }, [open, updatePosition])
+
+  // Update position on scroll/resize
+  React.useEffect(() => {
+    if (!open) return
+    const handleUpdate = () => updatePosition()
+    window.addEventListener('scroll', handleUpdate, true)
+    window.addEventListener('resize', handleUpdate)
+    return () => {
+      window.removeEventListener('scroll', handleUpdate, true)
+      window.removeEventListener('resize', handleUpdate)
+    }
+  }, [open, updatePosition])
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') setOpen(false)
   }
 
+  const dropdownContent = open ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={portalStyle}
+      className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
+      role="listbox"
+      aria-label="Select currency"
+    >
+      <div className="overflow-y-auto" style={{ maxHeight: portalStyle.maxHeight as string || '380px' }}>
+        {/* Popular currencies */}
+        <div className="px-2 pt-2 pb-1">
+          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Popular
+          </div>
+          {CURRENCIES.slice(0, 6).map((c) => (
+            <CurrencyOption
+              key={c.code}
+              currency={c}
+              isSelected={c.code === value}
+              onSelect={() => {
+                onChange(c.code)
+                setOpen(false)
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="mx-2 border-t border-border" />
+
+        {/* Other currencies */}
+        <div className="px-2 pt-1 pb-2">
+          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            More currencies
+          </div>
+          {CURRENCIES.slice(6).map((c) => (
+            <CurrencyOption
+              key={c.code}
+              currency={c}
+              isSelected={c.code === value}
+              onSelect={() => {
+                onChange(c.code)
+                setOpen(false)
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="border-t border-border bg-muted/30 px-3 py-2 text-[10px] text-muted-foreground">
+        Exchange rates are approximate. Final amount may vary at time of payment.
+      </div>
+    </div>,
+    document.body
+  ) : null
+
   return (
-    <div ref={containerRef} className={cn('relative z-50', className)} onKeyDown={handleKeyDown}>
+    <div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -53,69 +152,10 @@ export function CurrencySwitcher({ value, onChange, className }: CurrencySwitche
           <span>{selected.code}</span>
           <span className="text-xs text-muted-foreground">({selected.symbol})</span>
         </span>
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && (dropup ? 'rotate-180' : 'rotate-180'))} />
       </button>
 
-      {open && (
-        <div
-          className="fixed z-[9999] mt-1 rounded-xl border border-border bg-card shadow-2xl"
-          style={{
-            top: containerRef.current
-              ? containerRef.current.getBoundingClientRect().bottom + 4
-              : undefined,
-            left: containerRef.current
-              ? Math.min(containerRef.current.getBoundingClientRect().left, window.innerWidth - 320)
-              : undefined,
-            width: '300px',
-            maxHeight: '380px',
-          }}
-          role="listbox"
-          aria-label="Select currency"
-        >
-          {/* Popular currencies */}
-          <div className="px-2 pt-2 pb-1">
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Popular
-            </div>
-            {CURRENCIES.slice(0, 6).map((c) => (
-              <CurrencyOption
-                key={c.code}
-                currency={c}
-                isSelected={c.code === value}
-                onSelect={() => {
-                  onChange(c.code)
-                  setOpen(false)
-                }}
-              />
-            ))}
-          </div>
-
-          <div className="mx-2 border-t border-border" />
-
-          {/* Other currencies */}
-          <div className="px-2 pt-1 pb-2">
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              More currencies
-            </div>
-            {CURRENCIES.slice(6).map((c) => (
-              <CurrencyOption
-                key={c.code}
-                currency={c}
-                isSelected={c.code === value}
-                onSelect={() => {
-                  onChange(c.code)
-                  setOpen(false)
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Disclaimer */}
-          <div className="sticky bottom-0 border-t border-border bg-muted/30 px-3 py-2 text-[10px] text-muted-foreground backdrop-blur-sm">
-            Exchange rates are approximate. Final amount may vary at time of payment.
-          </div>
-        </div>
-      )}
+      {dropdownContent}
     </div>
   )
 }

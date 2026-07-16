@@ -83,8 +83,8 @@ export function PlansView() {
   return (
     <div>
       {/* Header */}
-      <section className="relative overflow-hidden border-b border-border/60">
-        <div className="absolute inset-0 hero-mesh" />
+      <section className="relative border-b border-border/60">
+        <div className="absolute inset-0 hero-mesh overflow-hidden" />
         <IslamicPatternBand opacity={0.05} />
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.62_0.14_230/0.1)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[oklch(0.40_0.11_258)]">
