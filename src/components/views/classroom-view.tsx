@@ -68,8 +68,38 @@ export function ClassroomView() {
   const allowedBooks: ('qaida' | 'quran')[] = planData?.allowedBooks || ['qaida', 'quran']
   const filteredNavList = NAV_LIST.filter((item) => allowedBooks.includes(item.group))
 
+  // Determine if this is a Qaida-focused session based on booking topic
+  const bookingIsQaida = booking?.topic?.toLowerCase().includes('noorani') || booking?.topic?.toLowerCase().includes('qaida')
+  const bookingIsQuran = booking?.topic?.toLowerCase().includes('quran') || booking?.topic?.toLowerCase().includes('hifz') || booking?.topic?.toLowerCase().includes('surah')
+
+  // Smart default tab: if booking is Qaida-focused, open Qaida tab; if Quran-focused, open Quran
+  // If allowedBooks only has qaida, default to qaida. If only quran, default to quran.
+  // If both and booking topic hints at qaida, prefer qaida. Otherwise default to quran.
+  const getDefaultTab = (): Tab => {
+    if (allowedBooks.length === 1) return allowedBooks[0] === 'qaida' ? 'qaida' : 'quran'
+    if (bookingIsQaida) return 'qaida'
+    if (bookingIsQuran) return 'quran'
+    return 'quran'
+  }
+  const getDefaultPageId = (): number => {
+    const defaultTab = getDefaultTab()
+    if (defaultTab === 'qaida') return QAIDA_ID_MIN // Lesson 1
+    return DEFAULT_PAGE_ID // Surah Al-Fatihah
+  }
+
   // Active tab
-  const [activeTab, setActiveTab] = React.useState<Tab>(allowedBooks.includes('quran') ? 'quran' : 'qaida')
+  const [activeTab, setActiveTab] = React.useState<Tab>(getDefaultTab())
+
+  // Sync active tab when the remote page changes (e.g. teacher navigates to Qaida)
+  React.useEffect(() => {
+    if (socket.page) {
+      if (socket.page >= QAIDA_ID_MIN && socket.page <= QAIDA_ID_MAX && activeTab !== 'qaida') {
+        setActiveTab('qaida')
+      } else if (socket.page >= SURAH_ID_BASE && activeTab !== 'quran') {
+        setActiveTab('quran')
+      }
+    }
+  }, [socket.page])
 
   // Font settings
   const [fontFamily, setFontFamily] = React.useState<'uthmani' | 'indopak' | 'simple'>('uthmani')
@@ -81,8 +111,8 @@ export function ClassroomView() {
     simple: "var(--font-scheherazade), 'Scheherazade New', serif",
   }
 
-  // Page resolution
-  const currentPageId = socket.page || DEFAULT_PAGE_ID
+  // Page resolution — use smart default based on plan/booking
+  const currentPageId = socket.page || getDefaultPageId()
   const isQaidaPage = currentPageId >= QAIDA_ID_MIN && currentPageId <= QAIDA_ID_MAX
   const surahNumber = currentPageId >= SURAH_ID_BASE ? currentPageId - SURAH_ID_BASE : null
   const { data: dynamicSurahPage, isLoading: surahLoading } = useSurahText(surahNumber)
@@ -107,7 +137,8 @@ export function ClassroomView() {
       planLoadedRef.current = true
       const inList = filteredNavList.some((n) => n.id === currentPageId)
       if (!inList && filteredNavList.length > 0) {
-        socket.changePage(allowedBooks.includes('quran') ? DEFAULT_PAGE_ID : QAIDA_ID_MIN)
+        // Navigate to the correct page based on the booking topic / plan
+        socket.changePage(getDefaultPageId())
       }
     }
   }, [planData])
@@ -337,9 +368,18 @@ export function ClassroomView() {
             ] as const).map(([key, label, Icon]) => {
               const isEnabled = key === 'quran' ? allowedBooks.includes('quran') : key === 'qaida' ? allowedBooks.includes('qaida') : true
               if (!isEnabled) return null
+              const handleTabClick = () => {
+                setActiveTab(key)
+                // Auto-navigate to the correct page when switching tabs
+                if (key === 'qaida' && !isQaidaPage) {
+                  socket.changePage(QAIDA_ID_MIN)
+                } else if (key === 'quran' && isQaidaPage) {
+                  socket.changePage(DEFAULT_PAGE_ID)
+                }
+              }
               return (
-                <button key={key} onClick={() => setActiveTab(key)} className={cn('flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition', activeTab === key ? 'text-white' : 'text-white/50 hover:text-white/80')}
-                  style={activeTab === key ? { background: COLORS.accentBlue } : { background: 'transparent' }}>
+                <button key={key} onClick={handleTabClick} className={cn('flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition', activeTab === key ? 'text-white' : 'text-white/50 hover:text-white/80')}
+                  style={activeTab === key ? { background: COLORS.accentBlue } : { background: 'transparent'}}>
                   <Icon className="h-3.5 w-3.5" /> {label}
                 </button>
               )
