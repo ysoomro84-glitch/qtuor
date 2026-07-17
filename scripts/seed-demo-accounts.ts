@@ -210,9 +210,9 @@ async function main() {
     },
   })
 
-  // Booking 1: Noorani Qaida class — scheduled NOW
+  // Booking 1: Noorani Qaida class — scheduled 5 minutes from now
   const now1 = new Date()
-  now1.setMinutes(now1.getMinutes() + 2) // 2 minutes from now
+  now1.setMinutes(now1.getMinutes() + 5)
 
   const booking1 = await db.booking.create({
     data: {
@@ -228,7 +228,7 @@ async function main() {
 
   // Booking 2: Quran class — scheduled 1 hour from now
   const later1 = new Date()
-  later1.setMinutes(later1.getMinutes() + 62)
+  later1.setMinutes(later1.getMinutes() + 65)
 
   const booking1b = await db.booking.create({
     data: {
@@ -316,9 +316,9 @@ async function main() {
     },
   })
 
-  // Booking 1: Quran class — scheduled NOW
+  // Booking 1: Quran class — scheduled 5 minutes from now
   const now2 = new Date()
-  now2.setMinutes(now2.getMinutes() + 2)
+  now2.setMinutes(now2.getMinutes() + 5)
 
   const booking2 = await db.booking.create({
     data: {
