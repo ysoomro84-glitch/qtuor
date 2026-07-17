@@ -214,15 +214,8 @@ function LiveClassroomHero({ bookings }: { bookings: Booking[] }) {
   const setActiveBookingId = useAppStore((s) => s.setActiveBookingId)
   const setView = useAppStore((s) => s.setView)
 
-  const now = new Date()
   const nextClass = bookings
-    .filter((b) => {
-      if (b.status !== 'SCHEDULED') return false
-      const start = new Date(b.scheduledAt)
-      const end = new Date(start.getTime() + (b.durationMins || 30) * 60 * 1000)
-      // Class is currently happening OR is upcoming
-      return (now >= start && now <= end) || (start > now)
-    })
+    .filter((b) => b.status === 'SCHEDULED')
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0]
 
   // Countdown timer
@@ -541,15 +534,8 @@ function UpcomingClasses({ bookings }: { bookings: Booking[] }) {
   const setView = useAppStore((s) => s.setView)
   const updateBooking = useUpdateBooking()
 
-  const now = new Date()
   const upcoming = bookings
-    .filter((b) => {
-      if (b.status !== 'SCHEDULED') return false
-      const start = new Date(b.scheduledAt)
-      const end = new Date(start.getTime() + (b.durationMins || 30) * 60 * 1000)
-      // Class is currently happening OR is upcoming
-      return (now >= start && now <= end) || (start > now)
-    })
+    .filter((b) => b.status === 'SCHEDULED')
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
 
   const onCancel = (b: Booking) => {

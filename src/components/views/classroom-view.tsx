@@ -50,16 +50,10 @@ export function ClassroomView() {
   const isTutor = user?.role === 'TUTOR'
   const { data: bookingsData, isLoading: bookingsLoading } = useBookings(isTutor ? 'tutor' : 'student')
   const allBookings = bookingsData?.bookings || []
-  // Find a valid booking: (1) the active one from store, (2) a class currently happening, or (3) the next upcoming class
-  const now = new Date()
+  // Find a valid booking: (1) the active one from store, (2) any SCHEDULED booking
+  // A SCHEDULED booking is always joinable — the status, not the time, controls access
   const booking = allBookings.find((b) => b.id === activeBookingId)
-    || allBookings.find((b) => {
-      if (b.status !== 'SCHEDULED') return false
-      const start = new Date(b.scheduledAt)
-      const end = new Date(start.getTime() + (b.durationMins || 30) * 60 * 1000)
-      // Class is currently happening OR starts within 15 minutes OR is upcoming
-      return (now >= start && now <= end) || (start > now)
-    })
+    || allBookings.find((b) => b.status === 'SCHEDULED')
     || null
 
   const role: 'teacher' | 'student' = booking?.tutorId === user?.id ? 'teacher' : 'student'
