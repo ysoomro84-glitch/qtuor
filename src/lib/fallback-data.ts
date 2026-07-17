@@ -396,6 +396,30 @@ export const FALLBACK_TUTORS: FallbackTutor[] = [
       experienceYears: 20,
     },
   },
+  {
+    id: 'tutor-9',
+    name: 'Hafiza Madiha Yasir',
+    country: 'Pakistan',
+    avatar: null,
+    profile: {
+      id: 'tp-9',
+      bio: 'Dedicated and certified female Quran tutor with over a decade of experience. Specializing in making Noorani Qaida engaging for young kids and teaching advanced Tajweed to female students globally. Structured lessons based on the student\'s pace, ensuring perfect pronunciation (Makharij) from day one.',
+      hourlyRate: 7,
+      perClassRate: 7,
+      rating: 4.9,
+      reviewCount: 120,
+      studentCount: 310,
+      lessonsCount: 4200,
+      verified: true,
+      nativeArabic: false,
+      hafiz: true,
+      ijazaCertified: true,
+      audioIntroText: 'Assalamu alaikum, I am Hafiza Madiha Yasir. With more than 10 years of experience, I help students build a lifelong, correct, and beautiful relationship with the Quran. I specialize in Noorani Qaida for kids and Tajweed for sisters.',
+      specialties: ['Noorani Qaida', 'Quran Recitation With Tajweed', 'Hifz'],
+      languages: ['Urdu', 'English'],
+      experienceYears: 10,
+    },
+  },
 ]
 
 // ─── Blog Posts ──────────────────────────────────────────────────────

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth')
+  return getSession()
+}
+
 const GATEWAY = 'http://localhost:3004'
 
 /** Internal: send a WhatsApp message via the baileys gateway. Admin-only (for testing). */
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

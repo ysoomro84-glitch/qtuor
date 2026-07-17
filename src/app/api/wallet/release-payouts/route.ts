@@ -3,7 +3,10 @@ import { processTutorMonthlyPayouts } from '@/lib/billing'
 import { sendWhatsApp, msgTutorPayout } from '@/lib/whatsapp'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 /**
  * Admin endpoint to manually trigger the monthly payout cycle.
@@ -11,7 +14,7 @@ const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
  * and sends WhatsApp notifications to tutors.
  */
 export async function POST() {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

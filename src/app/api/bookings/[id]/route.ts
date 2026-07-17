@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session) return NextResponse.json({ error: 'Login required' }, { status: 401 })
   const { id } = await ctx.params
   const body = await req.json()

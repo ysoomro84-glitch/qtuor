@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth')
+  return getSession()
+}
+
 const GATEWAY = 'http://localhost:3004'
 
 /** Admin-only proxy to the whatsapp-gateway mini-service status endpoint. */
 export async function GET() {
-  const session = await getSession()
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

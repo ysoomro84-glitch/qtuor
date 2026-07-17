@@ -1192,6 +1192,25 @@ export function StudentDashboard() {
           {/* LIVE CLASSROOM Hero — full width */}
           <LiveClassroomHero bookings={dash.bookings} planType={planType} />
 
+          {/* On-Demand Class Actions */}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              onClick={() => setView('marketplace')}
+              className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+              style={{ backgroundColor: C.teal }}
+            >
+              <Zap className="h-4 w-4" /> Book a Live Session Now
+            </Button>
+            <Button
+              variant="outline"
+              className="font-semibold transition-all hover:shadow-md"
+              style={{ borderColor: `${C.islamicBlue}40`, color: C.islamicBlue }}
+              onClick={() => setView('marketplace')}
+            >
+              <Video className="h-4 w-4" /> Find Available Tutors
+            </Button>
+          </div>
+
           {/* Stats — with plan-aware labels */}
           <div className="mt-6">
             <StatsRow stats={dash.stats} planType={planType} />

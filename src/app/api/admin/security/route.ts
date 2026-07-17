@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { setSession, hashPassword, verifyPassword } from "@/lib/auth";
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 /** GET /api/admin/security — returns the current admin user's id/email/name. */
 export async function GET() {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -20,7 +23,7 @@ export async function GET() {
 
 /** PATCH /api/admin/security — change master password and/or master email. */
 export async function PATCH(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 /**
  * GET — load the last saved bookmark for this student-tutor pair.
  * Called when the classroom loads to auto-resume on the exact page.
  */
 export async function GET(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session) return NextResponse.json({ error: 'Login required' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
  * Saves the exact pageId, pageLabel, and lastLineIndex so the next class auto-resumes here.
  */
 export async function POST(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session) return NextResponse.json({ error: 'Login required' }, { status: 401 })
 
   const { studentId, tutorId, bookType, pageId, pageLabel, lastLineIndex } = await req.json()

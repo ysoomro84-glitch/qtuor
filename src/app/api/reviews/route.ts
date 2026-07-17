@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 export async function POST(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session) return NextResponse.json({ error: 'Login required' }, { status: 401 })
   const { tutorId, rating, comment } = await req.json()
   const tutorProfile = await (await _getDb()).tutorProfile.findUnique({ where: { userId: tutorId } })

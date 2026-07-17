@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 /** Admin-only: list + update message templates. */
 export async function GET() {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }
@@ -14,7 +17,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

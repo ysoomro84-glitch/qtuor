@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
 /**
  * GET /api/bank-details/public

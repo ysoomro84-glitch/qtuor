@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 export async function GET() {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'TUTOR') {
     return NextResponse.json({ error: 'Tutor login required' }, { status: 401 })
   }

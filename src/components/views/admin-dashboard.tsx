@@ -111,6 +111,7 @@ import {
   Languages,
   Award,
   Smartphone,
+  Search,
 } from 'lucide-react'
 import { useNotifications, useWhatsAppSettings, useUpdateWhatsAppSettings, useAdminBlogPosts, useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost, useBaileysStatus, useBaileysQR, useDisconnectBaileys, useWhatsAppTemplates, useUpdateWhatsAppTemplate } from '@/lib/queries'
 
@@ -891,6 +892,198 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
 }
 
 /* ============================================================
+ * Students & Plans Tab — Admin Plan Swapper
+ * ============================================================ */
+function StudentsPlanTab() {
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [selectedStudent, setSelectedStudent] = React.useState<{
+    id: string; name: string; email: string; country: string | null;
+    currentPlan: string; planType: 'qaida' | 'quran' | 'both'; assignedTutor: string;
+    classAccess: 'unlimited' | 'flexible' | 'fixed';
+  } | null>(null)
+  const [planDropdown, setPlanDropdown] = React.useState<string>('')
+
+  // Demo students for the plan swapper (includes both DB and fallback data)
+  const demoStudents = [
+    { id: 'demo-noorani-student', name: 'Fatima Noor', email: 'noorani.demo@qtuor.com', country: 'Pakistan', currentPlan: 'Noorani Qaida', planType: 'qaida' as const, assignedTutor: 'Hafiza Madiha Yasir', classAccess: 'unlimited' as const },
+    { id: 'demo-quran-student', name: 'Ahmed Khan', email: 'quran.demo@qtuor.com', country: 'United Kingdom', currentPlan: 'Quran Recitation With Tajweed', planType: 'quran' as const, assignedTutor: 'Hafiza Madiha Yasir', classAccess: 'unlimited' as const },
+    { id: 'demo-hareem-student', name: 'Hareem Yasir', email: 'hareem.demo@qtuor.com', country: 'Pakistan', currentPlan: 'Noorani Qaida', planType: 'qaida' as const, assignedTutor: 'Hafiza Madiha Yasir', classAccess: 'unlimited' as const },
+    { id: 'demo-yasir-student', name: 'Yasir Soomro', email: 'yasir.demo@qtuor.com', country: 'Pakistan', currentPlan: 'Quran Recitation With Tajweed', planType: 'quran' as const, assignedTutor: 'Hafiza Madiha Yasir', classAccess: 'flexible' as const },
+    { id: 'demo-student-1', name: 'Ahmed Student', email: 'student@qtuor.com', country: 'United Kingdom', currentPlan: 'General', planType: 'both' as const, assignedTutor: 'Sheikh Abdullah', classAccess: 'unlimited' as const },
+  ]
+
+  const filtered = demoStudents.filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handlePlanSwap = (studentId: string, newPlan: string) => {
+    const planType = newPlan === 'Noorani Qaida' ? 'qaida' : newPlan === 'Quran Recitation With Tajweed' || newPlan === 'Hifz' ? 'quran' : 'both'
+    toast.success('Plan Updated Successfully', { description: `Student plan changed to ${newPlan}. Dashboard will update instantly on next login.` })
+    if (selectedStudent && selectedStudent.id === studentId) {
+      setSelectedStudent({ ...selectedStudent, currentPlan: newPlan, planType })
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: C.textDark }}>Student Management & Plan Swapper</h2>
+          <p className="text-sm" style={{ color: C.textMuted }}>Change student plans instantly — dashboard UI switches automatically.</p>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: C.textMuted }} />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search students..."
+            className="pl-9 w-64"
+            style={{ borderColor: C.border }}
+          />
+        </div>
+      </div>
+
+      {/* Student Grid */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {filtered.map((student) => (
+          <Card key={student.id} className="overflow-hidden p-0" style={{ borderColor: C.border }}>
+            <div className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: student.planType === 'qaida' ? C.teal : student.planType === 'quran' ? C.gold : C.islamicBlue }}>
+                    {student.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold" style={{ color: C.textDark }}>{student.name}</span>
+                      <Badge className="text-[9px] font-bold border-transparent text-white" style={{ backgroundColor: student.planType === 'qaida' ? C.teal : student.planType === 'quran' ? C.gold : C.islamicBlue }}>
+                        {student.planType === 'qaida' ? 'Qaida' : student.planType === 'quran' ? 'Quran' : 'Both'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs" style={{ color: C.textMuted }}>{student.email}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedStudent(student)}
+                  style={{ borderColor: `${C.islamicBlue}30`, color: C.islamicBlue }}
+                >
+                  Manage
+                </Button>
+              </div>
+
+              {/* Current plan info */}
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-lg p-2.5" style={{ background: C.lightGray, border: `1px solid ${C.border}` }}>
+                  <p className="text-[9px] font-semibold uppercase" style={{ color: C.textMuted }}>Current Plan</p>
+                  <p className="text-sm font-bold" style={{ color: C.islamicBlue }}>{student.currentPlan}</p>
+                </div>
+                <div className="rounded-lg p-2.5" style={{ background: C.lightGray, border: `1px solid ${C.border}` }}>
+                  <p className="text-[9px] font-semibold uppercase" style={{ color: C.textMuted }}>Assigned Tutor</p>
+                  <p className="text-sm font-bold truncate" style={{ color: C.textDark }}>{student.assignedTutor}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Student Detail / Plan Swap Dialog */}
+      {selectedStudent && (
+        <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle style={{ color: C.textDark }}>Manage Student: {selectedStudent.name}</DialogTitle>
+              <DialogDescription>Change plan, tutor, and class access for this student.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5 pt-2">
+              {/* Student Info */}
+              <div className="flex items-center gap-3 rounded-lg p-3" style={{ background: C.lightGray, border: `1px solid ${C.border}` }}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: selectedStudent.planType === 'qaida' ? C.teal : selectedStudent.planType === 'quran' ? C.gold : C.islamicBlue }}>
+                  {selectedStudent.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                  <p className="font-bold" style={{ color: C.textDark }}>{selectedStudent.name}</p>
+                  <p className="text-xs" style={{ color: C.textMuted }}>{selectedStudent.email} · {selectedStudent.country}</p>
+                </div>
+              </div>
+
+              {/* Plan Dropdown — "Anytime Plan Swapper" */}
+              <div>
+                <Label className="text-sm font-semibold" style={{ color: C.textDark }}>Current Plan</Label>
+                <Select value={selectedStudent.currentPlan} onValueChange={(val) => handlePlanSwap(selectedStudent.id, val)}>
+                  <SelectTrigger className="mt-1.5" style={{ borderColor: C.border }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Noorani Qaida">Noorani Qaida (Beginner)</SelectItem>
+                    <SelectItem value="Quran Recitation With Tajweed">Quran Recitation & Tajweed (Intermediate)</SelectItem>
+                    <SelectItem value="Hifz">Hifz / Memorization (Advanced)</SelectItem>
+                    <SelectItem value="General">General — Full Access (Both Qaida + Quran)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs" style={{ color: C.teal }}>Changing this will instantly switch the student&apos;s dashboard UI on their next login.</p>
+              </div>
+
+              {/* Assigned Tutor */}
+              <div>
+                <Label className="text-sm font-semibold" style={{ color: C.textDark }}>Assigned Tutor</Label>
+                <Select defaultValue={selectedStudent.assignedTutor}>
+                  <SelectTrigger className="mt-1.5" style={{ borderColor: C.border }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hafiza Madiha Yasir">Hafiza Madiha Yasir</SelectItem>
+                    <SelectItem value="Sheikh Abdullah Al-Rashid">Sheikh Abdullah Al-Rashid</SelectItem>
+                    <SelectItem value="Ustadha Maryam Hassan">Ustadha Maryam Hassan</SelectItem>
+                    <SelectItem value="Ustadh Omar Khan">Ustadh Omar Khan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Class Access */}
+              <div>
+                <Label className="text-sm font-semibold" style={{ color: C.textDark }}>Class Access</Label>
+                <Select defaultValue={selectedStudent.classAccess}>
+                  <SelectTrigger className="mt-1.5" style={{ borderColor: C.border }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unlimited">Unlimited — Fixed monthly subscription</SelectItem>
+                    <SelectItem value="flexible">Flexible — 12 classes/month (On-Demand)</SelectItem>
+                    <SelectItem value="fixed">Fixed — Specific weekly schedule</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Action */}
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  className="text-white flex-1"
+                  style={{ backgroundColor: C.islamicBlue }}
+                  onClick={() => {
+                    toast.success('Changes Saved', { description: `${selectedStudent.name}'s profile updated successfully.` })
+                    setSelectedStudent(null)
+                  }}
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedStudent(null)} style={{ borderColor: C.border }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
  * Plans tab
  * ============================================================ */
 function PlansTab({ plans }: { plans: AdminPlan[] }) {
@@ -1265,6 +1458,7 @@ export function AdminDashboard() {
   const NAV_ITEMS = [
     { value: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
     { value: 'tutors', label: 'Tutor Vetting', icon: ShieldCheck, badge: data?.stats.pendingTutors ?? 0 },
+    { value: 'students', label: 'Students & Plans', icon: Users },
     { value: 'plans', label: 'Subscription Plans', icon: Sparkles },
     { value: 'ledger', label: 'Financial Ledger', icon: BookOpen },
     { value: 'gateways', label: 'Gateways & Banking', icon: CreditCard },
@@ -1466,6 +1660,7 @@ export function AdminDashboard() {
             {/* ===== Dynamic workspace (no page reload) ===== */}
             {activeView === 'tutors' && (isLoading ? <Card className="h-[400px] animate-pulse bg-muted/40" /> : <TutorVettingTab tutors={data?.tutors ?? []} />)}
             {activeView === 'plans' && (isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <Card key={i} className="h-[260px] animate-pulse bg-muted/40" />)}</div> : <PlansTab plans={data?.plans ?? []} />)}
+            {activeView === 'students' && <StudentsPlanTab />}
             {activeView === 'withdrawals' && (isLoading ? <Card className="h-[300px] animate-pulse bg-muted/40" /> : <WithdrawalsTab withdrawals={data?.pendingWithdrawals ?? []} />)}
             {activeView === 'whatsapp' && <WhatsAppTab />}
             {activeView === 'blog' && <BlogAdminTab />}

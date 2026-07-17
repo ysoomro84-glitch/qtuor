@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const _getDb = () => import("@/lib/db").then(m => m.db);
-const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
+async function _getSession() {
+  const { getSession } = await import('@/lib/auth');
+  return getSession();
+}
 
 /** POST /api/admin/ledger/release-payment — admin releases a tutor wallet payout. */
 export async function POST(req: NextRequest) {
-  const session = (await _getAuth())
+  const session = await _getSession()
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin login required' }, { status: 401 })
   }

@@ -178,6 +178,24 @@ async function main() {
       lessonsCount: 2400,
       audioIntroText: 'Assalamu alaikum. I am Sheikh Bilal. Join my classes to memorize the Quran and understand Islamic studies deeply.',
     },
+    {
+      name: 'Hafiza Madiha Yasir',
+      email: 'madiha@qtuor.com',
+      country: 'Pakistan',
+      bio: 'Dedicated and certified female Quran tutor with over a decade of experience. Specializing in making Noorani Qaida engaging for young kids and teaching advanced Tajweed to female students globally.',
+      specialties: 'Noorani Qaida,Quran Recitation With Tajweed,Hifz',
+      languages: 'Urdu,English',
+      perClassRate: 7,
+      nativeArabic: false,
+      hafiz: true,
+      ijazaCertified: true,
+      experienceYears: 10,
+      rating: 4.9,
+      reviewCount: 120,
+      studentCount: 310,
+      lessonsCount: 4200,
+      audioIntroText: 'Assalamu alaikum, I am Hafiza Madiha Yasir. With more than 10 years of experience, I help students build a lifelong, correct, and beautiful relationship with the Quran. I specialize in Noorani Qaida for kids and Tajweed for sisters.',
+    },
   ]
 
   for (const t of tutorData) {
@@ -235,6 +253,29 @@ async function main() {
       country: 'United Kingdom',
     },
   })
+
+  // ---- Hareem Yasir — Noorani Qaida student ----
+  const hareemStudent = await db.user.create({
+    data: {
+      email: 'hareem.demo@qtuor.com',
+      name: 'Hareem Yasir',
+      password: hashPassword('demo1234'),
+      role: 'STUDENT',
+      country: 'Pakistan',
+    },
+  })
+
+  // ---- Yasir Soomro — Quran Recitation student ----
+  const yasirStudent = await db.user.create({
+    data: {
+      email: 'yasir.demo@qtuor.com',
+      name: 'Yasir Soomro',
+      password: hashPassword('demo1234'),
+      role: 'STUDENT',
+      country: 'Pakistan',
+    },
+  })
+
   await db.subscription.create({
     data: {
       userId: student.id,
@@ -243,6 +284,32 @@ async function main() {
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 20),
     },
   })
+
+  // Hareem's subscription — Noorani Qaida
+  const qaidaPlan = plans.find(p => p.category === 'Noorani Qaida' && p.classesPerMonth === 12)
+  if (qaidaPlan) {
+    await db.subscription.create({
+      data: {
+        userId: hareemStudent.id,
+        planId: qaidaPlan.id,
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 25),
+      },
+    })
+  }
+
+  // Yasir's subscription — Quran Recitation With Tajweed
+  const quranPlan = plans.find(p => p.category === 'Quran Recitation With Tajweed' && p.classesPerMonth === 12)
+  if (quranPlan) {
+    await db.subscription.create({
+      data: {
+        userId: yasirStudent.id,
+        planId: quranPlan.id,
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 25),
+      },
+    })
+  }
 
   // Lesson progress
   await db.lessonProgress.createMany({
@@ -256,11 +323,20 @@ async function main() {
       { studentId: student.id, subject: 'Hifz', lessonTitle: 'Surah Al-Fatihah', completed: true, progressPct: 100, surahName: 'Al-Fatihah' },
       { studentId: student.id, subject: 'Hifz', lessonTitle: 'Surah An-Nas', completed: true, progressPct: 100, surahName: 'An-Nas' },
       { studentId: student.id, subject: 'Hifz', lessonTitle: 'Surah Al-Falaq', completed: false, progressPct: 75, surahName: 'Al-Falaq' },
+      // Hareem's progress — Noorani Qaida focus
+      { studentId: hareemStudent.id, subject: 'Noorani Qaida', lessonTitle: 'Lesson 1: Arabic Alphabet', completed: true, progressPct: 100 },
+      { studentId: hareemStudent.id, subject: 'Noorani Qaida', lessonTitle: 'Lesson 2: Joined Letters', completed: true, progressPct: 100 },
+      { studentId: hareemStudent.id, subject: 'Noorani Qaida', lessonTitle: 'Lesson 3: Harakat (Fatha, Kasra, Damma)', completed: false, progressPct: 45 },
+      // Yasir's progress — Quran Recitation focus
+      { studentId: yasirStudent.id, subject: 'Quran Recitation With Tajweed', lessonTitle: 'Surah Al-Fatihah', completed: true, progressPct: 100, surahName: 'Al-Fatihah' },
+      { studentId: yasirStudent.id, subject: 'Quran Recitation With Tajweed', lessonTitle: 'Surah Al-Mulk (Ayah 1-14)', completed: false, progressPct: 30, surahName: 'Al-Mulk' },
+      { studentId: yasirStudent.id, subject: 'Hifz', lessonTitle: 'Surah Al-Baqarah (Ayah 1-5)', completed: false, progressPct: 60, surahName: 'Al-Baqarah' },
     ],
   })
 
   // A sample upcoming booking
   const tutorUser = await db.user.findFirst({ where: { role: 'TUTOR' } })
+  const madihaUser = await db.user.findUnique({ where: { email: 'madiha@qtuor.com' } })
   if (tutorUser) {
     await db.booking.create({
       data: {
@@ -274,11 +350,59 @@ async function main() {
       },
     })
   }
+  // Hareem's bookings with Hafiza Madiha
+  if (madihaUser) {
+    await db.booking.createMany({
+      data: [
+        {
+          studentId: hareemStudent.id,
+          tutorId: madihaUser.id,
+          scheduledAt: new Date(Date.now() + 5 * 60 * 1000),
+          durationMins: 30,
+          status: 'SCHEDULED',
+          topic: 'Noorani Qaida — Lesson 3: Harakat (Fatha, Kasra, Damma)',
+          meetingId: 'qtuor-' + Math.random().toString(36).slice(2, 8),
+        },
+        {
+          studentId: hareemStudent.id,
+          tutorId: madihaUser.id,
+          scheduledAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          durationMins: 30,
+          status: 'SCHEDULED',
+          topic: 'Noorani Qaida — Lesson 4: Tanween',
+          meetingId: 'qtuor-' + Math.random().toString(36).slice(2, 8),
+        },
+        {
+          studentId: yasirStudent.id,
+          tutorId: madihaUser.id,
+          scheduledAt: new Date(Date.now() + 10 * 60 * 1000),
+          durationMins: 30,
+          status: 'SCHEDULED',
+          topic: 'Quran Recitation — Surah Al-Mulk (Ayah 1-14) Tajweed Focus',
+          meetingId: 'qtuor-' + Math.random().toString(36).slice(2, 8),
+        },
+        {
+          studentId: yasirStudent.id,
+          tutorId: madihaUser.id,
+          scheduledAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          durationMins: 30,
+          status: 'SCHEDULED',
+          topic: 'Hifz — Sabaq Revision & New Memorization',
+          meetingId: 'qtuor-' + Math.random().toString(36).slice(2, 8),
+        },
+      ],
+    })
+  }
 
   console.log('✅ Seed complete!')
   console.log('   Admin:    admin@qtuor.com / admin123')
   console.log('   Student:  student@qtuor.com / student123')
   console.log('   Tutors:   <name>@qtuor.com / tutor123')
+  console.log('   Demo:     noorani.demo@qtuor.com / demo1234 (Noorani Qaida student)')
+  console.log('   Demo:     quran.demo@qtuor.com / demo1234 (Quran student)')
+  console.log('   Demo:     hareem.demo@qtuor.com / demo1234 (Hareem Yasir — Qaida student)')
+  console.log('   Demo:     yasir.demo@qtuor.com / demo1234 (Yasir Soomro — Quran student)')
+  console.log('   Demo:     madiha.demo@qtuor.com / tutor123 (Hafiza Madiha Yasir — Tutor)')
   console.log(`   Plans:    ${plans.length} created`)
 }
 
