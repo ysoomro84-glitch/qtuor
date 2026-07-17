@@ -68,15 +68,17 @@ export async function GET() {
               id: 'demo-sub-nq', status: 'ACTIVE',
               startedAt: now.toISOString(),
               expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              plan: { id: 'plan-nq-3', name: 'Qaida Learner', category: 'Noorani Qaida', classesPerMonth: 12, monthlyPrice: 39, features: ['3 classes / week (30 min each)', 'Interactive Noorani Qaida board', 'Certified Qaida tutor', 'Auto-bookmark & resume', 'Parent safety snapshots', 'Homework worksheets'] },
+              plan: { id: 'plan-demo-combo', name: 'Demo Full Access', category: 'General', classesPerMonth: 12, monthlyPrice: 49, features: ['3 classes / week (30 min each)', 'Noorani Qaida board', 'Quran Recitation with Tajweed', 'Certified tutor', 'Auto-bookmark & resume', 'Virtual classroom access'] },
             },
             bookings: [
-              { id: 'demo-booking-nq-1', scheduledAt: soon.toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)', meetingId: null, tutor: demoTutor },
+              { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: soon.toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)', meetingId: 'demo-nq-room', tutor: demoTutor },
+              { id: 'demo-booking-nq-2', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(now.getTime() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Fatihah Tajweed Practice', meetingId: 'demo-nq-quran', tutor: demoTutor },
             ],
             progress: [
               { id: 'demo-prog-nq-1', subject: 'Noorani Qaida', lessonTitle: 'Lesson 5: Harakat', surahName: null, completed: false, progressPct: 35 },
+              { id: 'demo-prog-nq-2', subject: 'Quran Recitation With Tajweed', lessonTitle: 'Surah Al-Fatihah', surahName: 'Al-Fatihah', completed: false, progressPct: 15 },
             ],
-            stats: { completedLessons: 4, memorizedSurahs: 0, totalBookings: 5, completedBookings: 4, hasActiveSubscription: true, subscriptionPlanName: 'Qaida Learner', subscriptionExpiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), completionRate: 80 },
+            stats: { completedLessons: 4, memorizedSurahs: 0, totalBookings: 5, completedBookings: 4, hasActiveSubscription: true, subscriptionPlanName: 'Demo Full Access', subscriptionExpiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), completionRate: 80 },
           })
         }
 
@@ -86,15 +88,17 @@ export async function GET() {
               id: 'demo-sub-tw', status: 'ACTIVE',
               startedAt: now.toISOString(),
               expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              plan: { id: 'plan-tw-3', name: 'Tajweed Builder', category: 'Quran Recitation With Tajweed', classesPerMonth: 12, monthlyPrice: 49, features: ['3 classes / week (30 min each)', 'Word-by-word Quran sync', 'Tajweed color highlighting', 'Ijaza-certified tutor', 'Auto-bookmark & resume', 'Weekly progress report'] },
+              plan: { id: 'plan-demo-combo', name: 'Demo Full Access', category: 'General', classesPerMonth: 12, monthlyPrice: 49, features: ['3 classes / week (30 min each)', 'Noorani Qaida board', 'Quran Recitation with Tajweed', 'Certified tutor', 'Auto-bookmark & resume', 'Virtual classroom access'] },
             },
             bookings: [
-              { id: 'demo-booking-tw-1', scheduledAt: soon.toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus', meetingId: null, tutor: demoTutor },
+              { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: soon.toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus', meetingId: 'demo-tw-room', tutor: demoTutor },
+              { id: 'demo-booking-tw-2', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(now.getTime() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 8: Madd (Stretching Rules)', meetingId: 'demo-tw-qaida', tutor: demoTutor },
             ],
             progress: [
               { id: 'demo-prog-tw-1', subject: 'Quran Recitation With Tajweed', lessonTitle: 'Surah Al-Baqarah Ayah 142-152', surahName: 'Al-Baqarah', completed: false, progressPct: 20 },
+              { id: 'demo-prog-tw-2', subject: 'Noorani Qaida', lessonTitle: 'Lesson 8: Madd Rules', surahName: null, completed: false, progressPct: 55 },
             ],
-            stats: { completedLessons: 8, memorizedSurahs: 1, totalBookings: 10, completedBookings: 9, hasActiveSubscription: true, subscriptionPlanName: 'Tajweed Builder', subscriptionExpiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), completionRate: 90 },
+            stats: { completedLessons: 8, memorizedSurahs: 1, totalBookings: 10, completedBookings: 9, hasActiveSubscription: true, subscriptionPlanName: 'Demo Full Access', subscriptionExpiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), completionRate: 90 },
           })
         }
 

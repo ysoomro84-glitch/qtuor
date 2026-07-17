@@ -47,18 +47,25 @@ export async function GET() {
     } catch (dbErr: any) {
       if (dbErr?.message === 'DATABASE_UNAVAILABLE') {
         // Return demo tutor dashboard data for Vercel
+        const now = new Date()
+        const soon = new Date(now.getTime() + 5 * 60 * 1000).toISOString()
+        const demoStudentNQ = { id: 'demo-noorani-student', name: 'Fatima Noor', avatar: null, country: 'Pakistan' }
+        const demoStudentTW = { id: 'demo-quran-student', name: 'Ahmed Khan', avatar: null, country: 'United Kingdom' }
         return NextResponse.json({
           profile: null,
           wallet: { balance: 0, totalEarned: 0 },
           withdrawals: [],
           availabilities: [],
-          bookings: [],
+          bookings: [
+            { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: soon, durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat', meetingId: 'demo-nq-room', student: demoStudentNQ },
+            { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(now.getTime() + 10 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah', meetingId: 'demo-tw-room', student: demoStudentTW },
+          ],
           stats: {
-            totalLessons: 0,
-            upcomingLessons: 0,
-            uniqueStudents: 0,
-            rating: 0,
-            reviewCount: 0,
+            totalLessons: 3000,
+            upcomingLessons: 2,
+            uniqueStudents: 50,
+            rating: 5.0,
+            reviewCount: 178,
             balance: 0,
             totalEarned: 0,
           },
