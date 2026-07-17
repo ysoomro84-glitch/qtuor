@@ -9,6 +9,7 @@ import {
   GraduationCap, Loader2, AlertCircle, LogOut, BookOpen, Menu, X,
   ChevronRight, MessageSquare, BarChart3, Settings, Play, BookOpenCheck,
   Award, CreditCard, Banknote, Sparkles, FileText, Send,
+  Home, Bell, Crown, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore, type ViewKey } from '@/lib/store'
@@ -110,11 +111,12 @@ interface TutorStats {
 
 // ─── Sidebar Nav Items ────────────────────────────────────────────────
 const SIDEBAR_NAV = [
-  { key: 'overview', label: 'Overview / Live Feed', icon: BarChart3 },
-  { key: 'students', label: 'My Students (Roster)', icon: Users },
-  { key: 'availability', label: 'My Availability / Calendar', icon: Calendar },
-  { key: 'earnings', label: 'Earnings & Payouts', icon: Banknote },
-  { key: 'messages', label: 'Student Chat Messages', icon: MessageSquare },
+  { key: 'overview', label: 'Home', icon: Home },
+  { key: 'students', label: 'Students', icon: Users },
+  { key: 'availability', label: 'Calendar', icon: Calendar },
+  { key: 'earnings', label: 'Earnings', icon: Banknote },
+  { key: 'messages', label: 'Chat Box', icon: MessageSquare },
+  { key: 'settings', label: 'Settings', icon: Settings },
 ] as const
 type SidebarKey = typeof SIDEBAR_NAV[number]['key']
 
@@ -141,8 +143,89 @@ const fadeUp = {
   }),
 }
 
+// ─── QAIDA Lessons (for assignment dropdown) ──────────────────────────
+const QAIDA_HOMEWORK_OPTIONS = [
+  'Lesson 1: Arabic Alphabet',
+  'Lesson 2: Joined Letters',
+  'Lesson 3: Harakat',
+  'Lesson 4: Tanween',
+  'Lesson 5: Haroof Maddah',
+  'Lesson 6: Sukoon',
+  'Lesson 7: Shaddah',
+  'Lesson 8: Madd',
+  'Lesson 9: Waqf',
+  'Lesson 10: Recitation Practice',
+]
+
 // ============================================================
-// SIDEBAR COMPONENT (declared outside render to avoid state reset)
+// TOP BAR (Full width — always visible)
+// ============================================================
+function TutorTopBar({
+  userName,
+  rating,
+  isOnline,
+  onToggleOnline,
+  onLogout,
+}: {
+  userName: string
+  rating: number
+  isOnline: boolean
+  onToggleOnline: () => void
+  onLogout: () => void
+}) {
+  return (
+    <header
+      className="sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 h-16 border-b"
+      style={{ backgroundColor: 'white', borderColor: C.border }}
+    >
+      {/* Logo + Status */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: C.islamicBlue }}>
+            <BookOpen className="h-4.5 w-4.5 text-white" />
+          </div>
+          <span className="text-lg font-bold tracking-tight" style={{ color: C.islamicBlue }}>Qtuor</span>
+          <Badge className="text-[10px] text-white border-0 ml-1" style={{ backgroundColor: C.brightBlue }}>
+            LIVE
+          </Badge>
+        </div>
+
+        {/* Online/Offline toggle */}
+        <button
+          onClick={onToggleOnline}
+          className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium transition-all border"
+          style={{ borderColor: isOnline ? C.teal : C.border, backgroundColor: isOnline ? `${C.teal}10` : 'transparent', borderRadius: 12 }}
+        >
+          <Zap className="h-3.5 w-3.5" style={{ color: isOnline ? C.teal : C.textMuted }} />
+          <span style={{ color: isOnline ? C.teal : C.textMuted }}>
+            {isOnline ? 'Available' : 'Offline'}
+          </span>
+          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: isOnline ? C.teal : C.border }} />
+        </button>
+      </div>
+
+      {/* Right side */}
+      <div className="flex items-center gap-3">
+        <button className="relative rounded-xl p-2 transition-colors hover:bg-gray-100" style={{ borderRadius: 12 }}>
+          <Bell className="h-5 w-5" style={{ color: C.textMuted }} />
+        </button>
+        <div className="flex items-center gap-2 pl-2 border-l" style={{ borderColor: C.border }}>
+          <Avatar name={userName} size={32} />
+          <div className="hidden sm:block">
+            <p className="text-sm font-semibold leading-tight" style={{ color: C.textDark }}>{userName}</p>
+            <div className="flex items-center gap-1">
+              <Star className="h-3 w-3" style={{ color: C.gold }} />
+              <span className="text-xs font-medium" style={{ color: C.gold }}>{rating.toFixed(1)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+// ============================================================
+// SIDEBAR COMPONENT
 // ============================================================
 function TutorSidebar({
   activeNav,
@@ -151,6 +234,7 @@ function TutorSidebar({
   userEmail,
   userAvatar,
   onLogout,
+  rating,
 }: {
   activeNav: SidebarKey
   onNavClick: (key: SidebarKey) => void
@@ -158,12 +242,13 @@ function TutorSidebar({
   userEmail: string
   userAvatar?: string | null
   onLogout: () => void
+  rating: number
 }) {
   return (
     <div className="flex h-full flex-col" style={{ backgroundColor: C.deepNavy }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: C.islamicBlue }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: C.islamicBlue }}>
           <BookOpen className="h-5 w-5 text-white" />
         </div>
         <span className="text-lg font-bold text-white tracking-tight">Qtuor</span>
@@ -172,12 +257,16 @@ function TutorSidebar({
         </Badge>
       </div>
 
-      {/* Online/Offline toggle */}
+      {/* Rating badge */}
       <div className="px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <button className="flex items-center gap-3 w-full">
-          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: C.islamicBlue }} />
-          <span className="text-sm font-medium text-white">Online — Accepting Students</span>
-        </button>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ backgroundColor: `${C.gold}20` }}>
+          <Crown className="h-4 w-4" style={{ color: C.gold }} />
+          <span className="text-sm font-bold" style={{ color: C.gold }}>Top Rated</span>
+          <div className="flex items-center gap-0.5 ml-auto">
+            <Star className="h-3.5 w-3.5" style={{ color: C.gold }} />
+            <span className="text-sm font-bold text-white">{rating.toFixed(1)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -190,12 +279,12 @@ function TutorSidebar({
               key={item.key}
               onClick={() => onNavClick(item.key)}
               className={cn(
-                'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                'flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all',
                 isActive
                   ? 'text-white'
                   : 'text-slate-300 hover:text-white hover:bg-white/5'
               )}
-              style={isActive ? { backgroundColor: C.islamicBlue } : undefined}
+              style={isActive ? { backgroundColor: C.islamicBlue, borderRadius: 12 } : { borderRadius: 12 }}
             >
               <Icon className="h-4.5 w-4.5 shrink-0" />
               {item.label}
@@ -241,8 +330,12 @@ export function TutorDashboard() {
   const [activeNav, setActiveNav] = React.useState<SidebarKey>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
+  // Online status
+  const [isOnline, setIsOnline] = React.useState(true)
+
   // Homework assigner state
   const [selectedStudentId, setSelectedStudentId] = React.useState<string>('')
+  const [selectedRating, setSelectedRating] = React.useState(5)
   const [homeworkNote, setHomeworkNote] = React.useState('')
 
   // Withdrawal state
@@ -251,7 +344,7 @@ export function TutorDashboard() {
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: C.offWhite }}>
-        <Card className="w-full max-w-md border-0 shadow-lg">
+        <Card className="w-full max-w-md border-0 shadow-lg" style={{ borderRadius: 20 }}>
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-bold" style={{ color: C.islamicBlue }}>Tutor login required</h2>
             <p className="mt-2 text-sm" style={{ color: C.textMuted }}>Please sign in as a tutor to access your dashboard.</p>
@@ -320,7 +413,6 @@ export function TutorDashboard() {
       return
     }
     try {
-      await useRequestWithdrawal
       toast.success(`Withdrawal of $${amount} requested`)
       setWithdrawAmount('')
     } catch {
@@ -328,404 +420,413 @@ export function TutorDashboard() {
     }
   }
 
-
-
   // ─── MAIN RENDER ───────────────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: C.offWhite }}>
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col">
-        <TutorSidebar
-          activeNav={activeNav}
-          onNavClick={handleNavClick}
-          userName={user.name}
-          userEmail={user.email}
-          userAvatar={user.avatar}
-          onLogout={logout}
-        />
-      </aside>
+    <div className="flex h-screen flex-col" style={{ backgroundColor: C.offWhite }}>
+      {/* ═══ TOP BAR ═══ */}
+      <TutorTopBar
+        userName={user.name}
+        rating={stats?.rating ?? profile?.rating ?? 0}
+        isOnline={isOnline}
+        onToggleOnline={() => setIsOnline(!isOnline)}
+        onLogout={logout}
+      />
 
-      {/* Mobile sidebar overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -260 }}
-              animate={{ x: 0 }}
-              exit={{ x: -260 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 z-50 w-64 lg:hidden"
-            >
-              <TutorSidebar
-          activeNav={activeNav}
-          onNavClick={handleNavClick}
-          userName={user.name}
-          userEmail={user.email}
-          userAvatar={user.avatar}
-          onLogout={logout}
-        />
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      <div className="flex flex-1 overflow-hidden">
+        {/* ═══ DESKTOP SIDEBAR ═══ */}
+        <aside className="hidden lg:flex w-64 shrink-0 flex-col">
+          <TutorSidebar
+            activeNav={activeNav}
+            onNavClick={handleNavClick}
+            userName={user.name}
+            userEmail={user.email}
+            userAvatar={user.avatar}
+            onLogout={logout}
+            rating={stats?.rating ?? profile?.rating ?? 0}
+          />
+        </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Top Bar (mobile) */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 lg:hidden border-b"
-          style={{ backgroundColor: 'white', borderColor: C.border }}>
-          <button onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-2 hover:bg-gray-100">
-            <Menu className="h-5 w-5" style={{ color: C.textDark }} />
-          </button>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" style={{ color: C.islamicBlue }} />
-            <span className="font-bold" style={{ color: C.islamicBlue }}>Qtuor</span>
-          </div>
-          <Avatar name={user.name} src={user.avatar} size={32} />
-        </header>
-
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin" style={{ color: C.islamicBlue }} />
-            </div>
-          ) : (
+        {/* ═══ MOBILE SIDEBAR OVERLAY ═══ */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
             <>
-              {/* ═══════════════════════════════════════════════════════
-                  ROW 1: Performance Summary (Top KPI Cards)
-                  ═══════════════════════════════════════════════════════ */}
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}
-                className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                {[
-                  { icon: Users, label: 'Total Students', value: stats?.uniqueStudents ?? profile?.studentCount ?? 0, color: C.islamicBlue },
-                  { icon: Clock, label: 'Hours Taught', value: Math.round((stats?.totalLessons ?? profile?.lessonsCount ?? 0) * 0.5), color: C.brightBlue },
-                  { icon: Star, label: 'Rating', value: stats?.rating ?? profile?.rating ?? 0, isRating: true, color: C.gold },
-                  { icon: Wallet, label: 'Available Balance', value: `$${stats?.balance ?? wallet?.balance ?? 0}`, color: C.islamicBlue },
-                ].map((stat) => {
-                  const Icon = stat.icon
-                  return (
-                    <Card key={stat.label} className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl"
-                            style={{ backgroundColor: `${stat.color}15` }}>
-                            <Icon className="h-5 w-5" style={{ color: stat.color }} />
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold" style={{ color: stat.color }}>
-                              {stat.isRating ? `${stat.value}` : stat.value}
-                              {stat.isRating && <Star className="inline h-3.5 w-3.5 ml-0.5" style={{ color: C.gold }} />}
-                            </p>
-                            <p className="text-xs" style={{ color: C.textMuted }}>{stat.label}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              <motion.aside
+                initial={{ x: -260 }}
+                animate={{ x: 0 }}
+                exit={{ x: -260 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 left-0 z-50 w-64 lg:hidden"
+              >
+                <TutorSidebar
+                  activeNav={activeNav}
+                  onNavClick={handleNavClick}
+                  userName={user.name}
+                  userEmail={user.email}
+                  userAvatar={user.avatar}
+                  onLogout={logout}
+                  rating={stats?.rating ?? profile?.rating ?? 0}
+                />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
 
-              {/* ═══════════════════════════════════════════════════════
-                  ROW 2: Today's Live Schedule & Classroom Router
-                  ═══════════════════════════════════════════════════════ */}
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={1}>
-                <Card className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2" style={{ color: C.islamicBlue }}>
-                        <Calendar className="h-5 w-5" />
-                        Today&apos;s Live Schedule
-                      </CardTitle>
-                      <Badge className="text-white border-0" style={{ backgroundColor: C.islamicBlue }}>
-                        {upcomingBookings.length} upcoming
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {upcomingBookings.length === 0 ? (
-                      <div className="py-8 text-center">
-                        <Calendar className="h-10 w-10 mx-auto mb-2" style={{ color: C.border }} />
-                        <p className="text-sm" style={{ color: C.textMuted }}>No classes scheduled today</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {upcomingBookings.map((booking) => {
-                          const { day, time } = formatClassDate(booking.scheduledAt)
-                          const planTag = getPlanTag(booking.topic)
-                          const isImminent = new Date(booking.scheduledAt).getTime() - Date.now() < 30 * 60 * 1000
-                          const tagColor = planTag === 'Noorani Qaida' ? C.islamicBlue : planTag === 'Quran Hifz' ? C.brightBlue : C.gold
+        {/* ═══ MAIN CONTENT AREA ═══ */}
+        <main className="flex-1 overflow-y-auto">
+          {/* Mobile header */}
+          <div className="flex items-center justify-between px-4 py-2 lg:hidden border-b" style={{ borderColor: C.border }}>
+            <button onClick={() => setMobileMenuOpen(true)} className="rounded-xl p-2 hover:bg-gray-100">
+              <Menu className="h-5 w-5" style={{ color: C.textDark }} />
+            </button>
+            <button
+              onClick={() => setIsOnline(!isOnline)}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium border"
+              style={{ borderColor: isOnline ? C.teal : C.border, color: isOnline ? C.teal : C.textMuted }}
+            >
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: isOnline ? C.teal : C.border }} />
+              {isOnline ? 'Available' : 'Offline'}
+            </button>
+            <Avatar name={user.name} src={user.avatar} size={32} />
+          </div>
 
-                          return (
-                            <div key={booking.id} className="flex items-center gap-4 rounded-xl p-4 border transition-all hover:shadow-sm"
-                              style={{ borderColor: isImminent ? C.islamicBlue : C.border, backgroundColor: isImminent ? `${C.islamicBlue}05` : 'transparent' }}>
-                              {/* Time */}
-                              <div className="text-center min-w-[64px]">
-                                <p className="text-sm font-bold" style={{ color: C.islamicBlue }}>{time}</p>
-                                <p className="text-[10px]" style={{ color: C.textMuted }}>{day}</p>
-                              </div>
-                              <div className="h-8 w-px" style={{ backgroundColor: C.border }} />
-                              {/* Student info */}
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <Avatar name={booking.student.name} src={booking.student.avatar} size={36} country={booking.student.country} />
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold truncate" style={{ color: C.textDark }}>
-                                    {booking.student.name}
-                                  </p>
-                                  <p className="text-xs truncate" style={{ color: C.textMuted }}>
-                                    {booking.topic || 'Quran Class'}
-                                  </p>
-                                </div>
-                              </div>
-                              {/* Plan tag */}
-                              <Badge className="text-white border-0 shrink-0" style={{ backgroundColor: tagColor }}>
-                                {planTag}
-                              </Badge>
-                              {/* Start Class button */}
-                              {isImminent ? (
-                                <Button
-                                  className="text-white hover:opacity-90 shrink-0"
-                                  size="sm"
-                                  style={{ backgroundColor: C.islamicBlue }}
-                                  onClick={() => enterClassroom(booking)}
-                                >
-                                  <Play className="h-3.5 w-3.5 mr-1" />
-                                  Start Class
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="shrink-0"
-                                  style={{ borderColor: C.islamicBlue, color: C.islamicBlue }}
-                                  onClick={() => enterClassroom(booking)}
-                                >
-                                  <Video className="h-3.5 w-3.5 mr-1" />
-                                  Open
-                                </Button>
-                              )}
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin" style={{ color: C.islamicBlue }} />
+              </div>
+            ) : (
+              <>
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 1: Performance Overview KPI Cards
+                    ═══════════════════════════════════════════════════════ */}
+                <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0}
+                  className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { icon: Users, label: 'Active Students', value: stats?.uniqueStudents ?? profile?.studentCount ?? 0, color: C.islamicBlue },
+                    { icon: Clock, label: 'Hours Taught', value: `${Math.round((stats?.totalLessons ?? profile?.lessonsCount ?? 0) * 0.5)} hrs`, color: C.brightBlue },
+                    { icon: Wallet, label: 'Total Earnings', value: `$${stats?.totalEarned ?? wallet?.totalEarned ?? 0}`, color: C.teal },
+                    { icon: Crown, label: 'Rank', value: 'Top Rated', isSpecial: true, color: C.gold },
+                  ].map((stat) => {
+                    const Icon = stat.icon
+                    return (
+                      <Card key={stat.label} className="border-0 shadow-sm" style={{ borderRadius: 16, backgroundColor: 'white' }}>
+                        <CardContent className="p-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl"
+                              style={{ backgroundColor: `${stat.color}12` }}>
+                              <Icon className="h-5 w-5" style={{ color: stat.color }} />
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* ═══════════════════════════════════════════════════════
-                  ROW 3: Student Performance Log & Homework Assigner
-                  ═══════════════════════════════════════════════════════ */}
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={2}
-                className="grid gap-4 lg:grid-cols-2">
-                {/* Left: Student Performance Log */}
-                <Card className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2" style={{ color: C.islamicBlue }}>
-                      <GraduationCap className="h-4 w-4" />
-                      Student Performance Log
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {Array.from(uniqueStudents.entries()).map(([id, student]) => {
-                        const studentBookings = bookings.filter(b => b.studentId === id)
-                        const completedCount = studentBookings.filter(b => b.status === 'COMPLETED').length
-                        const lastBooking = studentBookings[0]
-                        const planTag = getPlanTag(lastBooking?.topic)
-
-                        return (
-                          <div key={id} className="flex items-center gap-3 rounded-lg p-3 transition-all hover:shadow-sm"
-                            style={{ backgroundColor: C.lightGray }}>
-                            <Avatar name={student.name} src={student.avatar} size={32} country={student.country} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate" style={{ color: C.textDark }}>{student.name}</p>
-                              <p className="text-xs" style={{ color: C.textMuted }}>
-                                {completedCount} classes • {planTag}
+                            <div>
+                              <p className={cn('font-bold', stat.isSpecial ? 'text-base' : 'text-xl')} style={{ color: stat.color }}>
+                                {stat.value}
+                                {stat.label === 'Rank' && <Star className="inline h-3.5 w-3.5 ml-1" style={{ color: C.gold }} />}
                               </p>
+                              <p className="text-xs" style={{ color: C.textMuted }}>{stat.label}</p>
                             </div>
-                            <Badge variant="outline" className="text-xs shrink-0"
-                              style={{ borderColor: C.islamicBlue, color: C.islamicBlue }}>
-                              Active
-                            </Badge>
                           </div>
-                        )
-                      })}
-                      {uniqueStudents.size === 0 && (
-                        <div className="py-6 text-center">
-                          <Users className="h-8 w-8 mx-auto mb-2" style={{ color: C.border }} />
-                          <p className="text-sm" style={{ color: C.textMuted }}>No students yet</p>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </motion.div>
+
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 2: Today's Live Class Timeline
+                    ═══════════════════════════════════════════════════════ */}
+                <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={1}>
+                  <Card className="border-0 shadow-sm" style={{ borderRadius: 20, backgroundColor: 'white' }}>
+                    <CardHeader className="pb-3 px-6 pt-5">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2" style={{ color: C.islamicBlue }}>
+                          <Calendar className="h-5 w-5" />
+                          Today&apos;s Live Class Timeline
+                        </CardTitle>
+                        <Badge className="text-white border-0" style={{ backgroundColor: C.islamicBlue }}>
+                          {upcomingBookings.length} upcoming
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      {upcomingBookings.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <Calendar className="h-10 w-10 mx-auto mb-2" style={{ color: C.border }} />
+                          <p className="text-sm" style={{ color: C.textMuted }}>No classes scheduled today</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {upcomingBookings.map((booking) => {
+                            const { day, time } = formatClassDate(booking.scheduledAt)
+                            const planTag = getPlanTag(booking.topic)
+                            const isImminent = new Date(booking.scheduledAt).getTime() - Date.now() < 30 * 60 * 1000
+                            const tagColor = planTag === 'Noorani Qaida' ? C.islamicBlue : planTag === 'Quran Hifz' ? C.brightBlue : C.gold
+
+                            return (
+                              <div key={booking.id} className="flex items-center gap-4 rounded-2xl p-4 border transition-all hover:shadow-sm"
+                                style={{ borderColor: isImminent ? C.islamicBlue : C.border, backgroundColor: isImminent ? `${C.islamicBlue}04` : 'transparent', borderRadius: 16 }}>
+                                {/* Time */}
+                                <div className="text-center min-w-[64px]">
+                                  <p className="text-sm font-bold" style={{ color: C.islamicBlue }}>{time}</p>
+                                  <p className="text-[10px]" style={{ color: C.textMuted }}>{day}</p>
+                                </div>
+                                <div className="h-8 w-px" style={{ backgroundColor: C.border }} />
+                                {/* Student info */}
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <Avatar name={booking.student.name} src={booking.student.avatar} size={40} country={booking.student.country} />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold truncate" style={{ color: C.textDark }}>
+                                      {booking.student.name}
+                                    </p>
+                                    <p className="text-xs truncate" style={{ color: C.textMuted }}>
+                                      {booking.topic || 'Quran Class'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {/* Plan tag */}
+                                <Badge className="text-white border-0 shrink-0" style={{ backgroundColor: tagColor }}>
+                                  {planTag}
+                                </Badge>
+                                {/* Launch Classroom button */}
+                                {isImminent ? (
+                                  <Button
+                                    className="text-white hover:opacity-90 shrink-0"
+                                    size="sm"
+                                    style={{ backgroundColor: C.teal, borderRadius: 12 }}
+                                    onClick={() => enterClassroom(booking)}
+                                  >
+                                    <Play className="h-3.5 w-3.5 mr-1" />
+                                    Launch Classroom
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="shrink-0"
+                                    style={{ borderColor: C.islamicBlue, color: C.islamicBlue, borderRadius: 12 }}
+                                    onClick={() => enterClassroom(booking)}
+                                  >
+                                    <Video className="h-3.5 w-3.5 mr-1" />
+                                    Launch Classroom
+                                  </Button>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                {/* Right: Homework Assigner */}
-                <Card className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2" style={{ color: C.islamicBlue }}>
-                      <BookOpenCheck className="h-4 w-4" />
-                      Homework / Next Sabaq
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Student selector */}
-                    <div>
-                      <Label className="text-sm font-medium" style={{ color: C.textDark }}>Select Student</Label>
-                      <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                        <SelectTrigger className="mt-1.5 w-full" style={{ borderColor: C.border }}>
-                          <SelectValue placeholder="Choose a student..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from(uniqueStudents.entries()).map(([id, student]) => (
-                            <SelectItem key={id} value={id}>{student.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Homework note */}
-                    <div>
-                      <Label className="text-sm font-medium" style={{ color: C.textDark }}>Assign Next Sabaq / Homework</Label>
-                      <textarea
-                        className="mt-1.5 w-full rounded-lg border p-3 text-sm focus:outline-none focus:ring-2 min-h-[100px] resize-none"
-                        style={{ borderColor: C.border, focusRingColor: C.islamicBlue }}
-                        placeholder="e.g., Practice Surah Al-Mulk Ayah 1-10 with tajweed focus on Ikhfa..."
-                        value={homeworkNote}
-                        onChange={(e) => setHomeworkNote(e.target.value)}
-                      />
-                    </div>
-
-                    <Button
-                      className="w-full text-white hover:opacity-90"
-                      style={{ backgroundColor: C.islamicBlue }}
-                      onClick={sendHomework}
-                      disabled={!selectedStudentId || !homeworkNote.trim()}
-                    >
-                      <Send className="h-4 w-4 mr-1.5" />
-                      Mark Homework / Next Sabaq
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* ═══════════════════════════════════════════════════════
-                  ROW 4: Earnings Overview
-                  ═══════════════════════════════════════════════════════ */}
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={3}>
-                <Card className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 3: Quick Performance Marking & Assignments
+                    ═══════════════════════════════════════════════════════ */}
+                <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={2}>
+                  <Card className="border-0 shadow-sm" style={{ borderRadius: 20, backgroundColor: 'white' }}>
+                    <CardHeader className="pb-3 px-6 pt-5">
                       <CardTitle className="text-lg flex items-center gap-2" style={{ color: C.islamicBlue }}>
-                        <Banknote className="h-5 w-5" />
-                        Earnings & Payouts
-                      </CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="rounded-xl p-4" style={{ backgroundColor: C.lightGray }}>
-                        <p className="text-xs font-medium" style={{ color: C.textMuted }}>Available Balance</p>
-                        <p className="mt-1 text-2xl font-bold" style={{ color: C.islamicBlue }}>
-                          ${wallet?.balance?.toFixed(2) ?? '0.00'}
-                        </p>
-                      </div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: C.lightGray }}>
-                        <p className="text-xs font-medium" style={{ color: C.textMuted }}>Total Earned</p>
-                        <p className="mt-1 text-2xl font-bold" style={{ color: C.brightBlue }}>
-                          ${wallet?.totalEarned?.toFixed(2) ?? '0.00'}
-                        </p>
-                      </div>
-                      <div className="rounded-xl p-4" style={{ backgroundColor: C.lightGray }}>
-                        <p className="text-xs font-medium" style={{ color: C.textMuted }}>Escrow (Pending)</p>
-                        <p className="mt-1 text-2xl font-bold" style={{ color: C.gold }}>
-                          ${wallet?.escrowHeld?.toFixed(2) ?? '0.00'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Request Withdrawal */}
-                    <div className="mt-4 flex items-end gap-3">
-                      <div className="flex-1">
-                        <Label className="text-sm font-medium" style={{ color: C.textDark }}>Request Withdrawal ($)</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          step="0.01"
-                          className="mt-1.5"
-                          style={{ borderColor: C.border }}
-                          placeholder="Enter amount..."
-                          value={withdrawAmount}
-                          onChange={(e) => setWithdrawAmount(e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        className="text-white hover:opacity-90"
-                        style={{ backgroundColor: C.islamicBlue }}
-                        onClick={handleWithdraw}
-                      >
-                        Withdraw
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* ═══════════════════════════════════════════════════════
-                  ROW 5: Profile Badges
-                  ═══════════════════════════════════════════════════════ */}
-              {profile && (
-                <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={4}>
-                  <Card className="border-0 shadow-sm" style={{ backgroundColor: 'white' }}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2" style={{ color: C.islamicBlue }}>
-                        <Award className="h-4 w-4" />
-                        Your Credentials
+                        <BookOpenCheck className="h-5 w-5" />
+                        Quick Performance Marking & Assignments
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {profile.verified && (
-                          <Badge className="text-white border-0" style={{ backgroundColor: C.islamicBlue }}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Verified Tutor
-                          </Badge>
-                        )}
-                        {profile.hafiz && (
-                          <Badge className="text-white border-0" style={{ backgroundColor: C.brightBlue }}>
-                            <BookOpen className="h-3 w-3 mr-1" /> Hafiz
-                          </Badge>
-                        )}
-                        {profile.ijazaCertified && (
-                          <Badge className="text-white border-0" style={{ backgroundColor: C.gold }}>
-                            <Award className="h-3 w-3 mr-1" /> Ijaza Certified
-                          </Badge>
-                        )}
-                        {profile.nativeArabic && (
-                          <Badge variant="outline" style={{ borderColor: C.islamicBlue, color: C.islamicBlue }}>
-                            Native Arabic Speaker
-                          </Badge>
-                        )}
-                        {profile.specialties && profile.specialties.split(',').map((s) => (
-                          <Badge key={s} variant="outline" style={{ borderColor: C.border, color: C.textMuted }}>
-                            {s.trim()}
-                          </Badge>
-                        ))}
+                    <CardContent className="px-6 pb-6 space-y-5">
+                      {/* Student selector */}
+                      <div>
+                        <Label className="text-sm font-medium" style={{ color: C.textDark }}>Select Student</Label>
+                        <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                          <SelectTrigger className="mt-1.5 w-full" style={{ borderColor: C.border, borderRadius: 12 }}>
+                            <SelectValue placeholder="Choose a student..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from(uniqueStudents.entries()).map(([id, student]) => (
+                              <SelectItem key={id} value={id}>
+                                <div className="flex items-center gap-2">
+                                  <Avatar name={student.name} src={student.avatar} size={20} />
+                                  {student.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Performance Rating */}
+                      <div>
+                        <Label className="text-sm font-medium" style={{ color: C.textDark }}>Today&apos;s Performance Rating</Label>
+                        <div className="mt-2 flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => setSelectedRating(star)}
+                              className="transition-transform hover:scale-110"
+                            >
+                              <Star
+                                className="h-7 w-7"
+                                style={{ color: star <= selectedRating ? C.gold : C.border }}
+                                fill={star <= selectedRating ? C.gold : 'none'}
+                              />
+                            </button>
+                          ))}
+                          <span className="ml-2 text-sm font-medium" style={{ color: C.textDark }}>
+                            {selectedRating}/5
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Next Assignment / Homework */}
+                      <div>
+                        <Label className="text-sm font-medium" style={{ color: C.textDark }}>Next Assignment / Homework</Label>
+                        <Select onValueChange={setHomeworkNote}>
+                          <SelectTrigger className="mt-1.5 w-full" style={{ borderColor: C.border, borderRadius: 12 }}>
+                            <SelectValue placeholder="Select a Qaida lesson or type custom homework..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {QAIDA_HOMEWORK_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {/* Custom homework input */}
+                        <textarea
+                          className="mt-2 w-full rounded-xl border p-3 text-sm focus:outline-none focus:ring-2 min-h-[80px] resize-none"
+                          style={{ borderColor: C.border, focusRingColor: C.islamicBlue, borderRadius: 12 }}
+                          placeholder="Or type custom homework / next sabaq here..."
+                          value={homeworkNote}
+                          onChange={(e) => setHomeworkNote(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Save button */}
+                      <Button
+                        className="w-full text-white hover:opacity-90"
+                        style={{ backgroundColor: C.islamicBlue, borderRadius: 12 }}
+                        onClick={sendHomework}
+                        disabled={!selectedStudentId || !homeworkNote.trim()}
+                      >
+                        <Send className="h-4 w-4 mr-1.5" />
+                        Save & Update
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 4: Earnings Overview
+                    ═══════════════════════════════════════════════════════ */}
+                <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={3}>
+                  <Card className="border-0 shadow-sm" style={{ borderRadius: 20, backgroundColor: 'white' }}>
+                    <CardHeader className="pb-3 px-6 pt-5">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2" style={{ color: C.islamicBlue }}>
+                          <Banknote className="h-5 w-5" />
+                          Earnings & Payouts
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-6 pb-6">
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-2xl p-5" style={{ backgroundColor: C.lightGray, borderRadius: 16 }}>
+                          <p className="text-xs font-medium" style={{ color: C.textMuted }}>Available Balance</p>
+                          <p className="mt-1 text-2xl font-bold" style={{ color: C.islamicBlue }}>
+                            ${wallet?.balance?.toFixed(2) ?? '0.00'}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl p-5" style={{ backgroundColor: C.lightGray, borderRadius: 16 }}>
+                          <p className="text-xs font-medium" style={{ color: C.textMuted }}>Total Earned</p>
+                          <p className="mt-1 text-2xl font-bold" style={{ color: C.brightBlue }}>
+                            ${wallet?.totalEarned?.toFixed(2) ?? '0.00'}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl p-5" style={{ backgroundColor: C.lightGray, borderRadius: 16 }}>
+                          <p className="text-xs font-medium" style={{ color: C.textMuted }}>Escrow (Pending)</p>
+                          <p className="mt-1 text-2xl font-bold" style={{ color: C.gold }}>
+                            ${wallet?.escrowHeld?.toFixed(2) ?? '0.00'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Request Withdrawal */}
+                      <div className="mt-5 flex items-end gap-3">
+                        <div className="flex-1">
+                          <Label className="text-sm font-medium" style={{ color: C.textDark }}>Request Withdrawal ($)</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            className="mt-1.5"
+                            style={{ borderColor: C.border, borderRadius: 12 }}
+                            placeholder="Enter amount..."
+                            value={withdrawAmount}
+                            onChange={(e) => setWithdrawAmount(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          className="text-white hover:opacity-90"
+                          style={{ backgroundColor: C.islamicBlue, borderRadius: 12 }}
+                          onClick={handleWithdraw}
+                        >
+                          Withdraw
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
-              )}
-            </>
-          )}
-        </div>
-      </main>
+
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 5: Profile Badges
+                    ═══════════════════════════════════════════════════════ */}
+                {profile && (
+                  <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={4}>
+                    <Card className="border-0 shadow-sm" style={{ borderRadius: 20, backgroundColor: 'white' }}>
+                      <CardHeader className="pb-3 px-6 pt-5">
+                        <CardTitle className="text-base flex items-center gap-2" style={{ color: C.islamicBlue }}>
+                          <Award className="h-4 w-4" />
+                          Your Credentials
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-6 pb-6">
+                        <div className="flex flex-wrap gap-2">
+                          {profile.verified && (
+                            <Badge className="text-white border-0" style={{ backgroundColor: C.islamicBlue, borderRadius: 10 }}>
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Verified Tutor
+                            </Badge>
+                          )}
+                          {profile.hafiz && (
+                            <Badge className="text-white border-0" style={{ backgroundColor: C.brightBlue, borderRadius: 10 }}>
+                              <BookOpen className="h-3 w-3 mr-1" /> Hafiz
+                            </Badge>
+                          )}
+                          {profile.ijazaCertified && (
+                            <Badge className="text-white border-0" style={{ backgroundColor: C.gold, borderRadius: 10 }}>
+                              <Award className="h-3 w-3 mr-1" /> Ijaza Certified
+                            </Badge>
+                          )}
+                          {profile.nativeArabic && (
+                            <Badge variant="outline" style={{ borderColor: C.islamicBlue, color: C.islamicBlue, borderRadius: 10 }}>
+                              Native Arabic Speaker
+                            </Badge>
+                          )}
+                          {profile.specialties && profile.specialties.split(',').map((s) => (
+                            <Badge key={s} variant="outline" style={{ borderColor: C.border, color: C.textMuted, borderRadius: 10 }}>
+                              {s.trim()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

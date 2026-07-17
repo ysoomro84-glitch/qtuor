@@ -4,6 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { ...init, cache: 'no-store' })
+  // Guard: if the response is HTML (e.g. Vercel 404/500 page), don't try to parse as JSON
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    // Server returned an HTML error page instead of JSON
+    console.error(`[fetchJson] Non-JSON response from ${url}: ${contentType} (status ${res.status})`)
+    if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
+    throw new Error('Server returned non-JSON response')
+  }
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Request failed')
   return data
