@@ -313,7 +313,7 @@ export function LandingView() {
               <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-4 py-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
                 <span className="ml-2 text-xs font-medium text-muted-foreground">Qtuor Classroom — Live</span>
                 <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> REC

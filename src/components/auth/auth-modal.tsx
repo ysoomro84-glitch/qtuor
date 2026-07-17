@@ -745,8 +745,8 @@ export function AuthModal() {
               {/* Tutor submitted screen */}
               {mode === 'register' && tutorSubmitted && (
                 <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                    <Check className="h-8 w-8 text-green-600" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                    <Check className="h-8 w-8 text-blue-600" />
                   </div>
                   <h2 className="text-xl font-extrabold text-[oklch(0.34_0.13_256)]">Application Submitted!</h2>
                   <p className="max-w-sm text-sm text-muted-foreground">

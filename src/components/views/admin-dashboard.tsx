@@ -612,7 +612,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                 <>
                   <Button
                     size="sm"
-                    className="h-9 gap-1.5 bg-[#10B981] text-white hover:bg-[#059669]"
+                    className="h-9 gap-1.5 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                     disabled={updateTutor.isPending}
                     onClick={() => handle('APPROVED', 'approved')}
                   >
@@ -643,7 +643,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
               {tutor.status === 'REJECTED' && (
                 <Button
                   size="sm"
-                  className="h-9 gap-1.5 bg-[#10B981] text-white hover:bg-[#059669]"
+                  className="h-9 gap-1.5 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                   disabled={updateTutor.isPending}
                   onClick={() => handle('APPROVED', 're-approved')}
                 >
@@ -838,7 +838,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                           <>
                             <Button
                               size="sm"
-                              className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
+                              className="h-7 gap-1 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                               disabled={updateTutor.isPending}
                               onClick={() => handle(t.id, 'APPROVED', 'approved')}
                             >
@@ -869,7 +869,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                         {t.status === 'REJECTED' && (
                           <Button
                             size="sm"
-                            className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
+                            className="h-7 gap-1 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                             disabled={updateTutor.isPending}
                             onClick={() => handle(t.id, 'APPROVED', 're-approved')}
                           >
@@ -1412,7 +1412,7 @@ function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
                   <div className="flex items-center justify-end gap-1.5">
                     <Button
                       size="sm"
-                      className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
+                      className="h-7 gap-1 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                       onClick={() => toast.success(`Payout approved for ${w.tutor.name} ($${Number(w.amount).toFixed(2)})`)}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Approve Payout
@@ -1583,8 +1583,8 @@ export function AdminDashboard() {
                         <h3 className="text-sm font-bold text-foreground">Live Platform Status</h3>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#10B981] opacity-60" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#10B981]" />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0F4C81] opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#0F4C81]" />
                           </span>
                           All Systems Operational
                         </div>
@@ -1707,7 +1707,7 @@ function WhatsAppTab() {
     <div className="space-y-4">
       {/* ===== Link-Device connection card (State A / B) ===== */}
       <Card className="overflow-hidden p-0">
-        <div className="flex items-center gap-2 bg-[#25D366] p-4 text-white">
+        <div className="flex items-center gap-2 bg-[#0F4C81] p-4 text-white">
           <MessageCircle className="h-5 w-5" />
           <span className="font-bold">WhatsApp Link-Device Gateway</span>
           <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-white/80">
@@ -1724,13 +1724,13 @@ function WhatsAppTab() {
             <div className="flex flex-col items-center gap-4 py-6 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#10B981/0.15]">
                 <span className="relative flex h-3 w-3">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-60" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-[#25D366]" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0F4C81] opacity-60" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-[#0F4C81]" />
                 </span>
               </div>
               <div>
                 <div className="flex items-center justify-center gap-2 text-lg font-bold text-foreground">
-                  <span className="text-[#25D366]">●</span> Connected to WhatsApp
+                  <span className="text-[#0F4C81]">●</span> Connected to WhatsApp
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {connectedPhone ? `+${connectedPhone.replace(/\D/g, '')}` : 'Session active'} · Auto-reconnects on server restart
@@ -1766,7 +1766,7 @@ function WhatsAppTab() {
             /* ===== State A: Disconnected (Show QR Code) ===== */
             <div className="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
               <div className="mx-auto flex flex-col items-center gap-3">
-                <div className="rounded-xl border-4 border-[#25D366]/20 bg-white p-3 shadow-sm">
+                <div className="rounded-xl border-4 border-[#0F4C81]/20 bg-white p-3 shadow-sm">
                   {qrCode ? (
                     <img src={qrCode} alt="WhatsApp QR Code" className="h-52 w-52" />
                   ) : (
@@ -1782,20 +1782,20 @@ function WhatsAppTab() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5 text-[#25D366]" />
+                  <QrCode className="h-5 w-5 text-[#0F4C81]" />
                   <h3 className="text-base font-bold text-foreground">Connect your WhatsApp number</h3>
                 </div>
                 <ol className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[11px] font-bold text-[#075E54]">1</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0F4C81]/15 text-[11px] font-bold text-[#075E54]">1</span>
                     Open <strong className="text-foreground">WhatsApp</strong> on your phone
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[11px] font-bold text-[#075E54]">2</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0F4C81]/15 text-[11px] font-bold text-[#075E54]">2</span>
                     Go to <strong className="text-foreground">Settings → Linked Devices → Link a Device</strong>
                   </li>
                   <li className="flex gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[11px] font-bold text-[#075E54]">3</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0F4C81]/15 text-[11px] font-bold text-[#075E54]">3</span>
                     Scan the QR code on the left with your phone camera
                   </li>
                 </ol>
@@ -1818,7 +1818,7 @@ function WhatsAppTab() {
       <Card className="overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-border p-4">
           <span className="flex items-center gap-2 font-bold">
-            <MessageCircle className="h-4 w-4 text-[#25D366]" /> Automated Message Templates
+            <MessageCircle className="h-4 w-4 text-[#0F4C81]" /> Automated Message Templates
           </span>
           <span className="text-[10px] text-muted-foreground">Dynamic variables: {'{TutorName}, {StudentName}, {Amount}, {ClassTime}, {TutorName}, {ClassroomLink}'}</span>
         </div>
@@ -1901,7 +1901,7 @@ function WhatsAppTab() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {byType.map((t: any) => (
             <Card key={t.type} className="p-3 text-center">
-              <div className="text-xl font-extrabold text-[#25D366]">{t._count}</div>
+              <div className="text-xl font-extrabold text-[#0F4C81]">{t._count}</div>
               <div className="text-[10px] uppercase text-muted-foreground">{t.type.replace(/_/g, ' ').toLowerCase()}</div>
             </Card>
           ))}
@@ -1927,10 +1927,10 @@ function WhatsAppTab() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${n.status === 'SIMULATED' ? 'bg-amber-100 text-amber-700' : n.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${n.status === 'SIMULATED' ? 'bg-amber-100 text-amber-700' : n.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                         {n.status}
                       </span>
-                      <span className="rounded bg-[#25D366]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#075E54]">{n.type.replace(/_/g, ' ').toLowerCase()}</span>
+                      <span className="rounded bg-[#0F4C81]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#075E54]">{n.type.replace(/_/g, ' ').toLowerCase()}</span>
                       <span className="text-xs font-semibold">{n.recipientName}</span>
                       {n.recipientPhone && <span className="text-[10px] text-muted-foreground">{n.recipientPhone}</span>}
                     </div>
@@ -1978,7 +1978,7 @@ function TemplateEditor({ template, onSave, onToggle }: { template: any; onSave:
           ) : (
             <div className="flex gap-1">
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setDraft(template.template); setEditing(false) }}>Cancel</Button>
-              <Button size="sm" className="h-7 gap-1 bg-[#25D366] text-white hover:bg-[#1da851]" onClick={() => { onSave(draft); setEditing(false); toast.success('Template saved') }}>
+              <Button size="sm" className="h-7 gap-1 bg-[#0F4C81] text-white hover:bg-[#1da851]" onClick={() => { onSave(draft); setEditing(false); toast.success('Template saved') }}>
                 <CheckCircle2 className="h-3 w-3" /> Save
               </Button>
             </div>
@@ -2630,7 +2630,7 @@ function SecurityTab() {
             <Button
               onClick={handlePassword}
               disabled={updateSecurity.isPending || !currentPw || !newPw || !confirmPw}
-              className="bg-[#10B981] text-white hover:bg-[#059669]"
+              className="bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
             >
               {updateSecurity.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
               Update Password
@@ -3587,7 +3587,7 @@ function ReceivablesSection() {
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             size="sm"
-                            className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
+                            className="h-7 gap-1 bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                             disabled={updatePaymentStatus.isPending}
                             onClick={() => handleStatusChange(p.id, 'SUCCESS', p.studentName)}
                           >
@@ -3709,7 +3709,7 @@ function PayablesSection() {
                           size="sm"
                           disabled={t.wallet.balance <= 0}
                           onClick={() => setReleaseTarget({ id: t.id, name: t.name, balance: t.wallet.balance })}
-                          className="bg-[#10B981] text-white hover:bg-[#059669]"
+                          className="bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
                         >
                           <Send className="h-3.5 w-3.5" /> Release Payment
                         </Button>
@@ -3825,7 +3825,7 @@ function ReleasePaymentDialog({
           <Button
             onClick={submit}
             disabled={release.isPending || !target || amt <= 0}
-            className="bg-[#10B981] text-white hover:bg-[#059669]"
+            className="bg-[#0F4C81] text-white hover:bg-[#1E6CB5]"
           >
             {release.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Confirm Release

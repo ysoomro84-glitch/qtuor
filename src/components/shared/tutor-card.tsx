@@ -125,7 +125,7 @@ export function TutorRowCard({ tutor, onView, hidePricing = false }: { tutor: Tu
             </div>
           )}
           <Button
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full bg-[#0F4C81] text-white hover:bg-[#0E3D6B] transition-colors"
             onClick={() => (user ? onView?.(tutor.id) : openAuth('register', 'STUDENT'))}
           >
             Book Class
@@ -137,7 +137,7 @@ export function TutorRowCard({ tutor, onView, hidePricing = false }: { tutor: Tu
             <Button
               variant="outline"
               size="sm"
-              className="w-full gap-1.5 border-[#25D366]/40 text-[#075E54] hover:bg-[#25D366]/10 hover:text-[#075E54]"
+              className="w-full gap-1.5 border-[#0F4C81]/40 text-[#0F4C81] hover:bg-[#0F4C81]/10 hover:text-[#0F4C81]"
               onClick={contactAdminWhatsApp}
             >
               <MessageCircle className="h-3.5 w-3.5" /> Ask about this tutor

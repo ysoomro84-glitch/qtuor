@@ -263,7 +263,7 @@ export function LegalAgreementGate({
             <Lock className="h-3 w-3" /> Scroll to the bottom to continue
           </button>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-600">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600">
             <CheckCircle2 className="h-3 w-3" /> Agreement reviewed — you may now accept
           </span>
         )}

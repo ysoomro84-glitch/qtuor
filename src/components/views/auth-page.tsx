@@ -576,7 +576,7 @@ export function AuthPage() {
             {/* Tutor submitted */}
             {mode === 'register' && tutorSubmitted && (
               <div className="flex flex-col items-center gap-4 py-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100"><Check className="h-8 w-8 text-green-600" /></div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100"><Check className="h-8 w-8 text-blue-600" /></div>
                 <h1 className="text-xl font-extrabold" style={{ color: '#0A192F' }}>Application Submitted!</h1>
                 <p className="max-w-sm text-sm text-muted-foreground">Thank you for your application. Once our team approves your profile, you will receive a WhatsApp notification to pay your <strong>$10 USD</strong> activation fee and launch your profile.</p>
                 <Button onClick={() => { closeAuth(); setView('tutor-dashboard') }} className="text-white" style={{ background: '#0A192F' }}>Go to Dashboard</Button>

@@ -424,7 +424,7 @@ function TutorDetailDialog({ tutorId, onClose }: { tutorId: string | null; onClo
                 <StarMedallion className="h-4 w-4" /> Book FREE trial
               </Button>
               <Button
-                className="flex-1 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                className="flex-1 gap-1.5 bg-[#0F4C81] text-white hover:bg-[#0E3D6B] transition-colors"
                 onClick={() => handleBook(false)}
                 disabled={createBooking.isPending}
               >

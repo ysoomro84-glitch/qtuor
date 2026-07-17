@@ -68,12 +68,12 @@
   --muted: oklch(0.96 0.012 240);
   --muted-foreground: oklch(0.50 0.03 250);
 
-  /* Soft Teal/Mint Green (#10B981) for progress & health */
-  --accent: oklch(0.70 0.15 165);
-  --accent-foreground: oklch(0.25 0.06 165);
+  /* Deep Islamic Blue accent (#0F4C81) for progress & health */
+  --accent: oklch(0.40 0.10 240);
+  --accent-foreground: oklch(0.99 0.01 240);
 
-  /* Teal for progress */
-  --teal: oklch(0.70 0.15 165);
+  /* Teal for progress — replaced with Islamic Blue */
+  --teal: oklch(0.40 0.10 240);
 
   /* Gold for premium badges */
   --gold: oklch(0.78 0.15 80);
@@ -92,12 +92,12 @@
   /* Sidebar — Deep Islamic Blue */
   --sidebar: oklch(0.25 0.08 240);
   --sidebar-foreground: oklch(0.96 0.01 240);
-  --sidebar-primary: oklch(0.70 0.15 165);
+  --sidebar-primary: oklch(0.40 0.10 240);
   --sidebar-primary-foreground: oklch(0.99 0.01 240);
   --sidebar-accent: oklch(0.32 0.08 240);
   --sidebar-accent-foreground: oklch(0.96 0.01 240);
   --sidebar-border: oklch(0.35 0.06 240);
-  --sidebar-ring: oklch(0.70 0.15 165);
+  --sidebar-ring: oklch(0.40 0.10 240);
 }
 
 .dark {
@@ -343,7 +343,7 @@
 .mini-trigger-action {
   width: 50px;
   height: 50px;
-  background-color: #25D366;
+  background-color: #0F4C81;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -351,7 +351,7 @@
   justify-content: center;
   align-items: center;
   position: relative;
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+  box-shadow: 0 4px 12px rgba(15, 76, 129, 0.35);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   animation: dynamicFloat 3s ease-in-out infinite;
 }
@@ -365,7 +365,7 @@
 
 .mini-trigger-action:hover {
   transform: scale(1.1) translateY(-3px);
-  background-color: #20BA56;
+  background-color: #0E3D6B;
   animation-play-state: paused;
 }
 
@@ -376,7 +376,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  border: 1.5px solid #25D366;
+  border: 1.5px solid #0F4C81;
   border-radius: 50%;
   pointer-events: none;
 }
@@ -443,7 +443,7 @@
 .online-pulse {
   width: 8px;
   height: 8px;
-  background-color: #10B981;
+  background-color: #0F4C81;
   border-radius: 50%;
   position: absolute;
   bottom: 0;
@@ -465,7 +465,7 @@
 
 /* CONNECT EXECUTION ACTION BUTTON */
 .mini-connect-btn {
-  background-color: #25D366;
+  background-color: #0F4C81;
   color: #ffffff;
   text-decoration: none;
   text-align: center;
@@ -478,7 +478,7 @@
 }
 
 .mini-connect-btn:hover {
-  background-color: #1EBE57;
+  background-color: #0E3D6B;
 }
 
 /* ============================================================

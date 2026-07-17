@@ -1423,3 +1423,29 @@ Stage Summary:
 - Tutor portal has Earnings & Wallet + Agreement & Settings as dedicated sidebar sections.
 - Mobile-responsive with hamburger toggle.
 - Consistent with the admin sidebar layout (same DashboardShell component pattern).
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix "This page couldn't load" error on student dashboard after login
+
+Work Log:
+- Investigated the error using agent-browser to reproduce it on the live qtuor.com
+- Found that the error only occurred after login when navigating to student-dashboard view
+- Added DashboardErrorBoundary class component to catch and display actual error
+- Discovered React Error #310 (too many re-renders) was the root cause
+- Root cause: useEffect syncing detectedPlanType to Zustand store created infinite loop
+  - setPlanType() → store update → re-render → useEffect runs again → setPlanType() → loop
+- Fixed by removing the auto-sync useEffect entirely; planType is now computed from both store and API data
+- Also fixed: Math.random() in AudioSandbox causing hydration mismatch (used useMemo instead)
+- Also fixed: LiveClassroomHero countdown showing wrong content during SSR (added mounted state)
+- Also fixed: Unsafe date-fns format/parseISO calls (wrapped in try/catch)
+- Added standalone output to next.config.ts for better production builds
+- Committed and pushed to GitHub (2 commits: 64da9fa, 930b21f)
+- Verified fix on live site — student dashboard loads correctly with all features
+
+Stage Summary:
+- Root cause: Infinite re-render loop from useEffect syncing planType to Zustand store
+- Fix: Removed useEffect auto-sync, compute planType directly without state mutation during render
+- Student dashboard now loads successfully after login on Vercel deployment
+- Error boundary added to prevent future "This page couldn't load" without useful error info

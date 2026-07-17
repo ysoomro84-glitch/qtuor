@@ -279,7 +279,7 @@ export function ClassroomView() {
           <div className="hidden text-sm text-white/80 sm:block">{booking.topic || 'Quran Class'} · {format(new Date(booking.scheduledAt), 'EEE d MMM · h:mm a')}</div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs', socket.connected ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300')}>
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs', socket.connected ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300')}>
             {socket.connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />} {socket.connected ? 'Connected' : 'Connecting'}
           </span>
           <span className="hidden items-center gap-1 text-xs text-white/60 sm:inline-flex"><Users className="h-3 w-3" /> {socket.members.length}</span>
@@ -509,7 +509,7 @@ function VideoTile({ label, name, avatarName, country, isLive, videoRef, accentC
         <div className="text-xs font-semibold text-white">{label}</div>
         <div className="truncate text-[10px] text-white/50 max-w-[100px]">{name}</div>
       </div>
-      <span className={cn('absolute right-2 top-2 h-2 w-2 rounded-full', isLive ? 'bg-green-400' : 'bg-white/30')} />
+      <span className={cn('absolute right-2 top-2 h-2 w-2 rounded-full', isLive ? 'bg-blue-400' : 'bg-white/30')} />
     </div>
   )
 }
