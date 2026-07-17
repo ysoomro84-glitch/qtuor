@@ -1,9 +1,9 @@
 /**
  * Seed script: Creates 2 demo student accounts with active subscriptions
- * for testing the virtual classroom.
+ * for testing the virtual classroom with BOTH Norani Qaida AND Quran.
  *
- * Demo 1: Noorani Qaida student
- * Demo 2: Quran Recitation (Tajweed) student
+ * Both demo accounts get a "General" category plan that unlocks
+ * both Qaida and Quran in the virtual classroom.
  *
  * Also creates a demo tutor and bookings so the classroom can be launched.
  *
@@ -20,10 +20,48 @@ function hashPassword(pw: string): string {
 }
 
 async function main() {
-  console.log('🌱 Seeding demo accounts...\n')
+  console.log('🌱 Seeding demo accounts (Norani Qaida + Quran)...\n')
+
+  // ── 0. Clean up old demo data ──────────────────────────────────
+  console.log('🧹 Cleaning up old demo data...')
+
+  const demoStudent1 = await db.user.findUnique({ where: { email: 'noorani.demo@qtuor.com' } })
+  const demoStudent2 = await db.user.findUnique({ where: { email: 'quran.demo@qtuor.com' } })
+
+  for (const student of [demoStudent1, demoStudent2]) {
+    if (student) {
+      // Delete in order due to foreign keys
+      await db.lessonProgress.deleteMany({ where: { studentId: student.id } })
+      await db.lessonBookmark.deleteMany({ where: { studentId: student.id } })
+      await db.booking.deleteMany({ where: { studentId: student.id } })
+      const subs = await db.subscription.findMany({ where: { userId: student.id } })
+      for (const sub of subs) {
+        await db.walletSplit.deleteMany({ where: { subscriptionId: sub.id } })
+        await db.subscription.delete({ where: { id: sub.id } })
+      }
+    }
+  }
+  console.log('   ✅ Old demo data cleaned\n')
 
   // ── 1. Create Plans ──────────────────────────────────────────────
   console.log('📋 Creating plans...')
+
+  // Demo plan that gives access to BOTH Noorani Qaida AND Quran
+  const planDemo = await db.plan.upsert({
+    where: { id: 'plan-demo-combo' },
+    update: {},
+    create: {
+      id: 'plan-demo-combo',
+      name: 'Demo Full Access',
+      category: 'General', // "General" unlocks both qaida + quran in classroom
+      classesPerMonth: 12,
+      monthlyPrice: 49,
+      description: 'Demo account — full access to Noorani Qaida & Quran with virtual classroom.',
+      features: '3 classes / week (30 min each)\nNoorani Qaida board\nQuran Recitation with Tajweed\nCertified tutor\nAuto-bookmark & resume\nVirtual classroom access',
+      popular: false,
+      active: true,
+    },
+  })
 
   const planNQ = await db.plan.upsert({
     where: { id: 'plan-nq-3' },
@@ -78,7 +116,7 @@ async function main() {
       create: { ...p, active: true, features: p.features },
     })
   }
-  console.log(`   ✅ ${2 + allPlans.length} plans ready\n`)
+  console.log(`   ✅ ${3 + allPlans.length} plans ready\n`)
 
   // ── 2. Create Demo Tutor ─────────────────────────────────────────
   console.log('👨‍🏫 Creating demo tutor...')
@@ -141,12 +179,12 @@ async function main() {
   }
   console.log('   ✅ Qari Ahmad Raza — tutor.demo@qtuor.com / tutor123\n')
 
-  // ── 3. Demo Account 1: Noorani Qaida Student ─────────────────────
-  console.log('🎓 Creating Demo Account 1: Noorani Qaida...')
+  // ── 3. Demo Account 1: Noorani Qaida + Quran ────────────────────
+  console.log('🎓 Creating Demo Account 1: Noorani Qaida + Quran...')
 
   const student1 = await db.user.upsert({
     where: { email: 'noorani.demo@qtuor.com' },
-    update: {},
+    update: { name: 'Fatima Noor', password: hashPassword('demo1234'), role: 'STUDENT', country: 'Pakistan', gender: 'female', age: 12, guardianName: 'Ali Noor (Father)', preferredLanguage: 'Urdu', learningGoals: 'Complete Noorani Qaida and start reading the Quran fluently' },
     create: {
       email: 'noorani.demo@qtuor.com',
       name: 'Fatima Noor',
@@ -161,20 +199,20 @@ async function main() {
     },
   })
 
-  // Active subscription for Noorani Qaida plan
+  // Active subscription with General plan → unlocks BOTH qaida + quran
   const sub1 = await db.subscription.create({
     data: {
       userId: student1.id,
-      planId: planNQ.id,
+      planId: planDemo.id,
       status: 'ACTIVE',
       startedAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   })
 
-  // Create a booking so the classroom can be launched — scheduled for RIGHT NOW
+  // Booking 1: Noorani Qaida class — scheduled NOW
   const now1 = new Date()
-  now1.setMinutes(now1.getMinutes() + 2) // 2 minutes from now so it's "upcoming"
+  now1.setMinutes(now1.getMinutes() + 2) // 2 minutes from now
 
   const booking1 = await db.booking.create({
     data: {
@@ -184,13 +222,30 @@ async function main() {
       durationMins: 30,
       status: 'SCHEDULED',
       topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)',
+      meetingId: `demo-nq-${student1.id.slice(-6)}`,
     },
   })
 
-  // Create a lesson bookmark so the classroom resumes correctly
+  // Booking 2: Quran class — scheduled 1 hour from now
+  const later1 = new Date()
+  later1.setMinutes(later1.getMinutes() + 62)
+
+  const booking1b = await db.booking.create({
+    data: {
+      studentId: student1.id,
+      tutorId: tutorUser.id,
+      scheduledAt: later1,
+      durationMins: 30,
+      status: 'SCHEDULED',
+      topic: 'Quran Recitation — Surah Al-Fatihah Tajweed Practice',
+      meetingId: `demo-qr-${student1.id.slice(-6)}`,
+    },
+  })
+
+  // Lesson bookmark for Qaida
   await db.lessonBookmark.upsert({
     where: { studentId_tutorId: { studentId: student1.id, tutorId: tutorUser.id } },
-    update: {},
+    update: { bookType: 'qaida', pageId: 1005, pageLabel: 'Lesson 5: Harakat (Fatha, Kasra, Damma)', lastLineIndex: 3, status: 'IN_PROGRESS' },
     create: {
       studentId: student1.id,
       tutorId: tutorUser.id,
@@ -202,7 +257,7 @@ async function main() {
     },
   })
 
-  // Lesson progress
+  // Lesson progress for Noorani Qaida
   await db.lessonProgress.create({
     data: {
       studentId: student1.id,
@@ -214,16 +269,29 @@ async function main() {
     },
   })
 
-  console.log('   ✅ noorani.demo@qtuor.com / demo1234')
-  console.log(`   📖 Plan: ${planNQ.name} (${planNQ.category}) — $${planNQ.monthlyPrice}/mo`)
-  console.log(`   📅 Booking: RIGHT NOW — Noorani Qaida Lesson 5\n`)
+  // Lesson progress for Quran
+  await db.lessonProgress.create({
+    data: {
+      studentId: student1.id,
+      tutorId: tutorUser.id,
+      subject: 'Quran Recitation With Tajweed',
+      lessonTitle: 'Surah Al-Fatihah',
+      completed: false,
+      progressPct: 15,
+    },
+  })
 
-  // ── 4. Demo Account 2: Quran Recitation Student ──────────────────
-  console.log('🎓 Creating Demo Account 2: Quran (Tajweed)...')
+  console.log('   ✅ noorani.demo@qtuor.com / demo1234')
+  console.log(`   📖 Plan: ${planDemo.name} (General — Qaida + Quran) — $${planDemo.monthlyPrice}/mo`)
+  console.log(`   📅 Booking 1: Noorani Qaida Lesson 5 (NOW)`)
+  console.log(`   📅 Booking 2: Quran Al-Fatihah Tajweed (1hr from now)\n`)
+
+  // ── 4. Demo Account 2: Quran + Noorani Qaida ────────────────────
+  console.log('🎓 Creating Demo Account 2: Quran + Noorani Qaida...')
 
   const student2 = await db.user.upsert({
     where: { email: 'quran.demo@qtuor.com' },
-    update: {},
+    update: { name: 'Ahmed Khan', password: hashPassword('demo1234'), role: 'STUDENT', country: 'United Kingdom', gender: 'male', age: 28, preferredLanguage: 'English', learningGoals: 'Improve Tajweed and learn Noorani Qaida basics' },
     create: {
       email: 'quran.demo@qtuor.com',
       name: 'Ahmed Khan',
@@ -233,24 +301,24 @@ async function main() {
       gender: 'male',
       age: 28,
       preferredLanguage: 'English',
-      learningGoals: 'Improve Tajweed and work toward Ijaza certification in Hafs',
+      learningGoals: 'Improve Tajweed and learn Noorani Qaida basics',
     },
   })
 
-  // Active subscription for Quran Tajweed plan
+  // Active subscription with General plan → unlocks BOTH qaida + quran
   const sub2 = await db.subscription.create({
     data: {
       userId: student2.id,
-      planId: planTW.id,
+      planId: planDemo.id,
       status: 'ACTIVE',
       startedAt: new Date(),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   })
 
-  // Create a booking for Quran class — scheduled for RIGHT NOW
+  // Booking 1: Quran class — scheduled NOW
   const now2 = new Date()
-  now2.setMinutes(now2.getMinutes() + 2) // 2 minutes from now
+  now2.setMinutes(now2.getMinutes() + 2)
 
   const booking2 = await db.booking.create({
     data: {
@@ -260,13 +328,30 @@ async function main() {
       durationMins: 30,
       status: 'SCHEDULED',
       topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus',
+      meetingId: `demo-qr2-${student2.id.slice(-6)}`,
     },
   })
 
-  // Create a lesson bookmark for Quran
+  // Booking 2: Noorani Qaida class — scheduled 1 hour from now
+  const later2 = new Date()
+  later2.setMinutes(later2.getMinutes() + 62)
+
+  const booking2b = await db.booking.create({
+    data: {
+      studentId: student2.id,
+      tutorId: tutorUser.id,
+      scheduledAt: later2,
+      durationMins: 30,
+      status: 'SCHEDULED',
+      topic: 'Noorani Qaida — Lesson 8: Madd (Stretching Rules)',
+      meetingId: `demo-nq2-${student2.id.slice(-6)}`,
+    },
+  })
+
+  // Lesson bookmark for Quran
   await db.lessonBookmark.upsert({
     where: { studentId_tutorId: { studentId: student2.id, tutorId: tutorUser.id } },
-    update: {},
+    update: { bookType: 'quran', pageId: 10002, pageLabel: 'Surah Al-Baqarah — Ayah 142-152', lastLineIndex: 7, status: 'IN_PROGRESS' },
     create: {
       studentId: student2.id,
       tutorId: tutorUser.id,
@@ -278,7 +363,7 @@ async function main() {
     },
   })
 
-  // Lesson progress
+  // Lesson progress for Quran
   await db.lessonProgress.create({
     data: {
       studentId: student2.id,
@@ -290,30 +375,46 @@ async function main() {
     },
   })
 
+  // Lesson progress for Noorani Qaida
+  await db.lessonProgress.create({
+    data: {
+      studentId: student2.id,
+      tutorId: tutorUser.id,
+      subject: 'Noorani Qaida',
+      lessonTitle: 'Lesson 8: Madd Rules',
+      completed: false,
+      progressPct: 55,
+    },
+  })
+
   console.log('   ✅ quran.demo@qtuor.com / demo1234')
-  console.log(`   📖 Plan: ${planTW.name} (${planTW.category}) — $${planTW.monthlyPrice}/mo`)
-  console.log(`   📅 Booking: RIGHT NOW — Surah Al-Baqarah Tajweed\n`)
+  console.log(`   📖 Plan: ${planDemo.name} (General — Qaida + Quran) — $${planDemo.monthlyPrice}/mo`)
+  console.log(`   📅 Booking 1: Quran Al-Baqarah Tajweed (NOW)`)
+  console.log(`   📅 Booking 2: Noorani Qaida Lesson 8 (1hr from now)\n`)
 
   // ── 5. Summary ───────────────────────────────────────────────────
   console.log('═══════════════════════════════════════════════════')
   console.log('✅ Demo accounts created successfully!')
   console.log('═══════════════════════════════════════════════════\n')
   console.log('🔐 LOGIN CREDENTIALS:\n')
-  console.log('┌─────────────────────────────────────────────────┐')
-  console.log('│ Account 1: Noorani Qaida                        │')
-  console.log('│   Email:    noorani.demo@qtuor.com               │')
-  console.log('│   Password: demo1234                             │')
-  console.log('│   Plan:     Qaida Learner (3x/week)              │')
-  console.log('├─────────────────────────────────────────────────┤')
-  console.log('│ Account 2: Quran Recitation                      │')
-  console.log('│   Email:    quran.demo@qtuor.com                 │')
-  console.log('│   Password: demo1234                             │')
-  console.log('│   Plan:     Tajweed Builder (3x/week)            │')
-  console.log('├─────────────────────────────────────────────────┤')
-  console.log('│ Tutor Account (for classroom testing)            │')
-  console.log('│   Email:    tutor.demo@qtuor.com                 │')
-  console.log('│   Password: tutor123                             │')
-  console.log('└─────────────────────────────────────────────────┘\n')
+  console.log('┌──────────────────────────────────────────────────────┐')
+  console.log('│ Account 1: Noorani Qaida + Quran                     │')
+  console.log('│   Email:    noorani.demo@qtuor.com                    │')
+  console.log('│   Password: demo1234                                  │')
+  console.log('│   Plan:     Demo Full Access (Qaida + Quran)          │')
+  console.log('│   Classroom: Noorani Qaida Lesson 5 + Quran           │')
+  console.log('├──────────────────────────────────────────────────────┤')
+  console.log('│ Account 2: Quran + Noorani Qaida                     │')
+  console.log('│   Email:    quran.demo@qtuor.com                      │')
+  console.log('│   Password: demo1234                                  │')
+  console.log('│   Plan:     Demo Full Access (Qaida + Quran)          │')
+  console.log('│   Classroom: Quran Al-Baqarah + Noorani Qaida         │')
+  console.log('├──────────────────────────────────────────────────────┤')
+  console.log('│ Tutor Account (for classroom testing)                 │')
+  console.log('│   Email:    tutor.demo@qtuor.com                      │')
+  console.log('│   Password: tutor123                                  │')
+  console.log('└──────────────────────────────────────────────────────┘\n')
+  console.log('💡 Both accounts have access to BOTH Noorani Qaida AND Quran in the virtual classroom.\n')
 }
 
 main()
