@@ -115,6 +115,25 @@ import {
 import { useNotifications, useWhatsAppSettings, useUpdateWhatsAppSettings, useAdminBlogPosts, useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost, useBaileysStatus, useBaileysQR, useDisconnectBaileys, useWhatsAppTemplates, useUpdateWhatsAppTemplate } from '@/lib/queries'
 
 /* ============================================================
+ * Brand Color Constants
+ * ============================================================ */
+const C = {
+  islamicBlue: '#0F4C81',
+  deepNavy: '#0A2F4F',
+  brightBlue: '#1E6CB5',
+  teal: '#10B981',
+  tealDark: '#059669',
+  tealLight: '#D1FAE5',
+  gold: '#D4AF37',
+  goldLight: '#FEF3C7',
+  offWhite: '#F8FAFC',
+  lightGray: '#F1F5F9',
+  border: '#E2E8F0',
+  textDark: '#0F172A',
+  textMuted: '#64748B',
+}
+
+/* ============================================================
  * Types — mirror shape returned by /api/dashboard/admin
  * ============================================================ */
 type TutorStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -202,7 +221,7 @@ function AdminAuthGuard() {
         <Card className="relative overflow-hidden p-8 text-center">
           <IslamicPatternBand opacity={0.06} />
           <div className="relative flex flex-col items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0F4C81/0.12] text-[#0F4C81]">
               <LockKeyhole className="h-7 w-7" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Admin sign-in required</h2>
@@ -230,7 +249,7 @@ function AdminAuthGuard() {
         <Card className="relative overflow-hidden p-8 text-center">
           <IslamicPatternBand opacity={0.06} />
           <div className="relative flex flex-col items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37/0.18] text-[#D4AF37]">
               <ShieldAlert className="h-7 w-7" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">Admin access required</h2>
@@ -238,8 +257,8 @@ function AdminAuthGuard() {
               You are signed in as <span className="font-semibold text-foreground">{user.email}</span> ({user.role.toLowerCase()}).
               The Control Center is restricted to administrators.
             </p>
-            <div className="w-full rounded-lg border border-dashed border-[oklch(0.62_0.14_230/0.4)] bg-[oklch(0.62_0.14_230/0.05)] p-3 text-xs text-muted-foreground">
-              <div className="mb-1 flex items-center gap-1.5 font-semibold text-[oklch(0.40_0.11_258)]">
+            <div className="w-full rounded-lg border border-dashed border-[#0F4C81/0.4] bg-[#0F4C81/0.05] p-3 text-xs text-muted-foreground">
+              <div className="mb-1 flex items-center gap-1.5 font-semibold text-[#0F4C81]">
                 <Sparkles className="h-3.5 w-3.5" /> Demo admin credentials
               </div>
               <div className="font-mono">
@@ -270,28 +289,46 @@ function StatCard({
   sub,
   icon,
   accent = 'primary',
+  trend,
 }: {
   label: string
   value: React.ReactNode
   sub?: string
   icon: React.ReactNode
   accent?: 'primary' | 'amber' | 'gold' | 'green'
+  trend?: { value: string; direction: 'up' | 'down' | 'neutral' }
 }) {
   const accents: Record<string, string> = {
-    primary: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]',
-    amber: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)]',
-    gold: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]',
-    green: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)]',
+    primary: 'bg-[#0F4C81/0.12] text-[#0F4C81]',
+    amber: 'bg-[#D97706/0.18] text-[#B45309]',
+    gold: 'bg-[#D4AF37/0.18] text-[#D4AF37]',
+    green: 'bg-[#10B981/0.18] text-[#059669]',
+  }
+  const topBorders: Record<string, string> = {
+    primary: '#0F4C81',
+    amber: '#D97706',
+    gold: '#D4AF37',
+    green: '#10B981',
   }
   return (
-    <Card className="relative overflow-hidden p-4 sm:p-5">
+    <Card className="relative overflow-hidden border-[#E2E8F0] bg-white p-4 sm:p-5" style={{ borderTop: `3px solid ${topBorders[accent]}` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
           <p className="mt-1 text-2xl font-extrabold text-foreground sm:text-[1.6rem]">{value}</p>
-          {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+          <div className="mt-0.5 flex items-center gap-2">
+            {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+            {trend && (
+              <span className={cn(
+                'inline-flex items-center gap-0.5 text-[10px] font-semibold',
+                trend.direction === 'up' ? 'text-[#059669]' : trend.direction === 'down' ? 'text-[#DC2626]' : 'text-muted-foreground'
+              )}>
+                {trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'} {trend.value}
+              </span>
+            )}
+          </div>
         </div>
         <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accents[accent])}>
           {icon}
@@ -306,9 +343,9 @@ function StatCard({
  * ============================================================ */
 function StatusBadge({ status }: { status: TutorStatus }) {
   const map: Record<TutorStatus, string> = {
-    PENDING: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)] border-[oklch(0.75_0.13_70/0.35)]',
-    APPROVED: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]',
-    REJECTED: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)] border-[oklch(0.58_0.24_27/0.3)]',
+    PENDING: 'bg-[#D97706/0.18] text-[#B45309] border-[#D97706/0.35]',
+    APPROVED: 'bg-[#10B981/0.18] text-[#059669] border-[#10B981/0.35]',
+    REJECTED: 'bg-[#DC2626/0.12] text-[#DC2626] border-[#DC2626/0.3]',
   }
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold', map[status])}>
@@ -358,9 +395,9 @@ function DocThumb({ url, label }: { url: string; label?: string }) {
         </div>
       ) : (
         <div className="flex h-32 w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 text-center shadow-sm transition group-hover:border-primary/50 group-hover:shadow">
-          <FileText className="h-9 w-9 text-[oklch(0.50_0.20_27)]" />
+          <FileText className="h-9 w-9 text-[#DC2626]" />
           <span className="line-clamp-2 max-w-full text-[11px] font-medium text-foreground">{name}</span>
-          <span className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.58_0.24_27/0.1)] px-1.5 py-0.5 text-[10px] font-semibold text-[oklch(0.50_0.20_27)]">
+          <span className="inline-flex items-center gap-1 rounded-md bg-[#DC2626/0.1] px-1.5 py-0.5 text-[10px] font-semibold text-[#DC2626]">
             <ExternalLink className="h-3 w-3" /> PDF
           </span>
         </div>
@@ -436,7 +473,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate text-lg font-extrabold text-foreground">{tutor.name}</h2>
                   {tutor.verified && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.62_0.14_230/0.12)] px-2 py-0.5 text-[11px] font-semibold text-[oklch(0.40_0.11_258)]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0F4C81/0.12] px-2 py-0.5 text-[11px] font-semibold text-[#0F4C81]">
                       <ShieldCheck className="h-3 w-3" /> Verified
                     </span>
                   )}
@@ -485,7 +522,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                     <span className="text-xs text-muted-foreground/60">—</span>
                   ) : (
                     (tutor.profile?.specialties || []).map((s) => (
-                      <Badge key={s} variant="outline" className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]">
+                      <Badge key={s} variant="outline" className="border-[#0F4C81/0.3] bg-[#0F4C81/0.06] text-[#0F4C81]">
                         <BookOpen className="mr-1 h-3 w-3" /> {s}
                       </Badge>
                     ))
@@ -574,7 +611,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                 <>
                   <Button
                     size="sm"
-                    className="h-9 gap-1.5 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                    className="h-9 gap-1.5 bg-[#10B981] text-white hover:bg-[#059669]"
                     disabled={updateTutor.isPending}
                     onClick={() => handle('APPROVED', 'approved')}
                   >
@@ -583,7 +620,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 gap-1.5 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                    className="h-9 gap-1.5 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                     disabled={updateTutor.isPending}
                     onClick={() => handle('REJECTED', 'rejected')}
                   >
@@ -595,7 +632,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-9 gap-1.5 border-[oklch(0.75_0.13_70/0.4)] text-[oklch(0.50_0.12_70)] hover:bg-[oklch(0.75_0.13_70/0.08)]"
+                  className="h-9 gap-1.5 border-[#D97706/0.4] text-[#B45309] hover:bg-[#D97706/0.08]"
                   disabled={updateTutor.isPending}
                   onClick={() => handle('REJECTED', 'suspended')}
                 >
@@ -605,7 +642,7 @@ function TutorProfileModal({ tutor, onClose }: { tutor: AdminTutor | null; onClo
               {tutor.status === 'REJECTED' && (
                 <Button
                   size="sm"
-                  className="h-9 gap-1.5 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                  className="h-9 gap-1.5 bg-[#10B981] text-white hover:bg-[#059669]"
                   disabled={updateTutor.isPending}
                   onClick={() => handle('APPROVED', 're-approved')}
                 >
@@ -637,7 +674,7 @@ function QualChip({
       className={cn(
         'flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold',
         active
-          ? 'border-[oklch(0.62_0.14_230/0.35)] bg-[oklch(0.62_0.14_230/0.08)] text-[oklch(0.40_0.11_258)]'
+          ? 'border-[#0F4C81/0.35] bg-[#0F4C81/0.08] text-[#0F4C81]'
           : 'border-border bg-muted/20 text-muted-foreground'
       )}
     >
@@ -748,7 +785,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                               {t.name}
                             </button>
                             {t.verified && (
-                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[oklch(0.62_0.14_230)]" />
+                              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#0F4C81]" />
                             )}
                           </div>
                           <div className="truncate text-xs text-muted-foreground">{t.email}</div>
@@ -764,7 +801,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                           <Badge
                             key={s}
                             variant="outline"
-                            className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]"
+                            className="border-[#0F4C81/0.3] bg-[#0F4C81/0.06] text-[#0F4C81]"
                           >
                             {s}
                           </Badge>
@@ -800,7 +837,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                           <>
                             <Button
                               size="sm"
-                              className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                              className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
                               disabled={updateTutor.isPending}
                               onClick={() => handle(t.id, 'APPROVED', 'approved')}
                             >
@@ -809,7 +846,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                              className="h-7 gap-1 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                               disabled={updateTutor.isPending}
                               onClick={() => handle(t.id, 'REJECTED', 'rejected')}
                             >
@@ -821,7 +858,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 gap-1 border-[oklch(0.75_0.13_70/0.4)] text-[oklch(0.50_0.12_70)] hover:bg-[oklch(0.75_0.13_70/0.08)]"
+                            className="h-7 gap-1 border-[#D97706/0.4] text-[#B45309] hover:bg-[#D97706/0.08]"
                             disabled={updateTutor.isPending}
                             onClick={() => handle(t.id, 'REJECTED', 'suspended')}
                           >
@@ -831,7 +868,7 @@ function TutorVettingTab({ tutors }: { tutors: AdminTutor[] }) {
                         {t.status === 'REJECTED' && (
                           <Button
                             size="sm"
-                            className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                            className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
                             disabled={updateTutor.isPending}
                             onClick={() => handle(t.id, 'APPROVED', 're-approved')}
                           >
@@ -916,7 +953,7 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
           <DialogContent className="sm:max-w-[520px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <StarMedallion className="h-5 w-5 text-[oklch(0.62_0.14_230)]" />
+                <StarMedallion className="h-5 w-5 text-[#0F4C81]" />
                 Create Subscription Plan
               </DialogTitle>
               <DialogDescription>Define a new plan for students to subscribe to.</DialogDescription>
@@ -992,7 +1029,7 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
                     onCheckedChange={(v) => setForm((s) => ({ ...s, popular: !!v }))}
                   />
                   <Label htmlFor="plan-popular" className="cursor-pointer text-sm font-medium">
-                    Mark as <span className="text-[oklch(0.55_0.13_75)]">Most Popular</span> (highlighted on Plans page)
+                    Mark as <span className="text-[#D4AF37]">Most Popular</span> (highlighted on Plans page)
                   </Label>
                 </div>
               </div>
@@ -1020,16 +1057,16 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
               key={p.id}
               className={cn(
                 'relative flex flex-col overflow-hidden p-5 transition-all hover:shadow-lg hover:shadow-primary/5',
-                p.popular && 'ring-2 ring-[oklch(0.78_0.15_85/0.6)]'
+                p.popular && 'ring-2 ring-[#D4AF37/0.6]'
               )}
             >
               {p.popular && (
-                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[oklch(0.78_0.15_85)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow">
+                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#D4AF37] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow">
                   <Star className="h-3 w-3" /> Popular
                 </span>
               )}
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0F4C81/0.12] text-[#0F4C81]">
                   <StarMedallion className="h-5 w-5" />
                 </div>
                 <div>
@@ -1050,7 +1087,7 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
               <ul className="mb-4 flex-1 space-y-1.5">
                 {p.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.55_0.13_150)]" />
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#10B981]" />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -1068,7 +1105,7 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
                     }
                     aria-label="Plan active status"
                   />
-                  <span className={cn('text-xs font-medium', p.active ? 'text-[oklch(0.45_0.12_150)]' : 'text-muted-foreground')}>
+                  <span className={cn('text-xs font-medium', p.active ? 'text-[#059669]' : 'text-muted-foreground')}>
                     {p.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -1076,7 +1113,7 @@ function PlansTab({ plans }: { plans: AdminPlan[] }) {
                   variant="outline"
                   className={cn(
                     p.active
-                      ? 'border-[oklch(0.70_0.12_150/0.3)] bg-[oklch(0.70_0.12_150/0.08)] text-[oklch(0.45_0.12_150)]'
+                      ? 'border-[#10B981/0.3] bg-[#10B981/0.08] text-[#059669]'
                       : 'border-border text-muted-foreground'
                   )}
                 >
@@ -1105,7 +1142,7 @@ function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
   if (withdrawals.length === 0) {
     return (
       <Card className="p-12 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0F4C81/0.12] text-[#0F4C81]">
           <Banknote className="h-6 w-6" />
         </div>
         <h4 className="text-lg font-bold text-foreground">No pending payouts</h4>
@@ -1174,7 +1211,7 @@ function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1 rounded-md border border-[oklch(0.75_0.13_70/0.35)] bg-[oklch(0.75_0.13_70/0.18)] px-2 py-0.5 text-xs font-semibold text-[oklch(0.50_0.12_70)]">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-[#D97706/0.35] bg-[#D97706/0.18] px-2 py-0.5 text-xs font-semibold text-[#B45309]">
                     <Clock3 className="h-3 w-3" /> Pending
                   </span>
                 </TableCell>
@@ -1182,7 +1219,7 @@ function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
                   <div className="flex items-center justify-end gap-1.5">
                     <Button
                       size="sm"
-                      className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                      className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
                       onClick={() => toast.success(`Payout approved for ${w.tutor.name} ($${Number(w.amount).toFixed(2)})`)}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Approve Payout
@@ -1190,7 +1227,7 @@ function WithdrawalsTab({ withdrawals }: { withdrawals: AdminWithdrawal[] }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                      className="h-7 gap-1 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                       onClick={() => toast.error(`Payout rejected for ${w.tutor.name}`)}
                     >
                       <XCircle className="h-3.5 w-3.5" /> Reject
@@ -1252,7 +1289,7 @@ export function AdminDashboard() {
           'fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col transition-transform duration-300 lg:static lg:translate-x-0',
           mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
-        style={{ background: '#0A192F' }}
+        style={{ background: C.deepNavy }}
       >
         {/* Sidebar header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-4">
@@ -1276,14 +1313,14 @@ export function AdminDashboard() {
                 className={cn(
                   'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-[#8EAEC6]/20 text-white ring-1 ring-[#8EAEC6]/30'
+                    ? 'bg-[#0F4C81] text-white shadow-sm'
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 )}
               >
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[#8EAEC6]' : 'text-white/50')} />
+                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-[#10B981]' : 'text-white/50')} />
                 <span className="flex-1 text-left">{item.label}</span>
                 {badge > 0 && (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#D4AF37] px-1 text-[10px] font-bold text-[#0A192F]">
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#D4AF37] px-1 text-[10px] font-bold text-[#0A2F4F]">
                     {badge}
                   </span>
                 )}
@@ -1323,7 +1360,7 @@ export function AdminDashboard() {
             <button className="relative text-muted-foreground transition hover:text-foreground" title="Notifications" aria-label="Notifications">
               <Bell className="h-5 w-5" />
               {(data?.pendingWithdrawals.length ?? 0) > 0 && (
-                <span className="absolute -right-1 -top-1 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#D4AF37] text-[9px] font-bold text-[#0A192F]">
+                <span className="absolute -right-1 -top-1 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#D4AF37] text-[9px] font-bold text-[#0A2F4F]">
                   {data?.pendingWithdrawals.length}
                 </span>
               )}
@@ -1341,6 +1378,43 @@ export function AdminDashboard() {
             {/* ===== Dashboard Overview ===== */}
             {activeView === 'overview' && (
               <>
+                {/* Live Platform Status */}
+                <Card className="overflow-hidden border-[#E2E8F0] bg-white" style={{ borderTop: '3px solid #10B981' }}>
+                  <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#10B981/0.18] text-[#059669]">
+                        <CalendarCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground">Live Platform Status</h3>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#10B981] opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#10B981]" />
+                          </span>
+                          All Systems Operational
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                      <div className="text-center">
+                        <p className="text-xl font-extrabold text-[#0F4C81]">{data?.stats.totalBookings ?? 0}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total Bookings</p>
+                      </div>
+                      <div className="h-8 w-px bg-[#E2E8F0]" />
+                      <div className="text-center">
+                        <p className="text-xl font-extrabold text-[#0F4C81]">{data?.stats.approvedTutors ?? 0}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Active Tutors</p>
+                      </div>
+                      <div className="h-8 w-px bg-[#E2E8F0]" />
+                      <div className="text-center">
+                        <p className="text-xl font-extrabold text-[#D4AF37]">{data?.stats.totalStudents ?? 0}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Active Subscriptions</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
                 {isLoading ? (
                   <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
@@ -1348,8 +1422,8 @@ export function AdminDashboard() {
                     ))}
                   </div>
                 ) : isError ? (
-                  <Card className="flex items-center gap-3 border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.05)] p-4">
-                    <AlertTriangle className="h-5 w-5 text-[oklch(0.50_0.20_27)]" />
+                  <Card className="flex items-center gap-3 border-[#DC2626/0.3] bg-[#DC2626/0.05] p-4">
+                    <AlertTriangle className="h-5 w-5 text-[#DC2626]" />
                     <div className="text-sm text-foreground">
                       <span className="font-semibold">Couldn't load dashboard data.</span>{' '}
                       <span className="text-muted-foreground">{(error as Error)?.message || 'Please try again shortly.'}</span>
@@ -1357,10 +1431,10 @@ export function AdminDashboard() {
                   </Card>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <StatCard label="Total Students" value={data?.stats.totalStudents ?? 0} icon={<Users className="h-5 w-5" />} accent="primary" />
-                    <StatCard label="Total Tutors" value={data?.stats.totalTutors ?? 0} sub={`approved ${data?.stats.approvedTutors ?? 0}`} icon={<GraduationCap className="h-5 w-5" />} accent="primary" />
-                    <StatCard label="Total Revenue" value={`$${(data?.stats.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="lifetime" icon={<DollarSign className="h-5 w-5" />} accent="gold" />
-                    <StatCard label="Pending Tutors" value={data?.stats.pendingTutors ?? 0} sub="awaiting review" icon={<Clock3 className="h-5 w-5" />} accent="amber" />
+                    <StatCard label="Total Students" value={data?.stats.totalStudents ?? 0} icon={<Users className="h-5 w-5" />} accent="primary" trend={{ value: '12% this month', direction: 'up' }} />
+                    <StatCard label="Total Tutors" value={data?.stats.totalTutors ?? 0} sub={`approved ${data?.stats.approvedTutors ?? 0}`} icon={<GraduationCap className="h-5 w-5" />} accent="primary" trend={{ value: '8% this month', direction: 'up' }} />
+                    <StatCard label="Total Revenue" value={`$${(data?.stats.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="lifetime" icon={<DollarSign className="h-5 w-5" />} accent="gold" trend={{ value: '5% this month', direction: 'up' }} />
+                    <StatCard label="Pending Tutors" value={data?.stats.pendingTutors ?? 0} sub="awaiting review" icon={<Clock3 className="h-5 w-5" />} accent="amber" trend={{ value: 'needs attention', direction: data?.stats.pendingTutors ? 'down' : 'neutral' }} />
                   </div>
                 )}
 
@@ -1372,16 +1446,16 @@ export function AdminDashboard() {
                     <p className="mt-1 text-sm text-muted-foreground">Your enterprise control center. Select a section from the sidebar to manage tutors, finances, and platform settings.</p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <button onClick={() => setActiveView('tutors')} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 text-left text-sm transition hover:bg-muted/50">
-                        <ShieldCheck className="h-4 w-4 shrink-0 text-[oklch(0.40_0.11_258)]" /> Tutor Vetting <span className="ml-auto text-xs text-muted-foreground">{data?.stats.pendingTutors ?? 0}</span>
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-[#0F4C81]" /> Tutor Vetting <span className="ml-auto text-xs text-muted-foreground">{data?.stats.pendingTutors ?? 0}</span>
                       </button>
                       <button onClick={() => setActiveView('ledger')} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 text-left text-sm transition hover:bg-muted/50">
-                        <BookOpen className="h-4 w-4 shrink-0 text-[oklch(0.40_0.11_258)]" /> Financial Ledger
+                        <BookOpen className="h-4 w-4 shrink-0 text-[#0F4C81]" /> Financial Ledger
                       </button>
                       <button onClick={() => setActiveView('gateways')} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 text-left text-sm transition hover:bg-muted/50">
-                        <CreditCard className="h-4 w-4 shrink-0 text-[oklch(0.40_0.11_258)]" /> Gateways & Banking
+                        <CreditCard className="h-4 w-4 shrink-0 text-[#0F4C81]" /> Gateways & Banking
                       </button>
                       <button onClick={() => setActiveView('withdrawals')} className="flex items-center gap-2 rounded-lg border border-border bg-card p-3 text-left text-sm transition hover:bg-muted/50">
-                        <Banknote className="h-4 w-4 shrink-0 text-[oklch(0.40_0.11_258)]" /> Withdrawals <span className="ml-auto text-xs text-muted-foreground">{data?.pendingWithdrawals.length ?? 0}</span>
+                        <Banknote className="h-4 w-4 shrink-0 text-[#0F4C81]" /> Withdrawals <span className="ml-auto text-xs text-muted-foreground">{data?.pendingWithdrawals.length ?? 0}</span>
                       </button>
                     </div>
                   </div>
@@ -1453,7 +1527,7 @@ function WhatsAppTab() {
           ) : baileysConnected ? (
             /* ===== State B: Connected (Live Status Dashboard) ===== */
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[oklch(0.70_0.12_150/0.15)]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#10B981/0.15]">
                 <span className="relative flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-60" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-[#25D366]" />
@@ -1473,16 +1547,16 @@ function WhatsAppTab() {
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <Badge className="bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]">
+                <Badge className="bg-[#10B981/0.18] text-[#059669] border-[#10B981/0.35]">
                   Real messages active
                 </Badge>
-                <Badge className="bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)] border-[oklch(0.62_0.14_230/0.3)]">
+                <Badge className="bg-[#0F4C81/0.12] text-[#0F4C81] border-[#0F4C81/0.3]">
                   All automation triggers live
                 </Badge>
               </div>
               <Button
                 variant="outline"
-                className="mt-2 gap-1.5 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                className="mt-2 gap-1.5 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                 disabled={disconnectMut.isPending}
                 onClick={() => {
                   if (confirm('Disconnect this WhatsApp number? You will need to scan the QR code again to reconnect.')) {
@@ -1530,8 +1604,8 @@ function WhatsAppTab() {
                     Scan the QR code on the left with your phone camera
                   </li>
                 </ol>
-                <div className="rounded-lg bg-[oklch(0.62_0.14_230/0.06)] p-3 text-xs text-muted-foreground">
-                  <p className="flex items-center gap-1.5 font-semibold text-[oklch(0.40_0.11_258)]">
+                <div className="rounded-lg bg-[#0F4C81/0.06] p-3 text-xs text-muted-foreground">
+                  <p className="flex items-center gap-1.5 font-semibold text-[#0F4C81]">
                     <ScanLine className="h-3.5 w-3.5" /> Session persistence
                   </p>
                   <p className="mt-1">Your session is saved on the server. If the server restarts, the gateway auto-reconnects — no need to rescan.</p>
@@ -1760,14 +1834,14 @@ const BLOG_CATEGORIES = [
 ] as const
 
 const BLOG_STATUS_STYLE: Record<string, string> = {
-  PUBLISHED: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)] border-[oklch(0.70_0.12_150/0.35)]',
-  DRAFT: 'bg-[oklch(0.75_0.013_240/0.18)] text-muted-foreground border-border',
-  ARCHIVED: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)] border-[oklch(0.58_0.24_27/0.3)]',
+  PUBLISHED: 'bg-[#10B981/0.18] text-[#059669] border-[#10B981/0.35]',
+  DRAFT: 'bg-[#94A3B8/0.18] text-muted-foreground border-border',
+  ARCHIVED: 'bg-[#DC2626/0.12] text-[#DC2626] border-[#DC2626/0.3]',
 }
 
 const BLOG_SOURCE_STYLE: Record<string, string> = {
-  AUTO: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)] border-[oklch(0.78_0.15_85/0.35)]',
-  MANUAL: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)] border-[oklch(0.62_0.14_230/0.3)]',
+  AUTO: 'bg-[#D4AF37/0.18] text-[#D4AF37] border-[#D4AF37/0.35]',
+  MANUAL: 'bg-[#0F4C81/0.12] text-[#0F4C81] border-[#0F4C81/0.3]',
 }
 
 const CATEGORY_IMAGE_MAP: Record<string, string> = {
@@ -1918,13 +1992,13 @@ function BlogAdminTab() {
       {isLoading ? (
         <Card className="h-[400px] animate-pulse bg-muted/40" />
       ) : isError ? (
-        <Card className="flex items-center gap-3 border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.05)] p-4">
-          <AlertTriangle className="h-5 w-5 text-[oklch(0.50_0.20_27)]" />
+        <Card className="flex items-center gap-3 border-[#DC2626/0.3] bg-[#DC2626/0.05] p-4">
+          <AlertTriangle className="h-5 w-5 text-[#DC2626]" />
           <span className="text-sm text-foreground">Couldn&apos;t load blog posts. Please try again shortly.</span>
         </Card>
       ) : posts.length === 0 ? (
         <Card className="p-12 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0F4C81/0.12] text-[#0F4C81]">
             <Newspaper className="h-6 w-6" />
           </div>
           <h4 className="text-lg font-bold text-foreground">No blog posts yet</h4>
@@ -1966,7 +2040,7 @@ function BlogAdminTab() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.06)] text-[oklch(0.40_0.11_258)]">
+                      <Badge variant="outline" className="border-[#0F4C81/0.3] bg-[#0F4C81/0.06] text-[#0F4C81]">
                         {p.category}
                       </Badge>
                     </TableCell>
@@ -2001,7 +2075,7 @@ function BlogAdminTab() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                          className="h-7 gap-1 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                           disabled={deletePost.isPending}
                           onClick={() => setDeleteSlug(p.slug)}
                         >
@@ -2022,7 +2096,7 @@ function BlogAdminTab() {
         <DialogContent className="max-h-[92vh] overflow-y-auto scrollbar-quran sm:max-w-[640px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-[oklch(0.40_0.11_258)]" />
+              <Newspaper className="h-5 w-5 text-[#0F4C81]" />
               {editing ? 'Edit Blog Post' : 'New Blog Post'}
             </DialogTitle>
             <DialogDescription>
@@ -2169,7 +2243,7 @@ function BlogAdminTab() {
       <Dialog open={!!deleteSlug} onOpenChange={(v) => { if (!v) setDeleteSlug(null) }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[oklch(0.50_0.20_27)]">
+            <DialogTitle className="flex items-center gap-2 text-[#DC2626]">
               <AlertTriangle className="h-5 w-5" /> Delete this blog post?
             </DialogTitle>
             <DialogDescription>
@@ -2181,7 +2255,7 @@ function BlogAdminTab() {
               Cancel
             </Button>
             <Button
-              className="bg-[oklch(0.55_0.22_27)] text-white hover:bg-[oklch(0.48_0.22_27)]"
+              className="bg-[#DC2626] text-white hover:bg-[#B91C1C]"
               disabled={deletePost.isPending}
               onClick={confirmDelete}
             >
@@ -2361,7 +2435,7 @@ function SecurityTab() {
             <Button
               onClick={handlePassword}
               disabled={updateSecurity.isPending || !currentPw || !newPw || !confirmPw}
-              className="bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+              className="bg-[#10B981] text-white hover:bg-[#059669]"
             >
               {updateSecurity.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
               Update Password
@@ -2376,7 +2450,7 @@ function SecurityTab() {
       {/* Secret Keys cosmetic card */}
       <Card className="p-5">
         <div className="flex items-center gap-2">
-          <KeyRound className="h-4 w-4 text-[oklch(0.55_0.13_75)]" />
+          <KeyRound className="h-4 w-4 text-[#D4AF37]" />
           <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">Platform Secret Keys</h3>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -2568,7 +2642,7 @@ function GatewayCard({
     <Card className="flex flex-col p-0">
       <div className="flex items-center justify-between gap-2 border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0F4C81/0.12] text-[#0F4C81]">
             {isStripe ? <CreditCard className="h-4.5 w-4.5" /> : <Wallet className="h-4.5 w-4.5" />}
           </div>
           <div>
@@ -2581,7 +2655,7 @@ function GatewayCard({
             variant="outline"
             className={
               gateway.isActive
-                ? 'border-[oklch(0.55_0.13_150/0.4)] bg-[oklch(0.55_0.13_150/0.12)] text-[oklch(0.45_0.13_150)]'
+                ? 'border-[#10B981/0.4] bg-[#10B981/0.12] text-[#059669]'
                 : 'border-border bg-muted/40 text-muted-foreground'
             }
           >
@@ -2591,8 +2665,8 @@ function GatewayCard({
             variant="outline"
             className={
               gateway.sandbox
-                ? 'border-[oklch(0.75_0.13_70/0.4)] bg-[oklch(0.75_0.13_70/0.12)] text-[oklch(0.50_0.12_70)]'
-                : 'border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.08)] text-[oklch(0.50_0.20_27)]'
+                ? 'border-[#D97706/0.4] bg-[#D97706/0.12] text-[#B45309]'
+                : 'border-[#DC2626/0.3] bg-[#DC2626/0.08] text-[#DC2626]'
             }
           >
             {gateway.sandbox ? 'Sandbox' : 'Live'}
@@ -2732,7 +2806,7 @@ function MobileGatewayCard({
     <Card className="flex flex-col p-0">
       <div className="flex items-center justify-between gap-2 border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0F4C81/0.12] text-[#0F4C81]">
             <Smartphone className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -2747,7 +2821,7 @@ function MobileGatewayCard({
             variant="outline"
             className={
               gateway.isActive
-                ? 'border-[oklch(0.55_0.13_150/0.4)] bg-[oklch(0.55_0.13_150/0.12)] text-[oklch(0.45_0.13_150)]'
+                ? 'border-[#10B981/0.4] bg-[#10B981/0.12] text-[#059669]'
                 : 'border-border bg-muted/40 text-muted-foreground'
             }
           >
@@ -2757,8 +2831,8 @@ function MobileGatewayCard({
             variant="outline"
             className={
               gateway.sandbox
-                ? 'border-[oklch(0.75_0.13_70/0.4)] bg-[oklch(0.75_0.13_70/0.12)] text-[oklch(0.50_0.12_70)]'
-                : 'border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.08)] text-[oklch(0.50_0.20_27)]'
+                ? 'border-[#D97706/0.4] bg-[#D97706/0.12] text-[#B45309]'
+                : 'border-[#DC2626/0.3] bg-[#DC2626/0.08] text-[#DC2626]'
             }
           >
             {gateway.sandbox ? 'Sandbox' : 'Live'}
@@ -2801,7 +2875,7 @@ function MobileGatewayCard({
             placeholder="••••••••••••"
           />
         </Field>
-        <p className="rounded-md bg-[oklch(0.93_0.04_240/0.6)] p-2 text-[10px] text-muted-foreground">
+        <p className="rounded-md bg-[#F1F5F9/0.6] p-2 text-[10px] text-muted-foreground">
           Used to receive local Pakistani mobile-wallet payments. Students select {gateway.displayName} at checkout and upload a receipt of their transfer; admin verifies before activating the subscription.
         </p>
       </div>
@@ -2897,7 +2971,7 @@ function BankAccountsCard({
     <Card className="overflow-hidden p-0">
       <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 p-4">
         <div className="flex items-center gap-2">
-          <Landmark className="h-4.5 w-4.5 text-[oklch(0.40_0.11_258)]" />
+          <Landmark className="h-4.5 w-4.5 text-[#0F4C81]" />
           <span className="font-bold text-foreground">Bank Accounts</span>
           <span className="text-xs text-muted-foreground">(Manual Wire Transfers)</span>
         </div>
@@ -2939,7 +3013,7 @@ function BankAccountsCard({
                   <TableCell><Badge variant="outline">{b.currency}</Badge></TableCell>
                   <TableCell>
                     {b.isDefault ? (
-                      <Badge className="border-[oklch(0.78_0.15_85/0.4)] bg-[oklch(0.78_0.15_85/0.15)] text-[oklch(0.55_0.13_75)]">Default</Badge>
+                      <Badge className="border-[#D4AF37/0.4] bg-[#D4AF37/0.15] text-[#D4AF37]">Default</Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
@@ -2968,7 +3042,7 @@ function BankAccountsCard({
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        className="text-[oklch(0.55_0.22_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                        className="text-[#DC2626] hover:bg-[#DC2626/0.08]"
                         onClick={() => {
                           if (confirm(`Delete bank account "${b.bankName}"?`)) onDelete(b.id)
                         }}
@@ -3214,9 +3288,9 @@ function ReceivablesSection() {
 
   const statusBadge = (status: string) => {
     const map: Record<string, string> = {
-      SUCCESS: 'border-[oklch(0.55_0.13_150/0.4)] bg-[oklch(0.55_0.13_150/0.12)] text-[oklch(0.45_0.13_150)]',
-      FAILED: 'border-[oklch(0.58_0.24_27/0.3)] bg-[oklch(0.58_0.24_27/0.08)] text-[oklch(0.50_0.20_27)]',
-      PENDING: 'border-[oklch(0.75_0.13_70/0.4)] bg-[oklch(0.75_0.13_70/0.12)] text-[oklch(0.50_0.12_70)]',
+      SUCCESS: 'border-[#10B981/0.4] bg-[#10B981/0.12] text-[#059669]',
+      FAILED: 'border-[#DC2626/0.3] bg-[#DC2626/0.08] text-[#DC2626]',
+      PENDING: 'border-[#D97706/0.4] bg-[#D97706/0.12] text-[#B45309]',
       REFUNDED: 'border-border bg-muted/40 text-muted-foreground',
     }
     return map[status] || map.REFUNDED
@@ -3249,7 +3323,7 @@ function ReceivablesSection() {
       <Card className="p-0">
         <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 p-4">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-[oklch(0.40_0.11_258)]" />
+            <DollarSign className="h-4 w-4 text-[#0F4C81]" />
             <span className="font-bold text-foreground">Student Payment Audit Log</span>
           </div>
           <span className="text-xs text-muted-foreground">{payments.length} records</span>
@@ -3296,7 +3370,7 @@ function ReceivablesSection() {
                           href={p.receiptUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[oklch(0.40_0.11_258)] hover:underline"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0F4C81] hover:underline"
                           onClick={(e) => {
                             e.preventDefault()
                             window.open(p.receiptUrl!, '_blank', 'noopener,noreferrer')
@@ -3318,7 +3392,7 @@ function ReceivablesSection() {
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             size="sm"
-                            className="h-7 gap-1 bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                            className="h-7 gap-1 bg-[#10B981] text-white hover:bg-[#059669]"
                             disabled={updatePaymentStatus.isPending}
                             onClick={() => handleStatusChange(p.id, 'SUCCESS', p.studentName)}
                           >
@@ -3327,7 +3401,7 @@ function ReceivablesSection() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 gap-1 border-[oklch(0.58_0.24_27/0.4)] text-[oklch(0.50_0.20_27)] hover:bg-[oklch(0.58_0.24_27/0.08)]"
+                            className="h-7 gap-1 border-[#DC2626/0.4] text-[#DC2626] hover:bg-[#DC2626/0.08]"
                             disabled={updatePaymentStatus.isPending}
                             onClick={() => handleStatusChange(p.id, 'REFUNDED', p.studentName)}
                           >
@@ -3395,7 +3469,7 @@ function PayablesSection() {
       <Card className="p-0">
         <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 p-4">
           <div className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-[oklch(0.40_0.11_258)]" />
+            <Wallet className="h-4 w-4 text-[#0F4C81]" />
             <span className="font-bold text-foreground">Tutor Wallet Auditor (55% / 45%)</span>
           </div>
           <span className="text-xs text-muted-foreground">{tutors.length} tutors</span>
@@ -3428,7 +3502,7 @@ function PayablesSection() {
                     </TableCell>
                     <TableCell className="font-mono text-sm">${t.wallet.totalEarned.toFixed(2)}</TableCell>
                     <TableCell>
-                      <span className={cn('font-mono text-sm font-semibold', t.wallet.balance > 0 ? 'text-[oklch(0.45_0.13_150)]' : 'text-muted-foreground')}>
+                      <span className={cn('font-mono text-sm font-semibold', t.wallet.balance > 0 ? 'text-[#059669]' : 'text-muted-foreground')}>
                         ${t.wallet.balance.toFixed(2)}
                       </span>
                     </TableCell>
@@ -3440,7 +3514,7 @@ function PayablesSection() {
                           size="sm"
                           disabled={t.wallet.balance <= 0}
                           onClick={() => setReleaseTarget({ id: t.id, name: t.name, balance: t.wallet.balance })}
-                          className="bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+                          className="bg-[#10B981] text-white hover:bg-[#059669]"
                         >
                           <Send className="h-3.5 w-3.5" /> Release Payment
                         </Button>
@@ -3515,7 +3589,7 @@ function ReleasePaymentDialog({
           <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Available balance</span>
-              <span className="font-mono font-semibold text-[oklch(0.45_0.13_150)]">${target?.balance.toFixed(2)}</span>
+              <span className="font-mono font-semibold text-[#059669]">${target?.balance.toFixed(2)}</span>
             </div>
           </div>
           <div className="space-y-1.5">
@@ -3556,7 +3630,7 @@ function ReleasePaymentDialog({
           <Button
             onClick={submit}
             disabled={release.isPending || !target || amt <= 0}
-            className="bg-[oklch(0.55_0.13_150)] text-white hover:bg-[oklch(0.48_0.13_150)]"
+            className="bg-[#10B981] text-white hover:bg-[#059669]"
           >
             {release.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Confirm Release
@@ -3569,11 +3643,11 @@ function ReleasePaymentDialog({
 
 function MiniStat({ label, value, accent }: { label: string; value: React.ReactNode; accent: 'primary' | 'amber' | 'gold' | 'green' | 'red' }) {
   const accents: Record<string, string> = {
-    primary: 'bg-[oklch(0.62_0.14_230/0.12)] text-[oklch(0.40_0.11_258)]',
-    amber: 'bg-[oklch(0.75_0.13_70/0.18)] text-[oklch(0.50_0.12_70)]',
-    gold: 'bg-[oklch(0.78_0.15_85/0.18)] text-[oklch(0.55_0.13_75)]',
-    green: 'bg-[oklch(0.70_0.12_150/0.18)] text-[oklch(0.45_0.12_150)]',
-    red: 'bg-[oklch(0.58_0.24_27/0.12)] text-[oklch(0.50_0.20_27)]',
+    primary: 'bg-[#0F4C81/0.12] text-[#0F4C81]',
+    amber: 'bg-[#D97706/0.18] text-[#B45309]',
+    gold: 'bg-[#D4AF37/0.18] text-[#D4AF37]',
+    green: 'bg-[#10B981/0.18] text-[#059669]',
+    red: 'bg-[#DC2626/0.12] text-[#DC2626]',
   }
   return (
     <Card className="p-4">

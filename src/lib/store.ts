@@ -43,6 +43,10 @@ interface AppState {
   activeBookingId: string | null
   setActiveBookingId: (id: string | null) => void
 
+  // Dynamic plan type — drives dashboard content switching
+  planType: 'qaida' | 'quran' | 'both'
+  setPlanType: (pt: 'qaida' | 'quran' | 'both') => void
+
   // Marketplace filters
   category: string
   setCategory: (c: string) => void
@@ -79,6 +83,9 @@ export const useAppStore = create<AppState>()(
       activeBookingId: null,
       setActiveBookingId: (activeBookingId) => set({ activeBookingId }),
 
+      planType: 'both',
+      setPlanType: (planType) => set({ planType }),
+
       category: 'all',
       setCategory: (category) => set({ category }),
       search: '',
@@ -104,6 +111,7 @@ export const useAppStore = create<AppState>()(
         category: state.category,
         search: state.search,
         activeBookingId: state.activeBookingId,
+        planType: state.planType,
       }),
     }
   )

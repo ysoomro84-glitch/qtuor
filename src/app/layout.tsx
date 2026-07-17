@@ -48,12 +48,15 @@ const amiriQuran = Amiri_Quran({
 });
 
 export const metadata: Metadata = {
-  title: "Qtuor — Connect with Certified Quran Tutors Globally",
+  title: "Qtuor — Online Noorani Qaida & Quran Classes with Certified Tutors",
   description:
-    "Qtuor is a global online Quran learning platform. Learn Noorani Qaida, Quran Recitation With Tajweed, Hifz, and Arabic with certified tutors in a real-time interactive virtual classroom.",
+    "Learn Noorani Qaida, Quran Recitation with Tajweed, and Hifz online with certified Qaris. 1-on-1 live virtual classroom. Book a free 30-minute trial class today on Qtuor.",
   keywords: [
-    "Quran", "Quran tutor", "online Quran classes", "Quran Recitation With Tajweed", "Tajweed", "Hifz",
-    "Noorani Qaida", "Arabic learning", "Islamic education", "Qtuor",
+    "online Noorani Qaida classes for kids", "learn Arabic alphabet with Tajweed", "best online Qaida tutor",
+    "1-on-1 online Quran classes", "certified female Quran teachers online", "online Quran academy",
+    "Quran tutor", "online Quran classes", "Quran Recitation With Tajweed", "Tajweed rules",
+    "Hifz online", "Noorani Qaida online", "Arabic learning", "Islamic education", "Qtuor",
+    "Quran memorization online", "online Quran teacher", "Qaida for beginners",
   ],
   authors: [{ name: "Qtuor" }],
   icons: {
@@ -66,11 +69,12 @@ export const metadata: Metadata = {
     apple: [{ url: "/favicon-180.png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "Qtuor — Global Online Quran Learning Platform",
+    title: "Qtuor — Online Noorani Qaida & Quran Classes with Certified Tutors",
     description:
-      "Connect with certified Quran tutors globally. Interactive virtual classroom, monthly plans, and verified teachers.",
+      "1-on-1 live Quran classes with certified Qaris. Master Noorani Qaida, Quran Recitation, Tajweed, and Hifz in our interactive virtual classroom. Free trial available.",
     siteName: "Qtuor",
     type: "website",
+    url: "https://www.qtuor.com",
   },
 };
 

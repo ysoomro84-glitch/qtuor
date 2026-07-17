@@ -83,15 +83,15 @@ export function LandingView() {
                 <StarMedallion className="h-5 w-5 text-primary/50" />
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.62_0.14_230/0.3)] bg-[oklch(0.62_0.14_230/0.08)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[oklch(0.40_0.11_258)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide" style={{ borderColor: '#0F4C8140', backgroundColor: '#0F4C8112', color: '#0F4C81' }}>
               <Globe2 className="h-3.5 w-3.5" /> 500+ Certified Tutors · 60+ Countries
             </span>
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Connect with Certified <span className="text-gradient-blue">Quran Tutors</span> Globally
+              Learn Quran & <span className="text-gradient-blue">Noorani Qaida</span> Online with Certified Tutors
             </h1>
             <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
-              Learn Noorani Qaida, Quran Recitation With Tajweed, Hifz, and Arabic in a real-time interactive virtual classroom.
-              Book a <span className="font-semibold text-primary">free 30-minute trial</span> today.
+              1-on-1 online Quran classes with certified Qaris. Master Noorani Qaida, Quran Recitation, Tajweed, and Hifz in our interactive virtual classroom.
+              Book a <span className="font-semibold" style={{ color: '#0F4C81' }}>free 30-minute trial</span> today.
             </p>
 
             {/* Search bar */}
@@ -102,7 +102,7 @@ export function LandingView() {
                   value={heroSearch}
                   onChange={(e) => setHeroSearch(e.target.value)}
                   placeholder="Search tutors by name, subject, or language..."
-                  className="rounded-xl border-2 border-border bg-white pl-11 pr-4 py-3 text-base shadow-sm focus-visible:border-[oklch(0.62_0.14_230)]"
+                  className="rounded-xl border-2 border-border bg-white pl-11 pr-4 py-3 text-base shadow-sm focus-visible:border-[#0F4C81]"
                   style={{ height: '52px' }}
                 />
               </div>
@@ -125,7 +125,7 @@ export function LandingView() {
                     'cursor-pointer rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-300',
                     activeCat === c.key
                       ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-white/70 text-foreground hover:border-[oklch(0.62_0.14_230)] hover:bg-[oklch(0.62_0.14_230/0.08)] hover:text-[oklch(0.40_0.11_258)]'
+                      : 'border-border bg-white/70 text-foreground hover:border-[#0F4C81] hover:bg-[#0F4C8112] hover:text-[#0F4C81]'
                   )}
                 >
                   {c.label}
@@ -135,9 +135,9 @@ export function LandingView() {
 
             {/* Trust indicators */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[oklch(0.62_0.14_230)]" /> Verified & Ijaza-certified</span>
-              <span className="inline-flex items-center gap-1.5"><Video className="h-4 w-4 text-[oklch(0.62_0.14_230)]" /> Interactive virtual classroom</span>
-              <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4 text-[oklch(0.78_0.15_85)]" /> 4.9/5 average rating</span>
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" style={{ color: '#0F4C81' }} /> Verified & Ijaza-certified</span>
+              <span className="inline-flex items-center gap-1.5"><Video className="h-4 w-4" style={{ color: '#0F4C81' }} /> Interactive virtual classroom</span>
+              <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4" style={{ color: '#D4AF37' }} /> 4.9/5 average rating</span>
             </div>
           </motion.div>
         </div>

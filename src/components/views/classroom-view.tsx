@@ -226,17 +226,37 @@ export function ClassroomView() {
   if (!user) return <div className="flex min-h-[60vh] items-center justify-center"><Button onClick={() => setView('landing')}>Go home</Button></div>
   if (bookingsLoading) return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-      <Loader2 className="h-8 w-8 animate-spin text-[oklch(0.62_0.14_230)]" />
+      <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#0F4C81' }} />
       <p className="text-muted-foreground">Loading classroom...</p>
     </div>
   )
   if (!booking) return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-      <p className="text-muted-foreground">No active class found.</p>
-      <p className="text-sm text-muted-foreground/70">Book a class from the dashboard or find a tutor to get started.</p>
-      <Button onClick={() => setView('student-dashboard')} className="bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]">
-        Back to Dashboard
-      </Button>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl" style={{ backgroundColor: '#0F4C8118' }}>
+        <Video className="h-8 w-8" style={{ color: '#0F4C81' }} />
+      </div>
+      <div className="text-center">
+        <p className="text-lg font-semibold" style={{ color: '#0F172A' }}>No active class found</p>
+        <p className="mt-1 text-sm" style={{ color: '#64748B' }}>Book a class from the dashboard or find a tutor to get started.</p>
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={() => setView(user?.role === 'TUTOR' ? 'tutor-dashboard' : 'student-dashboard')} className="text-white" style={{ backgroundColor: '#0F4C81' }}>
+          Back to Dashboard
+        </Button>
+        <Button variant="outline" onClick={() => setView('marketplace')} style={{ borderColor: '#0F4C8140', color: '#0F4C81' }}>
+          Find a Tutor
+        </Button>
+      </div>
+      {allBookings.length > 0 && (
+        <div className="mt-4 rounded-lg border p-3 text-xs" style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}>
+          <p className="font-semibold" style={{ color: '#0F4C81' }}>Available bookings (not yet joinable):</p>
+          {allBookings.map(b => (
+            <div key={b.id} className="mt-1" style={{ color: '#64748B' }}>
+              {b.status} · {b.tutor?.name || b.student?.name || 'Unknown'}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 
