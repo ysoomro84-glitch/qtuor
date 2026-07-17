@@ -31,6 +31,12 @@ import {
   Receipt,
   LogOut,
   CreditCard,
+  LayoutDashboard,
+  BookOpen,
+  Settings,
+  Menu,
+  X,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore, type ViewKey } from '@/lib/store'
@@ -1541,9 +1547,211 @@ function VerificationCenter({ profile }: { profile: TutorProfile | null }) {
 }
 
 // ---------------------------------------------------------------------------
-// Main Dashboard Content
+// Main Dashboard Content (replaced by DashboardContentWithSidebar below)
 // ---------------------------------------------------------------------------
-function DashboardContent({ data, name }: { data: DashboardData; name: string }) {
+
+// ─── Sidebar Navigation Items ────────────────────────────────────────
+const SIDEBAR_ITEMS = [
+  { id: 'overview', icon: LayoutDashboard, label: 'Home / Overview' },
+  { id: 'students', icon: Users, label: 'My Students' },
+  { id: 'schedule', icon: CalendarClock, label: 'Class Schedule' },
+  { id: 'earnings', icon: Wallet, label: 'Earnings & Invoices' },
+  { id: 'resources', icon: BookOpen, label: 'Resource Library' },
+  { id: 'settings', icon: Settings, label: 'Settings' },
+] as const
+type SidebarSection = typeof SIDEBAR_ITEMS[number]['id']
+
+// ─── Color Tokens (Islamic Blue + Teal) ──────────────────────────────
+const TC = {
+  islamicBlue: '#0F4C81',
+  deepNavy: '#0A2F4F',
+  brightBlue: '#1E6CB5',
+  teal: '#10B981',
+  tealDark: '#059669',
+  gold: '#D4AF37',
+  offWhite: '#F8FAFC',
+  lightGray: '#F1F5F9',
+  border: '#E2E8F0',
+  textDark: '#0F172A',
+  textMuted: '#64748B',
+}
+
+// ============================================================
+// SIDEBAR NAVIGATION (Teacher Dashboard)
+// ============================================================
+function SidebarNav({ active, onChange, onLogout, userName }: {
+  active: SidebarSection; onChange: (id: SidebarSection) => void; onLogout: () => void; userName: string
+}) {
+  const [mobileOpen, setMobileOpen] = React.useState(false)
+
+  const navContent = (
+    <div className="flex h-full flex-col text-white" style={{ background: `linear-gradient(180deg, ${TC.deepNavy}, ${TC.islamicBlue})` }}>
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-5">
+        <QtuorLogoLockup size="sm" />
+      </div>
+      {/* Teacher name */}
+      <div className="px-5 pb-4 border-b border-white/10">
+        <p className="text-xs text-white/60">Assalamu Alaikum,</p>
+        <p className="text-sm font-bold text-white truncate">{userName}</p>
+      </div>
+      {/* Nav items */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-quran">
+        {SIDEBAR_ITEMS.map((item) => {
+          const Icon = item.icon
+          const isActive = active === item.id
+          return (
+            <button
+              key={item.id}
+              onClick={() => { onChange(item.id); setMobileOpen(false) }}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                isActive ? 'text-white shadow-md' : 'text-white/60 hover:text-white hover:bg-white/10'
+              )}
+              style={isActive ? { backgroundColor: TC.teal } : undefined}
+            >
+              <Icon className="h-4.5 w-4.5 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </button>
+          )
+        })}
+      </nav>
+      {/* Logout */}
+      <div className="px-3 pb-4">
+        <button onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/50 hover:text-white hover:bg-white/10 transition-all">
+          <LogOut className="h-4.5 w-4.5 shrink-0" /> Sign out
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:border-r" style={{ borderColor: TC.border }}>
+        {navContent}
+      </aside>
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between gap-3 px-4 backdrop-blur-xl lg:hidden" style={{ background: 'rgba(248,250,252,0.95)', borderBottom: `1px solid ${TC.border}` }}>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMobileOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-gray-100">
+            <Menu className="h-5 w-5" style={{ color: TC.islamicBlue }} />
+          </button>
+          <QtuorLogoLockup size="sm" />
+        </div>
+        <span className="text-sm font-medium" style={{ color: TC.textDark }}>{userName}</span>
+      </header>
+      {/* Mobile drawer overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-60 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            {navContent}
+          </aside>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ============================================================
+// STUDENT MANAGEMENT PORTAL (Popup)
+// ============================================================
+function StudentManagementPopup({ student, onClose }: { student: BookingRow['student'] & { planType?: string }; onClose: () => void }) {
+  const [homework, setHomework] = React.useState('')
+  const [mistakes, setMistakes] = React.useState<string[]>([])
+
+  const mistakeTypes = ['Makhraj mistake', 'Makhfi mistake', 'Tajweed rule error', 'Pronunciation issue', 'Fluency gap']
+
+  const toggleMistake = (m: string) => {
+    setMistakes(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <Card className="relative z-10 w-full max-w-md p-0 overflow-hidden shadow-xl" style={{ borderColor: TC.border }}>
+        <div className="p-5 text-white" style={{ background: `linear-gradient(135deg, ${TC.deepNavy}, ${TC.islamicBlue})` }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar name={student.name} src={student.avatar} country={student.country} size={40} />
+              <div>
+                <h3 className="text-base font-bold">{student.name}</h3>
+                {student.planType && (
+                  <Badge className="mt-0.5 border-transparent text-xs" style={{ backgroundColor: TC.teal, color: '#fff' }}>
+                    {student.planType}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <button onClick={onClose} className="text-white/60 hover:text-white"><X className="h-5 w-5" /></button>
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Assign homework */}
+          <div>
+            <Label className="text-xs font-semibold" style={{ color: TC.islamicBlue }}>Assign Next Sabaq (Homework)</Label>
+            <Input
+              value={homework}
+              onChange={(e) => setHomework(e.target.value)}
+              placeholder="e.g., Practice Lesson 6 Harakat, Surah Al-Fatihah revision"
+              className="mt-1.5"
+            />
+          </div>
+          {/* Mark mistakes */}
+          <div>
+            <Label className="text-xs font-semibold" style={{ color: TC.islamicBlue }}>Mark Today&apos;s Mistakes</Label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {mistakeTypes.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => toggleMistake(m)}
+                  className="rounded-full px-2.5 py-1 text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: mistakes.includes(m) ? `${TC.islamicBlue}15` : TC.lightGray,
+                    color: mistakes.includes(m) ? TC.islamicBlue : TC.textMuted,
+                    border: `1px solid ${mistakes.includes(m) ? TC.islamicBlue : TC.border}`,
+                  }}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Update progress */}
+          <div>
+            <Label className="text-xs font-semibold" style={{ color: TC.islamicBlue }}>Quick Progress Update</Label>
+            <div className="mt-1.5 flex gap-2">
+              <Button size="sm" className="text-white" style={{ backgroundColor: TC.teal }} onClick={() => { toast.success('Progress updated!'); onClose() }}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Mark Progress
+              </Button>
+              <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+// ============================================================
+// PLAN TYPE BADGE for class entries
+// ============================================================
+function PlanTypeBadge({ topic }: { topic?: string | null }) {
+  if (!topic) return null
+  const isQaida = topic.toLowerCase().includes('qaida') || topic.toLowerCase().includes('noorani')
+  const isQuran = topic.toLowerCase().includes('quran') || topic.toLowerCase().includes('surah') || topic.toLowerCase().includes('tajweed') || topic.toLowerCase().includes('hifz')
+  if (isQaida) return <Badge className="text-xs border-transparent text-white" style={{ backgroundColor: TC.islamicBlue }}>Qaida</Badge>
+  if (isQuran) return <Badge className="text-xs border-transparent text-white" style={{ backgroundColor: TC.teal }}>Quran</Badge>
+  return null
+}
+
+// ============================================================
+// Main Dashboard — with sidebar layout
+// ============================================================
+function DashboardContentWithSidebar({ data, name, onLogout }: { data: DashboardData; name: string; onLogout: () => void }) {
+  const [activeSection, setActiveSection] = React.useState<SidebarSection>('overview')
+  const [managingStudent, setManagingStudent] = React.useState<(BookingRow['student'] & { planType?: string }) | null>(null)
   const setView = useAppStore((s) => s.setView)
   const setActiveBookingId = useAppStore((s) => s.setActiveBookingId)
   const updateMut = useUpdateBooking()
@@ -1561,85 +1769,181 @@ function DashboardContent({ data, name }: { data: DashboardData; name: string })
     updateMut.mutate(
       { id: b.id, status: 'COMPLETED' },
       {
-        onSuccess: () => {
-          toast.success('Class marked complete', {
-            description: `${b.student.name}'s lesson has been recorded & wallet credited.`,
-          })
-        },
-        onError: (e: Error) =>
-          toast.error('Could not mark class complete', { description: e.message }),
+        onSuccess: () => toast.success('Class marked complete', { description: `${b.student.name}'s lesson has been recorded & wallet credited.` }),
+        onError: (e: Error) => toast.error('Could not mark class complete', { description: e.message }),
         onSettled: () => setCompletingId(null),
       }
     )
   }
 
+  // Derive today's classes
+  const todayBookings = data.bookings
+    .filter((b) => b.status === 'SCHEDULED' && isToday(parseISO(b.scheduledAt)))
+    .sort((a, b) => +new Date(a.scheduledAt) - +new Date(b.scheduledAt))
+
+  const pendingFeedbacks = data.bookings.filter((b) => b.status === 'COMPLETED').length
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-      <div className="space-y-6">
-        {/* Status banner */}
-        {data.profile && data.profile.status !== 'APPROVED' && (
-          <StatusBanner profile={data.profile} />
-        )}
+    <div className="flex min-h-screen" style={{ background: TC.offWhite }}>
+      <SidebarNav active={activeSection} onChange={setActiveSection} onLogout={onLogout} userName={name} />
 
-        {/* Welcome header with Islamic greeting */}
-        <div className="mb-2">
-          <WelcomeHeader name={name} approved={approved} />
-        </div>
-
-        {/* Stats */}
-        <StatsRow stats={data.stats} />
-
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <UpcomingClasses
-              bookings={data.bookings}
-              onStart={handleStart}
-              onComplete={handleComplete}
-              completing={completingId}
-            />
-            <AvailabilityManager availabilities={data.availabilities} />
-          </div>
+      {/* Main content area */}
+      <main className="flex-1 min-w-0">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="space-y-6">
-            <EarningsWallet wallet={data.wallet} withdrawals={data.withdrawals} />
-            <VerificationCenter profile={data.profile} />
+            {/* Status banner */}
+            {data.profile && data.profile.status !== 'APPROVED' && <StatusBanner profile={data.profile} />}
+
+            {/* Welcome header */}
+            <WelcomeHeader name={name} approved={approved} />
+
+            {/* ═══ TOP KPI CARDS ═══ */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
+                <Card className="p-4" style={{ borderColor: TC.border }}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TC.textMuted }}>Total Students</p>
+                      <p className="mt-1 text-2xl font-extrabold" style={{ color: TC.textDark }}>{data.stats.uniqueStudents}</p>
+                      <p className="text-[10px]" style={{ color: TC.textMuted }}>{data.stats.totalLessons} lessons taught</p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${TC.islamicBlue}12`, color: TC.islamicBlue }}>
+                      <Users className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+                <Card className="p-4" style={{ borderColor: TC.border }}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TC.textMuted }}>Hours Taught</p>
+                      <p className="mt-1 text-2xl font-extrabold" style={{ color: TC.textDark }}>{Math.round(data.stats.totalLessons * 0.5)}</p>
+                      <p className="text-[10px]" style={{ color: TC.textMuted }}>This month</p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${TC.teal}12`, color: TC.teal }}>
+                      <Clock className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+                <Card className="p-4" style={{ borderColor: TC.border }}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TC.textMuted }}>Today&apos;s Classes</p>
+                      <p className="mt-1 text-2xl font-extrabold" style={{ color: TC.textDark }}>{todayBookings.length}</p>
+                      <p className="text-[10px]" style={{ color: TC.textMuted }}>scheduled today</p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${TC.islamicBlue}12`, color: TC.islamicBlue }}>
+                      <Calendar className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+                <Card className="p-4" style={{ borderColor: TC.border }}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TC.textMuted }}>Pending Feedback</p>
+                      <p className="mt-1 text-2xl font-extrabold" style={{ color: TC.textDark }}>{pendingFeedbacks}</p>
+                      <p className="text-[10px]" style={{ color: TC.textMuted }}>completed classes</p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${TC.gold}18`, color: TC.gold }}>
+                      <FileText className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* ═══ TODAY'S SCHEDULE (Timeline) ═══ */}
+            <Card className="p-5 sm:p-6" style={{ borderColor: TC.border }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: `${TC.islamicBlue}12`, color: TC.islamicBlue }}>
+                  <CalendarClock className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold" style={{ color: TC.textDark }}>Today&apos;s Schedule</h2>
+                  <p className="text-xs" style={{ color: TC.textMuted }}>{todayBookings.length} class{todayBookings.length !== 1 ? 'es' : ''} today</p>
+                </div>
+              </div>
+              {todayBookings.length === 0 ? (
+                <div className="flex flex-col items-center rounded-xl border border-dashed p-8 text-center" style={{ borderColor: `${TC.islamicBlue}20`, background: `${TC.islamicBlue}04` }}>
+                  <Calendar className="h-8 w-8" style={{ color: `${TC.islamicBlue}40` }} />
+                  <p className="mt-2 text-sm font-semibold" style={{ color: TC.textDark }}>No classes today</p>
+                  <p className="text-xs" style={{ color: TC.textMuted }}>Your scheduled classes will appear here as a timeline.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {todayBookings.map((b) => {
+                    const { label } = formatBookingDate(b.scheduledAt)
+                    const isCompleting = completingId === b.id
+                    return (
+                      <div key={b.id} className="flex items-center gap-4 rounded-xl p-4 transition-colors hover:shadow-sm" style={{ border: `1px solid ${TC.border}`, background: '#fff' }}>
+                        {/* Time column */}
+                        <div className="shrink-0 text-center" style={{ minWidth: '60px' }}>
+                          <p className="text-sm font-bold" style={{ color: TC.islamicBlue }}>{format(parseISO(b.scheduledAt), 'h:mm')}</p>
+                          <p className="text-[10px]" style={{ color: TC.textMuted }}>{format(parseISO(b.scheduledAt), 'a')}</p>
+                        </div>
+                        {/* Divider line */}
+                        <div className="w-0.5 self-stretch rounded-full" style={{ backgroundColor: TC.teal }} />
+                        {/* Student info */}
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <Avatar name={b.student.name} src={b.student.avatar} country={b.student.country} size={40} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="truncate text-sm font-semibold" style={{ color: TC.textDark }}>{b.student.name}</span>
+                              <PlanTypeBadge topic={b.topic} />
+                              {b.isTrial && <Badge style={{ backgroundColor: `${TC.gold}18`, color: TC.gold, borderColor: `${TC.gold}40` }} className="text-xs">Trial</Badge>}
+                            </div>
+                            <p className="truncate text-xs" style={{ color: TC.textMuted }}>{b.topic || 'Quran lesson'} · {b.durationMins} min</p>
+                          </div>
+                        </div>
+                        {/* Actions */}
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button size="sm" variant="ghost" className="text-xs" style={{ color: TC.islamicBlue }} onClick={() => setManagingStudent({ ...b.student, planType: b.topic?.toLowerCase().includes('qaida') ? 'Qaida' : 'Quran' })}>
+                            <Users className="h-3.5 w-3.5" /> Manage
+                          </Button>
+                          <Button size="sm" className="text-white" style={{ backgroundColor: TC.islamicBlue }} onClick={() => handleStart(b)}>
+                            <Video className="h-3.5 w-3.5" /> Start
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* ═══ TWO-COLUMN LAYOUT ═══ */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="space-y-6 lg:col-span-2">
+                <UpcomingClasses bookings={data.bookings} onStart={handleStart} onComplete={handleComplete} completing={completingId} />
+                <AvailabilityManager availabilities={data.availabilities} />
+              </div>
+              <div className="space-y-6">
+                <EarningsWallet wallet={data.wallet} withdrawals={data.withdrawals} />
+                <VerificationCenter profile={data.profile} />
+              </div>
+            </div>
+
+            <WalletLedger />
           </div>
         </div>
+      </main>
 
-        {/* Wallet Ledger — 55/45 split history (below wallet summary) */}
-        <WalletLedger />
-      </div>
+      {/* Student Management Popup */}
+      {managingStudent && (
+        <StudentManagementPopup student={managingStudent} onClose={() => setManagingStudent(null)} />
+      )}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
+// ============================================================
 // Default export — top-level Tutor Dashboard view
-// ---------------------------------------------------------------------------
-
-
-
 // ============================================================
-// Dashboard top bar (compact — replaces main site navbar)
-// ============================================================
-function DashboardTopBar({ userName, onLogout }: { userName: string; onLogout: () => void }) {
-  return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-xl border-b border-border/60" style={{ background: 'rgba(255, 255, 255, 0.92)' }}>
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
-          <QtuorLogoLockup size="sm" />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm font-medium sm:inline">{userName}</span>
-          <Button variant="ghost" size="sm" onClick={onLogout} className="gap-1.5 text-muted-foreground hover:text-destructive">
-            <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Sign out</span>
-          </Button>
-        </div>
-      </div>
-    </header>
-  )
-}
-
 export function TutorDashboard() {
   const user = useAppStore((s) => s.user)
   const setView = useAppStore((s) => s.setView)
@@ -1651,18 +1955,12 @@ export function TutorDashboard() {
   }
 
   // Guard 1: not logged in
-  if (!user) {
-    return <AuthPrompt onLogin={() => openAuth('login')} />
-  }
+  if (!user) return <AuthPrompt onLogin={() => openAuth('login')} />
 
   // Guard 2: not a tutor
-  if (user.role !== 'TUTOR') {
-    return <BecomeTutorCta onRegister={() => openAuth('register')} />
-  }
+  if (user.role !== 'TUTOR') return <BecomeTutorCta onRegister={() => openAuth('register')} />
 
-  if (isLoading) {
-    return <DashboardSkeleton />
-  }
+  if (isLoading) return <DashboardSkeleton />
 
   if (isError || !data) {
     return (
@@ -1670,16 +1968,9 @@ export function TutorDashboard() {
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
           <AlertCircle className="h-7 w-7" />
         </div>
-        <h2 className="mt-4 text-xl font-bold text-foreground">
-          Couldn&apos;t load your dashboard
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please try again in a moment. If the issue persists, contact support.
-        </p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="mt-4 bg-[oklch(0.62_0.14_230)] text-white hover:bg-[oklch(0.55_0.14_230)]"
-        >
+        <h2 className="mt-4 text-xl font-bold text-foreground">Couldn&apos;t load your dashboard</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Please try again in a moment.</p>
+        <Button onClick={() => window.location.reload()} className="mt-4 text-white" style={{ backgroundColor: TC.islamicBlue }}>
           Reload
         </Button>
       </div>
@@ -1691,21 +1982,7 @@ export function TutorDashboard() {
     useAppStore.getState().logout()
   }
 
-  const navigateTo = (view: ViewKey) => {
-    setView(view)
-  }
-
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Top bar - visible on all screens */}
-      <DashboardTopBar userName={user.name} onLogout={handleLogout} />
-
-      {/* Main content */}
-      <main className="flex-1">
-          <DashboardContent data={data} name={user.name} />
-        </main>
-    </div>
-  )
+  return <DashboardContentWithSidebar data={data} name={user.name} onLogout={handleLogout} />
 }
 
 export default TutorDashboard

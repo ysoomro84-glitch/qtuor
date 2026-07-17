@@ -5,6 +5,33 @@ import { format } from 'date-fns'
 const _getDb = () => import("@/lib/db").then(m => m.db);
 const _getAuth = () => import("@/lib/auth").then(m => m.getSession);
 
+// ─── Shared demo booking data ────────────────────────────────────────
+function getDemoBookings(email: string, role: string) {
+  const demoTutor = { id: 'demo-tutor-ahmad', name: 'Qari Ahmad Raza', avatar: null, country: 'Pakistan' }
+  const demoStudentNQ = { id: 'demo-noorani-student', name: 'Fatima Noor', avatar: null, country: 'Pakistan' }
+  const demoStudentTW = { id: 'demo-quran-student', name: 'Ahmed Khan', avatar: null, country: 'United Kingdom' }
+
+  if (email === 'noorani.demo@qtuor.com' && role === 'student') {
+    return [
+      { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)', meetingId: 'demo-nq-room', tutor: demoTutor },
+      { id: 'demo-booking-nq-2', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Fatihah Tajweed Practice', meetingId: 'demo-nq-quran', tutor: demoTutor },
+    ]
+  }
+  if (email === 'quran.demo@qtuor.com' && role === 'student') {
+    return [
+      { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus', meetingId: 'demo-tw-room', tutor: demoTutor },
+      { id: 'demo-booking-tw-2', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 8: Madd (Stretching Rules)', meetingId: 'demo-tw-qaida', tutor: demoTutor },
+    ]
+  }
+  if (email === 'tutor.demo@qtuor.com' && role === 'tutor') {
+    return [
+      { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat', meetingId: 'demo-nq-room', student: demoStudentNQ },
+      { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah', meetingId: 'demo-tw-room', student: demoStudentTW },
+    ]
+  }
+  return null
+}
+
 export async function GET(req: NextRequest) {
   const session = (await _getAuth())
   if (!session) return NextResponse.json({ bookings: [] })
@@ -21,32 +48,19 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { scheduledAt: 'asc' },
     })
+
+    // If the DB returned empty bookings but this is a demo account,
+    // inject demo bookings so the virtual classroom works on deployed sites
+    if (bookings.length === 0) {
+      const demoBookings = getDemoBookings(session.email, role)
+      if (demoBookings) return NextResponse.json({ bookings: demoBookings })
+    }
+
     return NextResponse.json({ bookings })
   } catch (e: any) {
     if (e?.message === 'DATABASE_UNAVAILABLE') {
-      // Demo fallback for Vercel (no SQLite)
-      const demoTutor = { id: 'demo-tutor-ahmad', name: 'Qari Ahmad Raza', avatar: null, country: 'Pakistan' }
-      const demoStudentNQ = { id: 'demo-noorani-student', name: 'Fatima Noor', avatar: null, country: 'Pakistan' }
-      const demoStudentTW = { id: 'demo-quran-student', name: 'Ahmed Khan', avatar: null, country: 'United Kingdom' }
-
-      if (session.email === 'noorani.demo@qtuor.com' && role === 'student') {
-        return NextResponse.json({ bookings: [
-          { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat (Fatha, Kasra, Damma)', meetingId: 'demo-nq-room', tutor: demoTutor },
-          { id: 'demo-booking-nq-2', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Fatihah Tajweed Practice', meetingId: 'demo-nq-quran', tutor: demoTutor },
-        ] })
-      }
-      if (session.email === 'quran.demo@qtuor.com' && role === 'student') {
-        return NextResponse.json({ bookings: [
-          { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah (Ayah 142-152) Tajweed Focus', meetingId: 'demo-tw-room', tutor: demoTutor },
-          { id: 'demo-booking-tw-2', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 65 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 8: Madd (Stretching Rules)', meetingId: 'demo-tw-qaida', tutor: demoTutor },
-        ] })
-      }
-      if (session.email === 'tutor.demo@qtuor.com' && role === 'tutor') {
-        return NextResponse.json({ bookings: [
-          { id: 'demo-booking-nq-1', studentId: 'demo-noorani-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Noorani Qaida — Lesson 5: Harakat', meetingId: 'demo-nq-room', student: demoStudentNQ },
-          { id: 'demo-booking-tw-1', studentId: 'demo-quran-student', tutorId: 'demo-tutor-ahmad', scheduledAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), durationMins: 30, status: 'SCHEDULED', isTrial: false, topic: 'Quran Recitation — Surah Al-Baqarah', meetingId: 'demo-tw-room', student: demoStudentTW },
-        ] })
-      }
+      const demoBookings = getDemoBookings(session.email, role)
+      if (demoBookings) return NextResponse.json({ bookings: demoBookings })
       return NextResponse.json({ bookings: [] })
     }
     throw e

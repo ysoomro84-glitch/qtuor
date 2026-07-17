@@ -44,33 +44,36 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ===== Qtuor Premium Blue Theme ===== */
+/* ===== Qtuor Islamic Blue Theme ===== */
 :root {
   --radius: 0.75rem;
-  /* White base */
-  --background: oklch(0.99 0.004 240);
-  --foreground: oklch(0.21 0.04 255);
+  /* Off-white base (#F8FAFC) */
+  --background: oklch(0.98 0.004 240);
+  --foreground: oklch(0.18 0.04 255);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.04 255);
+  --card-foreground: oklch(0.18 0.04 255);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.04 255);
+  --popover-foreground: oklch(0.18 0.04 255);
 
-  /* Premium Deep Blue */
-  --primary: oklch(0.34 0.13 256);
+  /* Deep Islamic Blue (#0F4C81) */
+  --primary: oklch(0.40 0.10 240);
   --primary-foreground: oklch(0.99 0.01 240);
 
   /* Light Blue secondary */
   --secondary: oklch(0.93 0.04 240);
-  --secondary-foreground: oklch(0.34 0.13 256);
+  --secondary-foreground: oklch(0.40 0.10 240);
 
   --muted: oklch(0.96 0.012 240);
   --muted-foreground: oklch(0.50 0.03 250);
 
-  /* Light blue accent */
-  --accent: oklch(0.90 0.06 230);
-  --accent-foreground: oklch(0.34 0.13 256);
+  /* Soft Teal/Mint Green (#10B981) for progress & health */
+  --accent: oklch(0.70 0.15 165);
+  --accent-foreground: oklch(0.25 0.06 165);
+
+  /* Teal for progress */
+  --teal: oklch(0.70 0.15 165);
 
   /* Gold for premium badges */
   --gold: oklch(0.78 0.15 80);
@@ -80,20 +83,21 @@
   --input: oklch(0.92 0.02 240);
   --ring: oklch(0.55 0.12 250);
 
-  --chart-1: oklch(0.34 0.13 256);
-  --chart-2: oklch(0.62 0.14 230);
+  --chart-1: oklch(0.40 0.10 240);
+  --chart-2: oklch(0.70 0.15 165);
   --chart-3: oklch(0.78 0.15 80);
-  --chart-4: oklch(0.70 0.10 200);
+  --chart-4: oklch(0.62 0.14 230);
   --chart-5: oklch(0.45 0.10 260);
 
-  --sidebar: oklch(0.30 0.10 258);
+  /* Sidebar — Deep Islamic Blue */
+  --sidebar: oklch(0.25 0.08 240);
   --sidebar-foreground: oklch(0.96 0.01 240);
-  --sidebar-primary: oklch(0.62 0.14 230);
+  --sidebar-primary: oklch(0.70 0.15 165);
   --sidebar-primary-foreground: oklch(0.99 0.01 240);
-  --sidebar-accent: oklch(0.38 0.11 258);
+  --sidebar-accent: oklch(0.32 0.08 240);
   --sidebar-accent-foreground: oklch(0.96 0.01 240);
-  --sidebar-border: oklch(0.40 0.08 258);
-  --sidebar-ring: oklch(0.55 0.12 250);
+  --sidebar-border: oklch(0.35 0.06 240);
+  --sidebar-ring: oklch(0.70 0.15 165);
 }
 
 .dark {
