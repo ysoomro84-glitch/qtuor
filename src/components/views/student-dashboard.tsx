@@ -300,13 +300,15 @@ function DashboardHeader({ userName, planType, onPlanSwitch, onLogout }: {
 function LiveClassroomHero({ bookings, planType }: { bookings: Booking[]; planType: 'qaida' | 'quran' | 'both' }) {
   const setActiveBookingId = useAppStore((s) => s.setActiveBookingId)
   const setView = useAppStore((s) => s.setView)
+  const [mounted, setMounted] = React.useState(false)
 
   const nextClass = bookings
     .filter((b) => b.status === 'SCHEDULED')
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0]
 
-  const [countdown, setCountdown] = React.useState({ h: 0, m: 0, s: 0, total: 0 })
+  const [countdown, setCountdown] = React.useState({ h: 0, m: 0, s: 0, total: -1 })
   React.useEffect(() => {
+    setMounted(true)
     if (!nextClass) return
     const update = () => {
       const diff = new Date(nextClass.scheduledAt).getTime() - Date.now()
@@ -389,9 +391,11 @@ function LiveClassroomHero({ bookings, planType }: { bookings: Booking[]; planTy
             <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {time}</span>
             <span className="flex items-center gap-1.5"><Timer className="h-4 w-4" /> {nextClass.durationMins} min</span>
           </div>
-          {/* Countdown */}
+          {/* Countdown — only render after mount to avoid hydration mismatch */}
           <div className="relative mt-5 flex items-center gap-2">
-            {countdown.total > 0 ? (
+            {!mounted ? (
+              <span className="text-sm text-white/70">Calculating time...</span>
+            ) : countdown.total > 0 ? (
               <>
                 <span className="text-sm text-white/70">Starts in:</span>
                 <div className="flex items-center gap-1 font-mono text-lg font-bold tabular-nums">
@@ -734,6 +738,8 @@ function DailyMutabah() {
 // ============================================================
 function AudioSandbox() {
   const [recording, setRecording] = React.useState(false)
+  // Pre-computed bar heights to avoid Math.random() during render (hydration mismatch)
+  const barHeights = React.useMemo(() => Array.from({ length: 20 }, () => 8 + Math.random() * 16), [])
 
   return (
     <Card className="p-5" style={{ borderColor: C.border }}>
@@ -760,8 +766,8 @@ function AudioSandbox() {
           <span className="h-2 w-2 animate-pulse rounded-full" style={{ background: C.red }} />
           <span className="text-xs font-medium" style={{ color: C.red }}>Recording...</span>
           <div className="flex gap-0.5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="w-0.5 animate-pulse rounded-full" style={{ height: `${8 + Math.random() * 16}px`, background: C.red, animationDelay: `${i * 0.05}s` }} />
+            {barHeights.map((h, i) => (
+              <div key={i} className="w-0.5 animate-pulse rounded-full" style={{ height: `${h}px`, background: C.red, animationDelay: `${i * 0.05}s` }} />
             ))}
           </div>
         </div>
@@ -883,7 +889,12 @@ function StatCard({ index, icon: Icon, label, value, sub, accent, trend }: {
 // STATS ROW — Enhanced with trends
 // ============================================================
 function StatsRow({ stats, planType }: { stats: DashboardData['stats']; planType: 'qaida' | 'quran' | 'both' }) {
-  const expiryLabel = stats.subscriptionExpiresAt ? format(parseISO(stats.subscriptionExpiresAt), 'MMM d, yyyy') : null
+  let expiryLabel: string | null = null
+  try {
+    expiryLabel = stats.subscriptionExpiresAt ? format(parseISO(stats.subscriptionExpiresAt), 'MMM d, yyyy') : null
+  } catch {
+    expiryLabel = null
+  }
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatCard index={0} icon={Crown} label={planType === 'qaida' ? 'Qaida Plan' : planType === 'quran' ? 'Quran Plan' : 'Subscription'}
@@ -1025,7 +1036,7 @@ function CurrentPlan({ subscription }: { subscription: Subscription | null }) {
       </Card>
     )
   }
-  const expires = format(parseISO(subscription.expiresAt), 'MMM d, yyyy')
+  const expires = (() => { try { return format(parseISO(subscription.expiresAt), 'MMM d, yyyy') } catch { return 'N/A' } })()
   return (
     <Card className="overflow-hidden p-0" style={{ borderColor: C.border }}>
       <div className="relative p-5 text-white" style={{ background: `linear-gradient(135deg, ${C.deepNavy}, ${C.islamicBlue})` }}>
@@ -1089,7 +1100,7 @@ function BookingHistory({ bookings }: { bookings: Booking[] }) {
               <Avatar name={b.tutor.name} src={b.tutor.avatar} country={b.tutor.country} size={36} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium" style={{ color: C.textDark }}>{b.tutor.name}</div>
-                <div className="text-xs" style={{ color: C.textMuted }}>{format(parseISO(b.scheduledAt), 'MMM d, yyyy')} · {b.durationMins}m</div>
+                <div className="text-xs" style={{ color: C.textMuted }}>{(() => { try { return format(parseISO(b.scheduledAt), 'MMM d, yyyy') } catch { return 'N/A' } })()} · {b.durationMins}m</div>
               </div>
               <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: C.teal }} />
             </li>
@@ -1118,10 +1129,63 @@ function LoadingState() {
 }
 
 // ============================================================
+// ERROR BOUNDARY — Catches rendering crashes and shows details
+// ============================================================
+class DashboardErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null; errorInfo: React.ErrorInfo | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null, errorInfo: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[StudentDashboard] Rendering error:', error, errorInfo)
+    this.setState({ errorInfo })
+  }
+  render() {
+    if (this.state.hasError) {
+      const errMsg = this.state.error?.message || 'Unknown error'
+      const stack = this.state.error?.stack || ''
+      return (
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <h2 className="text-lg font-bold">Dashboard rendering error</h2>
+          <p className="mt-1 text-sm text-red-600 font-mono break-all">{errMsg}</p>
+          {stack && (
+            <details className="mt-4 text-left">
+              <summary className="cursor-pointer text-xs text-muted-foreground">Stack trace</summary>
+              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-gray-100 p-3 text-[10px] font-mono text-gray-700 whitespace-pre-wrap">{stack}</pre>
+            </details>
+          )}
+          <Button className="mt-4" onClick={() => { this.setState({ hasError: false, error: null, errorInfo: null }); useAppStore.getState().setView('landing') }}>
+            Go to homepage
+          </Button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+// ============================================================
 // MAIN STUDENT DASHBOARD — Advanced Layout
 // Layout: Header → Live Class Hero → Stats → 2-Col (Left 70% / Right 30%)
 // ============================================================
 export function StudentDashboard() {
+  return (
+    <DashboardErrorBoundary>
+      <StudentDashboardInner />
+    </DashboardErrorBoundary>
+  )
+}
+
+function StudentDashboardInner() {
   const user = useAppStore((s) => s.user)
   const storePlanType = useAppStore((s) => s.planType)
   const setPlanType = useAppStore((s) => s.setPlanType)
@@ -1156,7 +1220,7 @@ export function StudentDashboard() {
     if (detectedPlanType !== storePlanType) {
       setPlanType(detectedPlanType)
     }
-  }, [detectedPlanType])
+  }, [detectedPlanType, storePlanType, setPlanType])
 
   const handlePlanSwitch = (pt: 'qaida' | 'quran' | 'both') => {
     setPlanType(pt)
