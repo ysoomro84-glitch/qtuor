@@ -282,13 +282,33 @@ export function useBookmark(studentId: string | null, tutorId: string | null) {
   })
 }
 
+/** Load the current student's most recent bookmark (for "Resume Learning" card) */
+export function useMyBookmark() {
+  return useQuery({
+    queryKey: ['my-bookmark'],
+    queryFn: () => fetchJson('/api/bookmark'),
+  })
+}
+
 export function useSaveBookmark() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { studentId: string; tutorId: string; bookType: string; pageId: number; pageLabel: string; lastLineIndex?: number }) =>
+    mutationFn: (payload: {
+      studentId: string
+      tutorId: string
+      bookType: string
+      pageId: number
+      pageLabel: string
+      lastLineIndex?: number
+      surahName?: string | null
+      lastAyah?: number | null
+      revisionRange?: string | null
+    }) =>
       fetchJson('/api/bookmark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['bookmark', vars.studentId, vars.tutorId] })
+      qc.invalidateQueries({ queryKey: ['my-bookmark'] })
+      qc.invalidateQueries({ queryKey: ['student-dashboard'] })
     },
   })
 }

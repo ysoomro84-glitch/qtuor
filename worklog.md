@@ -1449,3 +1449,23 @@ Stage Summary:
 - Fix: Removed useEffect auto-sync, compute planType directly without state mutation during render
 - Student dashboard now loads successfully after login on Vercel deployment
 - Error boundary added to prevent future "This page couldn't load" without useful error info
+
+---
+Task ID: 6
+Agent: main
+Task: Fix Noorani Qaida crash + Premium Dashboard Redesigns
+
+Work Log:
+- Diagnosed "Unexpected token '<', "<!DOCTYPE "... is not valid JSON" error: caused by API routes returning HTML error pages on Vercel when Prisma DB is unavailable
+- Fixed fetchJson() in queries.ts to check content-type header before parsing JSON — prevents crash when server returns HTML
+- Fixed /api/lesson-progress/route.ts with DATABASE_UNAVAILABLE fallback + demo progress data for all demo accounts (noorani, quran, hareem, yasir)
+- Fixed /api/bookings/[id]/route.ts with DATABASE_UNAVAILABLE fallback so booking updates don't crash
+- Redesigned Student Dashboard with premium layout: full-width top bar (logo + search + notifications + profile with plan badge), left sidebar, Islamic greeting banner, wallet + instant class cards, dynamic Qaida/Quran workspace, weekly consistency streak, recording studio, upcoming classes, stats overview
+- Redesigned Teacher Dashboard with professional layout: full-width top bar (online status toggle + rating), left sidebar with "Top Rated" badge, KPI overview cards, live class timeline, quick performance marking & assignments with star rating + homework selector, earnings & payouts, credentials badges
+- All cards use rounded-2xl (16-20px border-radius), soft shadows, ample padding for premium minimal look
+- Build passed, pushed to GitHub/Vercel
+
+Stage Summary:
+- Root cause of Noorani Qaida crash: API routes without DATABASE_UNAVAILABLE fallbacks returned HTML error pages, which fetchJson couldn't parse as JSON
+- Both dashboards now have the premium khubsurat & minimal design per user's wireframe
+- 5 files changed: queries.ts, lesson-progress/route.ts, bookings/[id]/route.ts, student-dashboard.tsx, tutor-dashboard.tsx

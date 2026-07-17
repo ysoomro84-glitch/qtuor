@@ -9,7 +9,7 @@ import {
   GraduationCap, Loader2, AlertCircle, LogOut, BookOpen, Menu, X,
   ChevronRight, MessageSquare, BarChart3, Settings, Play, BookOpenCheck,
   Award, CreditCard, Banknote, Sparkles, FileText, Send,
-  Home, Bell, Crown, Zap,
+  Home, Bell, Crown, Zap, Bookmark, Save,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore, type ViewKey } from '@/lib/store'
@@ -19,6 +19,7 @@ import {
   useUpdateBooking,
   useRequestWithdrawal,
   useTutorWalletLedger,
+  useSaveBookmark,
 } from '@/lib/queries'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,7 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Avatar } from '@/components/shared/avatar'
 import { StarMedallion } from '@/components/brand/patterns'
-import { QtuorLogoLockup } from '@/components/brand/logo'
+import { QtuorLogo, QtuorLogoLockup } from '@/components/brand/logo'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -180,15 +181,10 @@ function TutorTopBar({
     >
       {/* Logo + Status */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: C.islamicBlue }}>
-            <BookOpen className="h-4.5 w-4.5 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-tight" style={{ color: C.islamicBlue }}>Qtuor</span>
-          <Badge className="text-[10px] text-white border-0 ml-1" style={{ backgroundColor: C.brightBlue }}>
-            LIVE
-          </Badge>
-        </div>
+        <QtuorLogo className="h-8" />
+        <Badge className="text-[10px] text-white border-0 ml-1" style={{ backgroundColor: C.brightBlue }}>
+          LIVE
+        </Badge>
 
         {/* Online/Offline toggle */}
         <button
@@ -248,10 +244,7 @@ function TutorSidebar({
     <div className="flex h-full flex-col" style={{ backgroundColor: C.deepNavy }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: C.islamicBlue }}>
-          <BookOpen className="h-5 w-5 text-white" />
-        </div>
-        <span className="text-lg font-bold text-white tracking-tight">Qtuor</span>
+        <QtuorLogo className="h-8" onDark />
         <Badge className="ml-auto text-[10px] text-white border-0" style={{ backgroundColor: C.brightBlue }}>
           Qari
         </Badge>
@@ -325,6 +318,7 @@ export function TutorDashboard() {
 
   const { data, isLoading } = useTutorDashboard()
   const updateBooking = useUpdateBooking()
+  const saveBookmark = useSaveBookmark()
 
   // Sidebar state
   const [activeNav, setActiveNav] = React.useState<SidebarKey>('overview')
@@ -337,6 +331,12 @@ export function TutorDashboard() {
   const [selectedStudentId, setSelectedStudentId] = React.useState<string>('')
   const [selectedRating, setSelectedRating] = React.useState(5)
   const [homeworkNote, setHomeworkNote] = React.useState('')
+
+  // ─── Save & End Class popup state ─────────────────────────────
+  const [endClassPopupOpen, setEndClassPopupOpen] = React.useState(false)
+  const [endClassBooking, setEndClassBooking] = React.useState<BookingItem | null>(null)
+  const [endClassSurah, setEndClassSurah] = React.useState('')
+  const [endClassAyah, setEndClassAyah] = React.useState('')
 
   // Withdrawal state
   const [withdrawAmount, setWithdrawAmount] = React.useState('')
@@ -406,6 +406,68 @@ export function TutorDashboard() {
   }
 
   // ─── Handle withdrawal ─────────────────────────────────────────
+  // ─── Open "Save & End Class" popup ────────────────────────────
+  const openEndClassPopup = (booking: BookingItem) => {
+    setEndClassBooking(booking)
+    setEndClassSurah('')
+    setEndClassAyah('')
+    setEndClassPopupOpen(true)
+  }
+
+  // ─── Save bookmark & end class ────────────────────────────────
+  const handleSaveAndEndClass = async () => {
+    if (!endClassBooking) return
+
+    const studentId = endClassBooking.studentId
+    const tutorId = endClassBooking.tutorId
+    const planTag = getPlanTag(endClassBooking.topic)
+    const bookType = planTag === 'Noorani Qaida' ? 'qaida' : 'quran'
+
+    let pageLabel = ''
+    let surahName: string | null = null
+    let lastAyah: number | null = null
+    let revisionRange: string | null = null
+
+    if (bookType === 'quran' && endClassSurah) {
+      const ayahNum = parseInt(endClassAyah) || 1
+      pageLabel = `Surah ${endClassSurah}, Ayah ${ayahNum}`
+      surahName = endClassSurah
+      lastAyah = ayahNum
+      // Auto-generate revision range: everything before this ayah
+      if (ayahNum > 1) {
+        revisionRange = `Surah ${endClassSurah}, Ayahs 1–${ayahNum}`
+      }
+    } else if (bookType === 'qaida') {
+      pageLabel = endClassSurah || endClassBooking.topic || 'Noorani Qaida'
+    } else {
+      pageLabel = endClassBooking.topic || 'Quran Class'
+    }
+
+    try {
+      // Save the bookmark
+      await saveBookmark.mutateAsync({
+        studentId,
+        tutorId,
+        bookType,
+        pageId: bookType === 'qaida' ? 1 : 2,
+        pageLabel,
+        lastLineIndex: lastAyah || 0,
+        surahName,
+        lastAyah,
+        revisionRange,
+      })
+
+      // Mark booking as completed
+      await updateBooking.mutateAsync({ id: endClassBooking.id, status: 'COMPLETED' })
+
+      toast.success('Class saved & ended. Student will resume from here next time!')
+      setEndClassPopupOpen(false)
+      setEndClassBooking(null)
+    } catch {
+      toast.error('Failed to save class progress')
+    }
+  }
+
   const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount)
     if (!amount || amount <= 0) {
@@ -592,29 +654,40 @@ export function TutorDashboard() {
                                 <Badge className="text-white border-0 shrink-0" style={{ backgroundColor: tagColor }}>
                                   {planTag}
                                 </Badge>
-                                {/* Launch Classroom button */}
-                                {isImminent ? (
-                                  <Button
-                                    className="text-white hover:opacity-90 shrink-0"
-                                    size="sm"
-                                    style={{ backgroundColor: C.teal, borderRadius: 12 }}
-                                    onClick={() => enterClassroom(booking)}
-                                  >
-                                    <Play className="h-3.5 w-3.5 mr-1" />
-                                    Launch Classroom
-                                  </Button>
-                                ) : (
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isImminent ? (
+                                    <Button
+                                      className="text-white hover:opacity-90"
+                                      size="sm"
+                                      style={{ backgroundColor: C.teal, borderRadius: 12 }}
+                                      onClick={() => enterClassroom(booking)}
+                                    >
+                                      <Play className="h-3.5 w-3.5 mr-1" />
+                                      Launch
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      style={{ borderColor: C.islamicBlue, color: C.islamicBlue, borderRadius: 12 }}
+                                      onClick={() => enterClassroom(booking)}
+                                    >
+                                      <Video className="h-3.5 w-3.5 mr-1" />
+                                      Open
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="shrink-0"
-                                    style={{ borderColor: C.islamicBlue, color: C.islamicBlue, borderRadius: 12 }}
-                                    onClick={() => enterClassroom(booking)}
+                                    className="text-white border-0"
+                                    style={{ backgroundColor: C.islamicBlue, borderRadius: 12 }}
+                                    onClick={() => openEndClassPopup(booking)}
                                   >
-                                    <Video className="h-3.5 w-3.5 mr-1" />
-                                    Launch Classroom
+                                    <Bookmark className="h-3.5 w-3.5 mr-1" />
+                                    Save & End
                                   </Button>
-                                )}
+                                </div>
                               </div>
                             )
                           })}
@@ -827,6 +900,127 @@ export function TutorDashboard() {
           </div>
         </main>
       </div>
+
+      {/* ═══ SAVE & END CLASS POPUP ═══ */}
+      <AnimatePresence>
+        {endClassPopupOpen && endClassBooking && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50"
+              onClick={() => setEndClassPopupOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="w-full max-w-lg border-0 shadow-2xl" style={{ borderRadius: 20 }} onClick={(e) => e.stopPropagation()}>
+                <CardHeader className="px-6 pt-6 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2" style={{ color: C.islamicBlue }}>
+                      <Bookmark className="h-5 w-5" />
+                      Where did the student stop today?
+                    </CardTitle>
+                    <button
+                      onClick={() => setEndClassPopupOpen(false)}
+                      className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="h-5 w-5" style={{ color: C.textMuted }} />
+                    </button>
+                  </div>
+                  <p className="text-sm mt-1" style={{ color: C.textMuted }}>
+                    Student: <strong style={{ color: C.textDark }}>{endClassBooking.student.name}</strong> &bull; Plan: <strong style={{ color: C.textDark }}>{getPlanTag(endClassBooking.topic)}</strong>
+                  </p>
+                </CardHeader>
+                <CardContent className="px-6 pb-6 space-y-5">
+                  {/* Surah / Lesson selector */}
+                  <div>
+                    <Label className="text-sm font-medium" style={{ color: C.textDark }}>
+                      {getPlanTag(endClassBooking.topic) === 'Noorani Qaida' ? 'Qaida Lesson' : 'Surah Name'}
+                    </Label>
+                    {getPlanTag(endClassBooking.topic) === 'Noorani Qaida' ? (
+                      <Select value={endClassSurah} onValueChange={setEndClassSurah}>
+                        <SelectTrigger className="mt-1.5 w-full" style={{ borderColor: C.border, borderRadius: 12 }}>
+                          <SelectValue placeholder="Select lesson..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {QAIDA_HOMEWORK_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select value={endClassSurah} onValueChange={setEndClassSurah}>
+                        <SelectTrigger className="mt-1.5 w-full" style={{ borderColor: C.border, borderRadius: 12 }}>
+                          <SelectValue placeholder="Select Surah..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {['Al-Fatihah', 'Al-Baqarah', 'Aal-i-Imran', 'An-Nisa', 'Al-Ma\'idah', 'Al-An\'am', 'Al-A\'raf', 'Al-Anfal', 'At-Tawbah', 'Yunus', 'Hud', 'Yusuf', 'Ar-Ra\'d', 'Ibrahim', 'Al-Hijr', 'An-Nahl', 'Al-Isra', 'Al-Kahf', 'Maryam', 'Ta-Ha', 'Al-Anbiya', 'Al-Hajj', 'Al-Mu\'minun', 'An-Nur', 'Al-Furqan', 'Ash-Shu\'ara', 'An-Naml', 'Al-Qasas', 'Al-Ankabut', 'Ar-Rum', 'Luqman', 'As-Sajdah', 'Al-Ahzab', 'Saba', 'Fatir', 'Ya-Sin', 'As-Saffat', 'Sad', 'Az-Zumar', 'Ghafir', 'Fussilat', 'Ash-Shura', 'Az-Zukhruf', 'Ad-Dukhan', 'Al-Jathiyah', 'Al-Ahqaf', 'Muhammad', 'Al-Fath', 'Al-Hujurat', 'Qaf', 'Adh-Dhariyat', 'At-Tur', 'An-Najm', 'Al-Qamar', 'Ar-Rahman', 'Al-Waqi\'ah', 'Al-Hadid', 'Al-Mulk', 'Al-Qalam', 'Al-Haqqah', 'Al-Ma\'arij', 'Nuh', 'Al-Jinn', 'Al-Muzzammil', 'Al-Muddaththir', 'Al-Qiyamah', 'Al-Insan', 'Al-Mursalat', 'An-Naba', 'An-Nazi\'at', 'Abasa', 'At-Takwir', 'Al-Infitar', 'Al-Mutaffifin', 'Al-Inshiqaq', 'Al-Buruj', 'At-Tariq', 'Al-A\'la', 'Al-Ghashiyah', 'Al-Fajr', 'Al-Balad', 'Ash-Shams', 'Al-Layl', 'Ad-Duha', 'Ash-Sharh', 'At-Tin', 'Al-Alaq', 'Al-Qadr', 'Al-Bayyinah', 'Az-Zalzalah', 'Al-Adiyat', 'Al-Qari\'ah', 'At-Takathur', 'Al-Asr', 'Al-Humazah', 'Al-Fil', 'Quraysh', 'Al-Ma\'un', 'Al-Kawthar', 'Al-Kafirun', 'An-Nasr', 'Al-Masad', 'Al-Ikhlas', 'Al-Falaq', 'An-Nas'].map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Ayah number (only for Quran) */}
+                  {getPlanTag(endClassBooking.topic) !== 'Noorani Qaida' && (
+                    <div>
+                      <Label className="text-sm font-medium" style={{ color: C.textDark }}>Ayah Number</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="286"
+                        className="mt-1.5"
+                        style={{ borderColor: C.border, borderRadius: 12 }}
+                        placeholder="e.g., 152"
+                        value={endClassAyah}
+                        onChange={(e) => setEndClassAyah(e.target.value)}
+                      />
+                      {endClassSurah && endClassAyah && (
+                        <div className="mt-2 rounded-xl p-3" style={{ backgroundColor: `${C.teal}10`, borderRadius: 12 }}>
+                          <p className="text-xs font-medium" style={{ color: C.teal }}>
+                            Auto-save: Next class will start from Surah {endClassSurah}, Ayah {parseInt(endClassAyah) + 1}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: C.textMuted }}>
+                            Revision (Sabqi): Surah {endClassSurah}, Ayahs 1–{endClassAyah}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      style={{ borderRadius: 12 }}
+                      onClick={() => setEndClassPopupOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 text-white hover:opacity-90"
+                      style={{ backgroundColor: C.islamicBlue, borderRadius: 12 }}
+                      onClick={handleSaveAndEndClass}
+                      disabled={getPlanTag(endClassBooking.topic) !== 'Noorani Qaida' ? !endClassSurah || !endClassAyah : !endClassSurah}
+                    >
+                      <Save className="h-4 w-4 mr-1.5" />
+                      Save & End Class
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

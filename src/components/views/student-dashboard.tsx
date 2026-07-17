@@ -12,12 +12,12 @@ import {
   BookOpenText, Headphones, Play, Target, MessageSquare, Mic, Volume2,
   BookMarked, CircleDot, Trophy, ChevronDown, Sun, Monitor, Settings, Award,
   Home, Menu, MessageCircle, Wallet, LayoutDashboard, Headset, Lock, Unlock,
-  MicOff, Send, Pause, Square, BellRing,
+  MicOff, Send, Pause, Square, BellRing, Bookmark, RotateCcw, FastForward,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { useAppStore, type ViewKey } from '@/lib/store'
-import { useStudentDashboard, useUpdateBooking, useBookings } from '@/lib/queries'
+import { useStudentDashboard, useUpdateBooking, useBookings, useMyBookmark } from '@/lib/queries'
 import { SUBJECTS } from '@/lib/constants'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar } from '@/components/shared/avatar'
 import { BismillahHeader, StarMedallion, IslamicPatternBand } from '@/components/brand/patterns'
-import { QtuorLogoLockup } from '@/components/brand/logo'
+import { QtuorLogo, QtuorLogoLockup } from '@/components/brand/logo'
 
 // ─── Brand Color Tokens (Deep Islamic Blue theme — NO green hovers) ───
 const C = {
@@ -218,10 +218,7 @@ function TopBar({
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: C.islamicBlue }}>
-          <BookOpen className="h-4.5 w-4.5 text-white" />
-        </div>
-        <span className="text-lg font-bold tracking-tight" style={{ color: C.islamicBlue }}>Qtuor</span>
+        <QtuorLogo className="h-8" />
       </div>
 
       {/* Search bar (desktop) */}
@@ -285,10 +282,7 @@ function StudentSidebar({
     <div className="flex h-full flex-col" style={{ backgroundColor: C.deepNavy }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: C.islamicBlue }}>
-          <BookOpen className="h-5 w-5 text-white" />
-        </div>
-        <span className="text-lg font-bold text-white tracking-tight">Qtuor</span>
+        <QtuorLogo className="h-8" onDark />
       </div>
 
       {/* Navigation */}
@@ -356,6 +350,7 @@ export function StudentDashboard() {
   const setPlanType = useAppStore((s) => s.setPlanType)
 
   const { data, isLoading } = useStudentDashboard()
+  const { data: bookmarkData } = useMyBookmark()
   const updateBooking = useUpdateBooking()
 
   // Sidebar state
@@ -378,6 +373,19 @@ export function StudentDashboard() {
   const progress = dashboard?.progress ?? []
   const stats = dashboard?.stats
   const subscription = dashboard?.subscription
+
+  // ─── Bookmark / Resume data ──────────────────────────────────
+  const bookmark = bookmarkData?.bookmark as {
+    id?: string
+    bookType?: string
+    pageLabel?: string
+    lastLineIndex?: number
+    surahName?: string | null
+    lastAyah?: number | null
+    revisionRange?: string | null
+    status?: string
+  } | null
+  const hasResumePoint = !!bookmark?.pageLabel
 
   // Compute class credits remaining
   const classesUsed = stats?.completedBookings ?? 0
@@ -544,6 +552,96 @@ export function StudentDashboard() {
                     </div>
                   </div>
                 </motion.div>
+
+                {/* ═══════════════════════════════════════════════════════
+                    ROW 1.5: RESUME LEARNING — Auto-Bookmark Card
+                    ═══════════════════════════════════════════════════════ */}
+                {hasResumePoint && (
+                  <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={0.5}>
+                    <Card
+                      className="border-0 shadow-md cursor-pointer transition-all hover:shadow-lg overflow-hidden"
+                      style={{ borderRadius: 20, background: `linear-gradient(135deg, ${C.islamicBlue}, ${C.deepNavy})` }}
+                      onClick={() => {
+                        // Navigate to classroom where auto-resume happens
+                        if (upcoming) {
+                          setActiveBookingId(upcoming.id)
+                          setView('classroom')
+                        } else {
+                          setView('marketplace')
+                        }
+                      }}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-5">
+                          {/* Big action icon */}
+                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 shrink-0">
+                            <RotateCcw className="h-8 w-8 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Automatic Resume</p>
+                            <h2 className="text-xl font-bold text-white mt-1">Resume from where you left off</h2>
+                            <div className="mt-3 flex items-center gap-3 flex-wrap">
+                              <Badge className="text-white border-0 gap-1" style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10 }}>
+                                <Bookmark className="h-3 w-3" />
+                                {bookmark?.pageLabel}
+                              </Badge>
+                              {bookmark?.bookType === 'quran' && bookmark?.surahName && (
+                                <Badge className="text-white border-0 gap-1" style={{ backgroundColor: C.brightBlue, borderRadius: 10 }}>
+                                  <BookOpen className="h-3 w-3" />
+                                  Next: Surah {bookmark.surahName}, Ayah {(bookmark.lastAyah ?? 0) + 1}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="hidden sm:flex items-center gap-2">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+                              <FastForward className="h-6 w-6 text-white" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Revision Splitting Widget */}
+                        {bookmark?.bookType === 'quran' && bookmark?.revisionRange && (
+                          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            {/* Current Sabaq */}
+                            <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16 }}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Sparkles className="h-4 w-4 text-white" />
+                                <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Current Sabaq (New)</span>
+                              </div>
+                              <p className="text-sm font-bold text-white">
+                                {bookmark.surahName ? `Surah ${bookmark.surahName}, Ayah ${(bookmark.lastAyah ?? 0) + 1}` : bookmark.pageLabel}
+                              </p>
+                              <p className="text-xs text-white/50 mt-1">Starts from where you stopped</p>
+                            </div>
+                            {/* Sabqi (Revision) */}
+                            <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16 }}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <BookMarked className="h-4 w-4 text-white/70" />
+                                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Sabqi (Revision)</span>
+                              </div>
+                              <p className="text-sm font-semibold text-white/90">
+                                {bookmark.revisionRange}
+                              </p>
+                              <p className="text-xs text-white/40 mt-1">Auto-loaded for today's revision</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {bookmark?.bookType === 'qaida' && (
+                          <div className="mt-5 rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16 }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles className="h-4 w-4 text-white" />
+                              <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Current Lesson</span>
+                            </div>
+                            <p className="text-sm font-bold text-white">{bookmark.pageLabel}</p>
+                            <p className="text-xs text-white/50 mt-1">Continue from where you stopped last time</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
 
                 {/* ═══════════════════════════════════════════════════════
                     ROW 2: Wallet Balance + Instant Class
