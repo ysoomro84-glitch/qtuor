@@ -1215,13 +1215,6 @@ function StudentDashboardInner() {
   // Use store plan type if user switched manually, otherwise detect from subscription
   const planType = storePlanType !== 'both' ? storePlanType : detectedPlanType
 
-  // Sync plan type to store when detected
-  React.useEffect(() => {
-    if (detectedPlanType !== storePlanType) {
-      setPlanType(detectedPlanType)
-    }
-  }, [detectedPlanType, storePlanType, setPlanType])
-
   const handlePlanSwitch = (pt: 'qaida' | 'quran' | 'both') => {
     setPlanType(pt)
   }
